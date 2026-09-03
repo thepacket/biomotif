@@ -590,8 +590,11 @@ RULES
 - Prefer (iupac ...) over a bare literal whenever the site is degenerate.
 - For protein patterns always use (prosite "..."), never iupac.
 - The sequence loaded now is ${kind}. Write a motif for that alphabet.
-- If an existing library motif already answers the request, return its name in "library"
-  and still give the equivalent expression in "motif".
+- "library" is for the case where ONE existing motif answers the whole request on its
+  own. If the request adds anything that motif does not have — a second element, a
+  distance, a bound, a mismatch budget, a narrowed alternative — leave "library" empty
+  and write the composition. Most requests are compositions; naming a near relative
+  there is wrong and unhelpful.
 
 LIBRARY NAMES YOU MAY REFER TO
 ${names.join(" ")}
@@ -604,7 +607,7 @@ Reply with JSON only, no prose around it:
  "name": "<a short kebab-case name>",
  "explanation": "<two sentences: what it matches and why it is written that way>",
  "caveats": "<one sentence on how often this would match by chance, or empty>",
- "library": "<an existing library motif name, or empty>"}`;
+ "library": "<a library motif that alone answers the whole request, otherwise empty>"}`;
 }
 
 async function ask() {

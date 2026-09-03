@@ -141,6 +141,25 @@ test("every example group is well formed and names its alphabet", async () => {
   }
 });
 
+test("an example asks for more than a motif the library already has", async () => {
+  /* A single named motif needs no assistant: you click it in the library list.
+     Every example must therefore add something — a second element, a distance,
+     a bound, a mismatch budget, a narrowed alternative. This is the property
+     that broke once already: the first set of examples was written out of the
+     library's own subject matter, so the assistant's honest answer to nearly
+     all of them was "you already have this". */
+  const { PROMPT_GROUPS } = await import("../src/prompts.js");
+  const asksForMore = new RegExp([
+    "\\d+ to \\d+",                                              // an explicit range
+    "\\b(within|apart|inside|followed|preceded|upstream|downstream|before|after|then",
+    "between|either side|exactly|at least|allowing|whose|rather than|in that order",
+    "twice|second|two |three |four |pair|tandem|purely|mismatch|shorter|longer|copies",
+    "encode|starts with|ends in|repeat of|run of|every third|consecutive|all acidic)\\b",
+  ].join("|"), "i");
+  const bare = PROMPT_GROUPS.flatMap((g) => g.prompts).filter((p) => !asksForMore.test(p));
+  assert.deepEqual(bare, [], "these read as a plain library lookup, not a request worth asking a model");
+});
+
 test("the examples cover every alphabet and reach the whole language", async () => {
   const { PROMPT_GROUPS } = await import("../src/prompts.js");
   const alphabets = new Set(PROMPT_GROUPS.map((g) => g.alphabet));
