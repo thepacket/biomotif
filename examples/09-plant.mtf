@@ -1,6 +1,6 @@
 ;;; 09-plant.mtf -- a cis-element census across a set of plant promoters,
 ;;; the way you would start reading a co-expression cluster.
-;;; Run with:  motif run examples/09-plant.mtf
+;;; Run with:  biomotif run examples/09-plant.mtf
 
 (use-library 'plant)
 

@@ -1,7 +1,7 @@
 ;;; 03-cloning.mtf -- plan a cloning experiment on a synthetic plasmid.
 ;;; Finds unique restriction sites, digests, checks for internal sites in an
 ;;; insert, and verifies the tag construct.
-;;; Run with:  motif run examples/03-cloning.mtf
+;;; Run with:  biomotif run examples/03-cloning.mtf
 
 (use-library 'restriction 'tags 'prokaryote 'protein)
 

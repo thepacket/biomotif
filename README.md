@@ -1,4 +1,4 @@
-# Motif
+# Biomotif
 
 A small Lisp for pattern matching over DNA, RNA and protein sequences, with a
 library of nearly 500 documented biological motifs.
@@ -24,6 +24,12 @@ sigma70-promoter  operon  120-149  +  TTGACAATAGATGCAGAAGTGCTTATAAT
 ## Install
 
 ```bash
+pip install biomotif
+```
+
+or from a checkout:
+
+```bash
 pip install -e '.[dev]'
 ```
 
@@ -32,19 +38,19 @@ Python 3.10 or newer. No dependencies.
 ## Try it
 
 ```bash
-motif repl
-motif library --category crispr
-motif describe loxp
-motif find EcoRI data/plasmid.fa
-motif digest data/plasmid.fa EcoRI HindIII --circular
-motif scan data/promoters.fa --category core-promoter
-motif run examples/01-tour.mtf
+biomotif repl
+biomotif library --category crispr
+biomotif describe loxp
+biomotif find EcoRI data/plasmid.fa
+biomotif digest data/plasmid.fa EcoRI HindIII --circular
+biomotif scan data/promoters.fa --category core-promoter
+biomotif run examples/01-tour.mtf
 ```
 
 An expression works anywhere a motif name does:
 
 ```bash
-motif find '(seq "TATA" (gap 20 30) (iupac "YYANWYY"))' data/promoters.fa
+biomotif find '(seq "TATA" (gap 20 30) (iupac "YYANWYY"))' data/promoters.fa
 ```
 
 ## The motif language
@@ -183,11 +189,11 @@ MIT.
 ## Layout
 
 ```
-motif/lisp/      reader, evaluator, core builtins
-motif/seq/       alphabets, translation, alignment, FASTA and FASTQ
-motif/motifs/    combinators, search, PROSITE, PWMs, restriction, registry
-motif/lib/       the prelude and the seven library files
-motif/bindings.py  the Lisp names for everything above
+biomotif/lisp/      reader, evaluator, core builtins
+biomotif/seq/       alphabets, translation, alignment, FASTA and FASTQ
+biomotif/motifs/    combinators, search, PROSITE, PWMs, restriction, registry
+biomotif/lib/       the prelude and the seven library files
+biobiomotif/bindings.py  the Lisp names for everything above
 examples/        twelve worked scripts
 data/            synthetic sequences with known answers
 tools/           regenerate the data and the library index

@@ -1,5 +1,5 @@
 ;;; 06-rna.mtf -- RNA elements in 3' UTRs: structure, stability and
-;;; modification. Run with:  motif run examples/06-rna.mtf
+;;; modification. Run with:  biomotif run examples/06-rna.mtf
 
 (use-library 'rna 'eukaryote)
 

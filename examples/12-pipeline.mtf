@@ -1,6 +1,6 @@
 ;;; 12-pipeline.mtf -- an end-to-end analysis: read sequences, window them,
 ;;; filter, search, summarise, and write a table.
-;;; Run with:  motif run examples/12-pipeline.mtf
+;;; Run with:  biomotif run examples/12-pipeline.mtf
 
 (use-library 'all)
 

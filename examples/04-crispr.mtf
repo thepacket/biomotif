@@ -1,5 +1,5 @@
 ;;; 04-crispr.mtf -- find and rank CRISPR guide RNAs in a target region.
-;;; Run with:  motif run examples/04-crispr.mtf
+;;; Run with:  biomotif run examples/04-crispr.mtf
 
 (use-library 'tags 'eukaryote)
 

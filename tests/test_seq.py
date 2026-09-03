@@ -2,9 +2,9 @@
 
 import pytest
 
-from motif.seq import alphabet as A
-from motif.seq import io as IO
-from motif.seq import ops as O
+from biomotif.seq import alphabet as A
+from biomotif.seq import io as IO
+from biomotif.seq import ops as O
 
 
 def test_complement_and_revcomp():
@@ -147,7 +147,7 @@ def test_orfs_searches_the_reverse_strand():
 
 
 def test_fasta_roundtrip(tmp_path):
-    from motif.seq.record import Record
+    from biomotif.seq.record import Record
     recs = [Record("a", "ACGT" * 30, description="first"), Record("b", "TTTT")]
     path = tmp_path / "x.fa"
     IO.write_fasta(str(path), recs)
@@ -165,7 +165,7 @@ def test_fasta_skips_comments():
 
 
 def test_record_sub_keeps_offsets():
-    from motif.seq.record import Record
+    from biomotif.seq.record import Record
     r = Record("chr", "AAAACCCCGGGG")
     s = r.sub(4, 8)
     assert s.seq == "CCCC"

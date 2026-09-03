@@ -7,8 +7,8 @@ import random
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from motif.seq.alphabet import revcomp  # noqa: E402
-from motif.seq.ops import translate  # noqa: E402
+from biomotif.seq.alphabet import revcomp  # noqa: E402
+from biomotif.seq.ops import translate  # noqa: E402
 
 DATA = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 os.makedirs(DATA, exist_ok=True)

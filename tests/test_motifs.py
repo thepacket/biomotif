@@ -2,11 +2,11 @@
 
 import pytest
 
-from motif.motifs import combinators as C
-from motif.motifs.prosite import prosite
-from motif.motifs.restriction import digest, overhang, parse_site
-from motif.motifs.search import matches_full, search
-from motif.seq.record import Record
+from biomotif.motifs import combinators as C
+from biomotif.motifs.prosite import prosite
+from biomotif.motifs.restriction import digest, overhang, parse_site
+from biomotif.motifs.search import matches_full, search
+from biomotif.seq.record import Record
 
 
 def spans(matches):
@@ -152,7 +152,7 @@ def test_hairpin_requires_real_pairing():
 
 def test_hairpin_matches_a_real_stem_loop():
     stem = "GGGCGC"
-    from motif.seq.alphabet import revcomp
+    from biomotif.seq.alphabet import revcomp
     seq = "AA" + stem + "TTTT" + revcomp(stem) + "AA"
     m = C.Hairpin(4, 8, C.CharRun(C.Any(), 3, 6))
     hit = search(m, seq, strand="+")[0]
@@ -294,7 +294,7 @@ def test_digest_type_iis_cuts_outside_the_site():
 
 
 def test_digest_finds_non_palindromic_sites_on_both_strands():
-    from motif.seq.alphabet import revcomp
+    from biomotif.seq.alphabet import revcomp
     seq = "AAAAA" + revcomp("GGTCTC") + "AAAAAAAAAA"
     d = digest(seq, [("BsaI", parse_site("GGTCTC(1/5)"))])
     assert d["sites"] and d["sites"][0]["strand"] == "-"

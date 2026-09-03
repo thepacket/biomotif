@@ -1,7 +1,7 @@
 ;;; 11-custom.mtf -- writing your own motifs, combinators and macros.
 ;;; This is the part a regular expression cannot do: motifs are ordinary
 ;;; values, so you can compute them.
-;;; Run with:  motif run examples/11-custom.mtf
+;;; Run with:  biomotif run examples/11-custom.mtf
 
 (use-library 'restriction)
 

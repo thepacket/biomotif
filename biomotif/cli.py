@@ -18,11 +18,11 @@ def repl(interp) -> int:
         import readline  # noqa: F401  (line editing when available)
     except ImportError:
         pass
-    print(f"Motif {__version__}. A Lisp for sequence patterns. (use-library 'all) loads the motif library; Ctrl-D exits.")
+    print(f"Biomotif {__version__}. A Lisp for sequence patterns. (use-library 'all) loads the motif library; Ctrl-D exits.")
     buffer = ""
     while True:
         try:
-            line = input("motif> " if not buffer else "   ... ")
+            line = input("biomotif> " if not buffer else "      ... ")
         except EOFError:
             print()
             return 0
@@ -65,8 +65,8 @@ def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     if argv and argv[0].endswith(".mtf") and os.path.exists(argv[0]):
         argv = ["run"] + argv
-    parser = argparse.ArgumentParser(prog="motif", description="A Lisp for DNA, RNA and protein motifs.")
-    parser.add_argument("--version", action="version", version=f"motif {__version__}")
+    parser = argparse.ArgumentParser(prog="biomotif", description="A Lisp for DNA, RNA and protein motifs.")
+    parser.add_argument("--version", action="version", version=f"biomotif {__version__}")
     sub = parser.add_subparsers(dest="command")
     p_run = sub.add_parser("run", help="run a .mtf script")
     p_run.add_argument("file")

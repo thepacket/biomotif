@@ -1,5 +1,5 @@
 ;;; 01-tour.mtf -- a tour of the language and the matching engine.
-;;; Run with:  motif run examples/01-tour.mtf
+;;; Run with:  biomotif run examples/01-tour.mtf
 
 (heading "Sequences are strings, records carry a name and an offset")
 

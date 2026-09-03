@@ -1,6 +1,6 @@
 ;;; 07-protein.mtf -- annotate proteins: modification sites, targeting
 ;;; signals, catalytic motifs and protease susceptibility.
-;;; Run with:  motif run examples/07-protein.mtf
+;;; Run with:  biomotif run examples/07-protein.mtf
 
 (use-library 'protein 'tags)
 

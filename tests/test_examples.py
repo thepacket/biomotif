@@ -7,8 +7,8 @@ import sys
 
 import pytest
 
-from motif.cli import main
-from motif.interpreter import make_interpreter
+from biomotif.cli import main
+from biomotif.interpreter import make_interpreter
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 EXAMPLES = sorted((ROOT / "examples").glob("*.mtf"))
@@ -35,7 +35,7 @@ def test_example_runs(path, monkeypatch, capsys):
 
 @pytest.mark.parametrize("path", DATA, ids=lambda p: p.stem)
 def test_data_file_parses(path):
-    from motif.seq.io import read_fasta
+    from biomotif.seq.io import read_fasta
     recs = read_fasta(str(path))
     assert recs
     for r in recs:
@@ -106,7 +106,7 @@ def test_cli_reports_a_bad_file(monkeypatch, capsys):
 
 
 def test_module_entry_point():
-    r = subprocess.run([sys.executable, "-m", "motif", "--version"],
+    r = subprocess.run([sys.executable, "-m", "biomotif", "--version"],
                        cwd=ROOT, capture_output=True, text=True)
     assert r.returncode == 0
-    assert "motif" in r.stdout
+    assert "biomotif" in r.stdout

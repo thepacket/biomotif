@@ -1,5 +1,5 @@
 ;;; 10-orfs.mtf -- reading frames, genetic codes and codon usage.
-;;; Run with:  motif run examples/10-orfs.mtf
+;;; Run with:  biomotif run examples/10-orfs.mtf
 
 (use-library 'prokaryote)
 

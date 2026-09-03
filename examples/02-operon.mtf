@@ -1,7 +1,7 @@
 ;;; 02-operon.mtf -- annotate a bacterial operon from end to end.
 ;;; Finds the promoter, the ribosome binding sites, the open reading frames
 ;;; and the terminator, then draws them on the sequence.
-;;; Run with:  motif run examples/02-operon.mtf
+;;; Run with:  biomotif run examples/02-operon.mtf
 
 (use-library 'prokaryote)
 

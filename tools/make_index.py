@@ -5,9 +5,9 @@ import sys
 import textwrap
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from motif.interpreter import make_interpreter          # noqa: E402
-from motif.motifs.registry import REGISTRY, categories  # noqa: E402
-from motif.motifs.restriction import overhang           # noqa: E402
+from biomotif.interpreter import make_interpreter          # noqa: E402
+from biomotif.motifs.registry import REGISTRY, categories  # noqa: E402
+from biomotif.motifs.restriction import overhang           # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "docs", "LIBRARY.md")
@@ -56,7 +56,7 @@ with open(OUT, "w") as f:
         if not group:
             continue
         f.write(f"## {TITLES[src]}\n\n")
-        f.write(f"Defined in `motif/lib/{src}`.\n\n")
+        f.write(f"Defined in `biomotif/lib/{src}`.\n\n")
 
         if src == "restriction.mtf":
             enzymes = sorted((e for e in group if e.meta.get("site")), key=lambda e: e.name.lower())

@@ -1,6 +1,6 @@
 ;;; 05-gene-structure.mtf -- work out the exon and intron structure of a
 ;;; eukaryotic gene from its splicing signals, then translate the result.
-;;; Run with:  motif run examples/05-gene-structure.mtf
+;;; Run with:  biomotif run examples/05-gene-structure.mtf
 
 (use-library 'eukaryote)
 

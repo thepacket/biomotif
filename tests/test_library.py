@@ -2,12 +2,12 @@
 
 import pytest
 
-from motif.interpreter import make_interpreter
-from motif.motifs.registry import REGISTRY, entries
-from motif.motifs.restriction import parse_site
-from motif.motifs.search import search
-from motif.seq.alphabet import revcomp
-from motif.seq.record import Record
+from biomotif.interpreter import make_interpreter
+from biomotif.motifs.registry import REGISTRY, entries
+from biomotif.motifs.restriction import parse_site
+from biomotif.motifs.search import search
+from biomotif.seq.alphabet import revcomp
+from biomotif.seq.record import Record
 
 
 # Loaded at import time so that parametrised tests can enumerate the registry.
@@ -150,7 +150,7 @@ def test_pts1_must_be_at_the_c_terminus(loaded):
 
 def test_iron_responsive_element_needs_a_real_stem(loaded):
     m = REGISTRY["iron-responsive-element"].matcher
-    from motif.seq.alphabet import revcomp as rc
+    from biomotif.seq.alphabet import revcomp as rc
     stem = "GGGGC"
     assert search(m, Record("s", stem + "CAGTGT" + rc(stem)), strand="+")
     assert not search(m, Record("s", "AAAAA" + "CAGTGT" + "AAAAA"), strand="+")

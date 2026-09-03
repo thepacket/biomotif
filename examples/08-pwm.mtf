@@ -1,6 +1,6 @@
 ;;; 08-pwm.mtf -- position weight matrices: build one from aligned sites,
 ;;; see what it scores, and compare it with a consensus string.
-;;; Run with:  motif run examples/08-pwm.mtf
+;;; Run with:  biomotif run examples/08-pwm.mtf
 
 (use-library 'eukaryote)
 

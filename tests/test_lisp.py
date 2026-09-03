@@ -2,9 +2,9 @@
 
 import pytest
 
-from motif.lisp import parse, parse_all, to_string
-from motif.lisp.reader import balanced
-from motif.lisp.types import LispError, Symbol
+from biomotif.lisp import parse, parse_all, to_string
+from biomotif.lisp.reader import balanced
+from biomotif.lisp.types import LispError, Symbol
 
 
 def test_reader_atoms():

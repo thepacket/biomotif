@@ -16,7 +16,7 @@ A motif marked *template* matches almost anywhere and is skipped by `scan` unles
 
 ## Bacterial and archaeal elements
 
-Defined in `motif/lib/prokaryote.mtf`.
+Defined in `biomotif/lib/prokaryote.mtf`.
 
 ### attenuation
 
@@ -340,7 +340,7 @@ it to insert sequencing adapters.
 
 ## Animal and fungal elements
 
-Defined in `motif/lib/eukaryote.mtf`.
+Defined in `biomotif/lib/eukaryote.mtf`.
 
 ### core-promoter
 
@@ -839,7 +839,7 @@ The minimal Kozak context: a purine three bases before ATG and a G after it.
 
 ## Plant cis-regulatory elements
 
-Defined in `motif/lib/plant.mtf`.
+Defined in `biomotif/lib/plant.mtf`.
 
 ### centromere
 
@@ -1199,7 +1199,7 @@ vertebrates prefer at +4.
 
 ## RNA elements
 
-Defined in `motif/lib/rna.mtf`.
+Defined in `biomotif/lib/rna.mtf`.
 
 ### ires
 
@@ -1541,7 +1541,7 @@ elongation.
 
 ## Protein motifs
 
-Defined in `motif/lib/protein.mtf`.
+Defined in `biomotif/lib/protein.mtf`.
 
 ### binding-site
 
@@ -2125,7 +2125,7 @@ NPIR-type vacuolar sorting determinant of plant and yeast proteins.
 
 ## Tags, vectors and laboratory sequences
 
-Defined in `motif/lib/tags.mtf`.
+Defined in `biomotif/lib/tags.mtf`.
 
 ### adapter
 
@@ -2494,7 +2494,7 @@ begins.
 
 ## Restriction enzymes
 
-Defined in `motif/lib/restriction.mtf`.
+Defined in `biomotif/lib/restriction.mtf`.
 
 | Enzyme | Site | Cut | Ends |
 |---|---|---|---|

@@ -5,7 +5,7 @@ import pytest
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
-from motif.interpreter import make_interpreter  # noqa: E402
+from biomotif.interpreter import make_interpreter  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
