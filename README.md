@@ -1,5 +1,7 @@
 # Biomotif
 
+**[biomotif.fly.dev](https://biomotif.fly.dev)**
+
 A small Lisp for pattern matching over DNA, RNA and protein sequences, with a
 library of nearly 500 documented biological motifs.
 
@@ -268,8 +270,15 @@ fly deploy
 ```
 
 That builds the Dockerfile on Fly's remote builder — Docker does not need to be
-running locally — and starts one machine. Every later deploy is the same
-command. The app is then at `https://<app>.fly.dev`.
+running locally. Every later deploy is the same command. The app is then at
+`https://<app>.fly.dev`.
+
+Fly starts two machines on a first deploy, for zero-downtime deploys rather
+than for load. One is plenty for a static page:
+
+```bash
+fly scale count 1
+```
 
 The machine sleeps when idle (`auto_stop_machines = 'suspend'` with
 `min_machines_running = 0`), so an unvisited deployment costs nothing and the
