@@ -104,23 +104,6 @@
         <span class="hint spacer">a pattern is an expression, so it can be read, edited and checked</span>
       </header>
       <div class="panel-body">
-        <div class="composer" id="composer" hidden>
-          <input id="ask-input" class="field" type="text"
-                 placeholder="Describe a motif in plain English — a Shine-Dalgarno 6 to 10 bases before a start codon">
-          <button class="btn btn-primary" id="ask-btn" type="button">Write it</button>
-        </div>
-        <p class="hint" id="assistant-note" hidden>
-          Writing motifs from a description needs a model. Open Assistant settings below and
-          paste an <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">OpenRouter key</a>,
-          or browse the library on the left and write the expression yourself.
-        </p>
-        <div class="assistant-out" id="assistant-out" hidden></div>
-
-        <details class="help" id="prompt-examples">
-          <summary><span id="prompt-count">Example requests</span></summary>
-          <div class="examples" id="examples"></div>
-        </details>
-
         <details class="help" id="assistant-settings" hidden>
           <summary>Assistant settings</summary>
           <div class="settings">
@@ -138,6 +121,25 @@
             </p>
           </div>
         </details>
+
+        <details class="help" id="prompt-examples">
+          <summary><span id="prompt-count">Example requests</span></summary>
+          <div class="examples" id="examples"></div>
+        </details>
+
+        <div class="composer" id="composer" hidden>
+          <input id="ask-input" class="field" type="text"
+                 placeholder="Describe a motif in plain English — a CCAAT box 40 to 90 bases upstream of a TATA box">
+          <button class="btn btn-primary" id="ask-btn" type="button">Write it</button>
+        </div>
+
+        <p class="hint" id="assistant-note" hidden>
+          Writing motifs from a description needs a model. Open Assistant settings above and
+          paste an <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">OpenRouter key</a>,
+          or browse the library on the left and write the expression yourself.
+        </p>
+
+        <div class="assistant-out" id="assistant-out" hidden></div>
 
         <textarea id="motif-source" class="field" rows="3" spellcheck="false" autocomplete="off"></textarea>
         <div class="motif-row">
