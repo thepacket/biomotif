@@ -1,0 +1,119 @@
+<title>Biomotif</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;1,400&display=swap">
+<style>/*__CSS__*/</style>
+
+<header class="masthead">
+  <div class="wordmark">
+    <b>Biomotif</b>
+    <span>sequence patterns</span>
+  </div>
+  <div class="masthead-stats">
+    <div class="stat"><b id="seq-stat">—</b><span id="seq-stat-label">no sequence</span></div>
+    <div class="stat"><b id="lib-stat">0</b><span>motifs</span></div>
+    <div class="stat"><b id="cat-stat">0</b><span>categories</span></div>
+  </div>
+</header>
+
+<div class="workbench">
+  <aside class="rail panel">
+    <header>
+      <h2>Library</h2>
+      <span class="hint spacer" id="rail-count"></span>
+    </header>
+    <div class="panel-body">
+      <input id="library-search" class="field" type="search" placeholder="Search name, description or reference" autocomplete="off">
+      <div class="chips" id="category-chips"></div>
+    </div>
+    <div class="entry-list" id="entry-list"></div>
+  </aside>
+
+  <div class="work">
+    <section class="panel">
+      <header>
+        <h2>Sequence</h2>
+        <span class="hint spacer">paste FASTA or a bare sequence, load a file, or start from an example</span>
+      </header>
+      <div class="panel-body">
+        <div class="seq-controls">
+          <button class="btn btn-sm" type="button" data-demo="operon">Bacterial operon</button>
+          <button class="btn btn-sm" type="button" data-demo="plasmid">pSYN1 plasmid</button>
+          <button class="btn btn-sm" type="button" data-demo="gene">Spliced gene</button>
+          <button class="btn btn-sm" type="button" data-demo="utr3">3' UTRs</button>
+          <button class="btn btn-sm" type="button" data-demo="proteins">Proteins</button>
+          <label class="btn btn-sm" for="seq-file">Open file…<input id="seq-file" type="file" accept=".fa,.fasta,.fna,.faa,.txt,.seq" hidden></label>
+        </div>
+        <div class="record-list" id="record-list"></div>
+        <details class="help">
+          <summary>Paste your own</summary>
+          <div>
+            <textarea id="seq-input" class="field" rows="4" placeholder="&gt;my_construct&#10;ATGGCTAGCTTGACAATAGATGCAGAAGTGCTTATAAT…"></textarea>
+            <div class="motif-row"><button class="btn btn-sm" id="seq-load" type="button">Load sequence</button></div>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <section class="panel">
+      <header>
+        <h2>Motif</h2>
+        <span class="hint spacer">a pattern is an expression, so it can be read, edited and checked</span>
+      </header>
+      <div class="panel-body">
+        <div class="composer" id="composer" hidden>
+          <input id="ask-input" class="field" type="text"
+                 placeholder="Describe a motif in plain English — a Shine-Dalgarno 6 to 10 bases before a start codon">
+          <button class="btn btn-primary" id="ask-btn" type="button">Write it</button>
+        </div>
+        <div class="assistant-out" id="assistant-out" hidden></div>
+
+        <textarea id="motif-source" class="field" rows="3" spellcheck="false" autocomplete="off"></textarea>
+        <div class="motif-row">
+          <button class="btn btn-primary" id="run-btn" type="button">Find matches</button>
+          <button class="btn" id="scan-btn" type="button">Scan whole library</button>
+          <button class="btn" id="orf-btn" type="button">Find ORFs</button>
+          <button class="btn" id="digest-btn" type="button">Digest</button>
+          <label class="hint"><input type="checkbox" id="circular"> circular</label>
+          <span class="motif-status spacer" id="motif-status"></span>
+        </div>
+        <div class="doc-card" id="doc-card" hidden></div>
+
+        <details class="help">
+          <summary>The pattern language</summary>
+          <div>
+            <dl class="grammar">
+              <dt>"GAATTC"</dt><dd>a literal, on both strands; U and T are the same base</dd>
+              <dt>(iupac "TATAWAWR")</dt><dd>a nucleotide consensus with ambiguity codes</dd>
+              <dt>(prosite "N-{P}-[ST]-{P}")</dt><dd>a protein pattern in PROSITE syntax</dd>
+              <dt>(seq A B C)</dt><dd>the parts one after another</dd>
+              <dt>(alt A B C)</dt><dd>any one of them</dd>
+              <dt>(gap 15 19)</dt><dd>15 to 19 of anything</dd>
+              <dt>(run "CT" 8 20)</dt><dd>a run of 8 to 20 pyrimidines</dd>
+              <dt>(repeat M 3 6)</dt><dd>M repeated 3 to 6 times</dd>
+              <dt>(named 'box M)</dt><dd>M, reported separately under that label</dd>
+              <dt>(fuzzy 2 M)</dt><dd>a fixed-width M with up to 2 mismatches</dd>
+              <dt>(edit 1 "GAATTC")</dt><dd>up to 1 substitution, insertion or deletion</dd>
+              <dt>(hairpin (stem 5 10) (loop 3 8))</dt><dd>a stem-loop whose stem really base-pairs</dd>
+              <dt>at-start &nbsp; at-end</dt><dd>sequence boundaries</dd>
+            </dl>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <section class="panel">
+      <header>
+        <h2>Results</h2>
+        <button class="btn btn-sm spacer" id="export-btn" type="button" disabled>Export TSV</button>
+      </header>
+      <div class="panel-body">
+        <div class="summary" id="summary"></div>
+        <div class="panel-note" id="results-note" hidden></div>
+        <div id="results-body"></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script type="module">/*__JS__*/</script>

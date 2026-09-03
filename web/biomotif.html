@@ -1,0 +1,2168 @@
+<title>Biomotif</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;1,400&display=swap">
+<style>/* Biomotif — a workbench, so information design over ornament.
+   The four base colours are the ones every sequence viewer uses; the petrol
+   accent is chosen because it collides with none of them, so a selection
+   highlight never fights base colouring. */
+
+:root {
+  --ground: #f4f8f8;
+  --surface: #ffffff;
+  --surface-2: #eef4f4;
+  --ink: #0f1a1e;
+  --ink-soft: #33474e;
+  --muted: #5c7078;
+  --line: #d7e3e5;
+  --line-strong: #b9cbcf;
+  --accent: #0b6c75;
+  --accent-ink: #ffffff;
+  --accent-soft: #d6ecee;
+  --good: #1f7a4d;
+  --warn: #9a6410;
+  --crit: #a8332e;
+  --base-a: #21804a;
+  --base-c: #2358b4;
+  --base-g: #a2620f;
+  --base-t: #b03631;
+  --shadow: 0 1px 2px rgba(15, 26, 30, .06), 0 8px 24px -16px rgba(15, 26, 30, .28);
+  --radius: 7px;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --serif: "IBM Plex Serif", Georgia, serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #0d1416;
+    --surface: #141e22;
+    --surface-2: #1a262b;
+    --ink: #dfebee;
+    --ink-soft: #b6c9ce;
+    --muted: #8299a1;
+    --line: #23343a;
+    --line-strong: #33474e;
+    --accent: #3fb6bf;
+    --accent-ink: #06272a;
+    --accent-soft: #123037;
+    --good: #4fbf7b;
+    --warn: #d9a441;
+    --crit: #e8736c;
+    --base-a: #4fbf7b;
+    --base-c: #6699ee;
+    --base-g: #dfa54c;
+    --base-t: #ec7169;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 28px -18px rgba(0, 0, 0, .8);
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #0d1416; --surface: #141e22; --surface-2: #1a262b;
+  --ink: #dfebee; --ink-soft: #b6c9ce; --muted: #8299a1;
+  --line: #23343a; --line-strong: #33474e;
+  --accent: #3fb6bf; --accent-ink: #06272a; --accent-soft: #123037;
+  --good: #4fbf7b; --warn: #d9a441; --crit: #e8736c;
+  --base-a: #4fbf7b; --base-c: #6699ee; --base-g: #dfa54c; --base-t: #ec7169;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 28px -18px rgba(0,0,0,.8);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input, textarea, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+/* ------------------------------------------------------------------ header */
+
+.masthead {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  padding: 12px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; z-index: 20;
+}
+.wordmark { display: flex; align-items: baseline; gap: 9px; margin-right: 4px; }
+.wordmark b { font-size: 17px; font-weight: 600; letter-spacing: -.015em; }
+.wordmark span {
+  font-family: var(--mono); font-size: 10.5px; color: var(--muted);
+  letter-spacing: .06em; text-transform: uppercase;
+}
+.masthead-stats { display: flex; gap: 18px; margin-left: auto; flex-wrap: wrap; }
+.stat { display: flex; flex-direction: column; line-height: 1.25; }
+.stat b { font-family: var(--mono); font-size: 14px; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; }
+
+/* ---------------------------------------------------------------- layout */
+
+.workbench {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  gap: 16px;
+  padding: 16px 20px 48px;
+  align-items: start;
+  max-width: 1560px;
+  margin: 0 auto;
+}
+.work { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.panel > header {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+}
+.panel > header h2 {
+  margin: 0; font-size: 11px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--ink-soft);
+}
+.panel > header .spacer { margin-left: auto; }
+.panel-body { padding: 14px; }
+.panel-note { font-size: 12px; color: var(--muted); }
+
+/* ---------------------------------------------------------------- controls */
+
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 11px;
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--line-strong); border-radius: 5px;
+  font-size: 12.5px; cursor: pointer;
+  transition: background .12s, border-color .12s;
+}
+.btn:hover:not(:disabled) { background: var(--surface-2); border-color: var(--accent); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn-primary {
+  background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 500;
+}
+.btn-primary:hover:not(:disabled) { filter: brightness(1.08); background: var(--accent); }
+.btn-sm { padding: 3px 8px; font-size: 11.5px; }
+
+.field {
+  width: 100%; padding: 7px 9px;
+  background: var(--ground); color: var(--ink);
+  border: 1px solid var(--line-strong); border-radius: 5px;
+}
+.field::placeholder { color: var(--muted); }
+textarea.field { resize: vertical; font-family: var(--mono); font-size: 12.5px; line-height: 1.55; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip {
+  padding: 2px 8px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 20px;
+  font-size: 11px; color: var(--ink-soft); cursor: pointer; white-space: nowrap;
+}
+.chip:hover { border-color: var(--accent); }
+.chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
+/* ------------------------------------------------------------------- rail */
+
+.rail { position: sticky; top: 74px; max-height: calc(100vh - 92px); display: flex; flex-direction: column; }
+.rail .panel-body { display: flex; flex-direction: column; gap: 9px; padding-bottom: 9px; }
+.entry-list { overflow-y: auto; border-top: 1px solid var(--line); flex: 1; min-height: 220px; }
+.entry {
+  display: block; width: 100%; text-align: left;
+  padding: 8px 14px;
+  background: none; border: 0; border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+.entry:hover, .entry:focus-visible { background: var(--surface-2); }
+.entry[aria-current="true"] { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+.entry-name { font-family: var(--mono); font-size: 12.5px; color: var(--ink); }
+.entry-meta { display: flex; gap: 6px; align-items: center; margin-top: 2px; }
+.entry-cat { font-size: 10px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+.entry-doc {
+  font-family: var(--serif); font-size: 12px; color: var(--muted);
+  margin-top: 3px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.tag-template {
+  font-size: 9.5px; padding: 0 5px; border-radius: 3px;
+  background: var(--surface-2); border: 1px solid var(--line); color: var(--muted);
+  text-transform: uppercase; letter-spacing: .05em;
+}
+
+/* --------------------------------------------------------------- sequence */
+
+.seq-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+.record-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.record-btn {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+  padding: 5px 10px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 5px;
+  cursor: pointer; text-align: left;
+}
+.record-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.record-btn b { font-family: var(--mono); font-size: 12px; font-weight: 500; }
+.record-btn span { font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------------------------ motif */
+
+.composer { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 12px; }
+.composer .field { flex: 1; }
+.assistant-out {
+  margin-bottom: 12px; padding: 10px 12px;
+  background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 5px;
+  font-size: 12.5px;
+}
+.assistant-out h3 { margin: 0 0 4px; font-size: 12px; font-weight: 600; }
+.assistant-out p { margin: 0 0 6px; font-family: var(--serif); color: var(--ink-soft); }
+.assistant-out .warn-line { color: var(--warn); font-family: var(--sans); font-size: 12px; }
+
+.motif-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+.motif-status { font-size: 12px; font-family: var(--mono); }
+.motif-status.ok { color: var(--good); }
+.motif-status.bad { color: var(--crit); }
+
+.doc-card {
+  margin-top: 12px; padding: 10px 12px;
+  background: var(--ground); border-left: 3px solid var(--accent); border-radius: 0 5px 5px 0;
+}
+.doc-card h3 { margin: 0 0 3px; font-family: var(--mono); font-size: 13px; font-weight: 500; }
+.doc-card p { margin: 0 0 6px; font-family: var(--serif); font-size: 13px; color: var(--ink-soft); max-width: 68ch; }
+.doc-card .ref { font-size: 11.5px; color: var(--muted); }
+
+/* ---------------------------------------------------------------- results */
+
+.summary { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.summary-item {
+  padding: 5px 10px; background: var(--surface-2);
+  border: 1px solid var(--line); border-radius: 5px;
+  font-size: 12px;
+}
+.summary-item b { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+.scroller { overflow-x: auto; }
+
+table.hits { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+table.hits th {
+  text-align: left; padding: 5px 9px;
+  font-size: 10px; text-transform: uppercase; letter-spacing: .07em;
+  color: var(--muted); font-weight: 600;
+  border-bottom: 1px solid var(--line-strong); white-space: nowrap;
+}
+table.hits td { padding: 5px 9px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.hits tr:hover td { background: var(--surface-2); }
+table.hits .num { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+table.hits .mono { font-family: var(--mono); word-break: break-all; }
+table.hits .name { font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+.strand { font-family: var(--mono); font-weight: 600; }
+.strand.fwd { color: var(--good); }
+.strand.rev { color: var(--warn); }
+.binds { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.binds b { color: var(--ink-soft); font-weight: 500; }
+
+.track { font-family: var(--mono); font-size: 12.5px; line-height: 1.45; white-space: pre; }
+.track .gutter { color: var(--muted); user-select: none; }
+.track .A { color: var(--base-a); } .track .C { color: var(--base-c); }
+.track .G { color: var(--base-g); } .track .T { color: var(--base-t); }
+.track mark {
+  background: var(--accent-soft); color: inherit;
+  border-bottom: 2px solid var(--accent); border-radius: 2px 2px 0 0;
+}
+.track .lane { color: var(--accent); }
+.track .skip { color: var(--muted); font-style: italic; }
+
+.empty { padding: 26px 14px; text-align: center; color: var(--muted); font-family: var(--serif); font-size: 13px; }
+
+/* ------------------------------------------------------------------ misc */
+
+.hint { font-size: 11.5px; color: var(--muted); }
+.hint code { font-family: var(--mono); font-size: 11px; background: var(--surface-2); padding: 1px 4px; border-radius: 3px; }
+.grammar { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 12px; margin: 0; }
+.grammar dt { font-family: var(--mono); color: var(--ink); white-space: nowrap; }
+.grammar dd { margin: 0; color: var(--muted); }
+details.help { margin-top: 10px; }
+details.help > summary { cursor: pointer; font-size: 12px; color: var(--accent); }
+details.help > div { padding-top: 8px; }
+
+@media (max-width: 900px) {
+  .workbench { grid-template-columns: 1fr; padding: 12px; }
+  .rail { position: static; max-height: none; }
+  .entry-list { max-height: 300px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<header class="masthead">
+  <div class="wordmark">
+    <b>Biomotif</b>
+    <span>sequence patterns</span>
+  </div>
+  <div class="masthead-stats">
+    <div class="stat"><b id="seq-stat">—</b><span id="seq-stat-label">no sequence</span></div>
+    <div class="stat"><b id="lib-stat">0</b><span>motifs</span></div>
+    <div class="stat"><b id="cat-stat">0</b><span>categories</span></div>
+  </div>
+</header>
+
+<div class="workbench">
+  <aside class="rail panel">
+    <header>
+      <h2>Library</h2>
+      <span class="hint spacer" id="rail-count"></span>
+    </header>
+    <div class="panel-body">
+      <input id="library-search" class="field" type="search" placeholder="Search name, description or reference" autocomplete="off">
+      <div class="chips" id="category-chips"></div>
+    </div>
+    <div class="entry-list" id="entry-list"></div>
+  </aside>
+
+  <div class="work">
+    <section class="panel">
+      <header>
+        <h2>Sequence</h2>
+        <span class="hint spacer">paste FASTA or a bare sequence, load a file, or start from an example</span>
+      </header>
+      <div class="panel-body">
+        <div class="seq-controls">
+          <button class="btn btn-sm" type="button" data-demo="operon">Bacterial operon</button>
+          <button class="btn btn-sm" type="button" data-demo="plasmid">pSYN1 plasmid</button>
+          <button class="btn btn-sm" type="button" data-demo="gene">Spliced gene</button>
+          <button class="btn btn-sm" type="button" data-demo="utr3">3' UTRs</button>
+          <button class="btn btn-sm" type="button" data-demo="proteins">Proteins</button>
+          <label class="btn btn-sm" for="seq-file">Open file…<input id="seq-file" type="file" accept=".fa,.fasta,.fna,.faa,.txt,.seq" hidden></label>
+        </div>
+        <div class="record-list" id="record-list"></div>
+        <details class="help">
+          <summary>Paste your own</summary>
+          <div>
+            <textarea id="seq-input" class="field" rows="4" placeholder="&gt;my_construct&#10;ATGGCTAGCTTGACAATAGATGCAGAAGTGCTTATAAT…"></textarea>
+            <div class="motif-row"><button class="btn btn-sm" id="seq-load" type="button">Load sequence</button></div>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <section class="panel">
+      <header>
+        <h2>Motif</h2>
+        <span class="hint spacer">a pattern is an expression, so it can be read, edited and checked</span>
+      </header>
+      <div class="panel-body">
+        <div class="composer" id="composer" hidden>
+          <input id="ask-input" class="field" type="text"
+                 placeholder="Describe a motif in plain English — a Shine-Dalgarno 6 to 10 bases before a start codon">
+          <button class="btn btn-primary" id="ask-btn" type="button">Write it</button>
+        </div>
+        <div class="assistant-out" id="assistant-out" hidden></div>
+
+        <textarea id="motif-source" class="field" rows="3" spellcheck="false" autocomplete="off"></textarea>
+        <div class="motif-row">
+          <button class="btn btn-primary" id="run-btn" type="button">Find matches</button>
+          <button class="btn" id="scan-btn" type="button">Scan whole library</button>
+          <button class="btn" id="orf-btn" type="button">Find ORFs</button>
+          <button class="btn" id="digest-btn" type="button">Digest</button>
+          <label class="hint"><input type="checkbox" id="circular"> circular</label>
+          <span class="motif-status spacer" id="motif-status"></span>
+        </div>
+        <div class="doc-card" id="doc-card" hidden></div>
+
+        <details class="help">
+          <summary>The pattern language</summary>
+          <div>
+            <dl class="grammar">
+              <dt>"GAATTC"</dt><dd>a literal, on both strands; U and T are the same base</dd>
+              <dt>(iupac "TATAWAWR")</dt><dd>a nucleotide consensus with ambiguity codes</dd>
+              <dt>(prosite "N-{P}-[ST]-{P}")</dt><dd>a protein pattern in PROSITE syntax</dd>
+              <dt>(seq A B C)</dt><dd>the parts one after another</dd>
+              <dt>(alt A B C)</dt><dd>any one of them</dd>
+              <dt>(gap 15 19)</dt><dd>15 to 19 of anything</dd>
+              <dt>(run "CT" 8 20)</dt><dd>a run of 8 to 20 pyrimidines</dd>
+              <dt>(repeat M 3 6)</dt><dd>M repeated 3 to 6 times</dd>
+              <dt>(named 'box M)</dt><dd>M, reported separately under that label</dd>
+              <dt>(fuzzy 2 M)</dt><dd>a fixed-width M with up to 2 mismatches</dd>
+              <dt>(edit 1 "GAATTC")</dt><dd>up to 1 substitution, insertion or deletion</dd>
+              <dt>(hairpin (stem 5 10) (loop 3 8))</dt><dd>a stem-loop whose stem really base-pairs</dd>
+              <dt>at-start &nbsp; at-end</dt><dd>sequence boundaries</dd>
+            </dl>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <section class="panel">
+      <header>
+        <h2>Results</h2>
+        <button class="btn btn-sm spacer" id="export-btn" type="button" disabled>Export TSV</button>
+      </header>
+      <div class="panel-body">
+        <div class="summary" id="summary"></div>
+        <div class="panel-note" id="results-note" hidden></div>
+        <div id="results-body"></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script type="module">const BIOMOTIF_LIBRARY = {"prokaryote.mtf": ";;; prokaryote.mtf -- bacterial promoters, ribosome binding sites, terminators,\n;;; operators and chromosome landmarks. Consensus sequences are exactly that:\n;;; consensus. Real sites deviate, which is what (fuzzy k ...) and PWMs are for.\n\n;; ---------------------------------------------------------------- promoters\n\n(defmotif minus-35\n  \"Sigma-70 -35 element. The consensus TTGACA is rarely matched exactly;\n   most functional -35 boxes carry one or two mismatches.\"\n  (iupac \"TTGACA\")\n  :category 'promoter :alphabet 'dna :example \"TTGACA\"\n  :ref \"Harley & Reynolds 1987, Nucleic Acids Res 15:2343\"\n  :scan #f)\n\n(defmotif minus-10\n  \"Sigma-70 -10 element, the Pribnow box. Consensus TATAAT; positions T-12 and\n   T-7 are the most conserved and the least tolerant of substitution.\"\n  (iupac \"TATAAT\")\n  :category 'promoter :alphabet 'dna :example \"TATAAT\"\n  :ref \"Pribnow 1975, PNAS 72:784\"\n  :scan #f)\n\n(defmotif sigma70-promoter\n  \"A full sigma-70 promoter: -35 and -10 boxes separated by 15 to 19 bases,\n   17 being optimal. Allows one mismatch in each box, which is what most\n   real E. coli promoters look like.\"\n  (seq (named 'box35 (fuzzy 1 (iupac \"TTGACA\")))\n       (named 'spacer (gap 15 19))\n       (named 'box10 (fuzzy 1 (iupac \"TATAAT\"))))\n  :category 'promoter :alphabet 'dna :example \"TTGACAgcgtacgtacgtacgTATAAT\"\n  :ref \"Hawley & McClure 1983, Nucleic Acids Res 11:2237\")\n\n(defmotif extended-minus-10\n  \"Extended -10 promoter. A TG dinucleotide one base upstream of the -10 box\n   can compensate for a missing or weak -35 element.\"\n  (seq \"TG\" (gap 1 1) (fuzzy 1 (iupac \"TATAAT\")))\n  :category 'promoter :alphabet 'dna :example \"TGnTATAAT\"\n  :ref \"Mitchell et al. 2003, Nucleic Acids Res 31:4689\"\n  :scan #f)\n\n(defmotif up-element\n  \"UP element: an AT-rich sequence upstream of -35 bound by the alpha subunit\n   C-terminal domain. Boosts transcription up to 30-fold at rrn promoters.\"\n  (iupac \"AAAWWTWTTTTNNNAAANNN\")\n  :category 'promoter :alphabet 'dna :example \"AAAATTATTTTTGCAAAAGC\"\n  :ref \"Estrem et al. 1998, Genes Dev 12:2134\")\n\n(defmotif discriminator\n  \"GC-rich discriminator between the -10 box and the start site. Its length and\n   composition set the promoter's sensitivity to ppGpp during the stringent response.\"\n  (seq (fuzzy 1 (iupac \"TATAAT\")) (run \"GC\" 4 9) (any-of \"AG\"))\n  :category 'promoter :alphabet 'dna\n  :scan #f)\n\n(defmotif sigma54-promoter\n  \"Sigma-54 (RpoN) promoter, recognised at -24/-12 rather than -35/-10.\n   Needs an enhancer-bound activator and ATP hydrolysis to open.\"\n  (seq (named 'box24 (iupac \"TGGCAC\")) (gap 5 5) (named 'box12 (iupac \"TTGCW\")))\n  :category 'promoter :alphabet 'dna :example \"TGGCACgcgtaTTGCA\"\n  :ref \"Barrios et al. 1999, Nucleic Acids Res 27:4305\")\n\n(defmotif sigma32-minus-10\n  \"Sigma-32 (RpoH) -10 element of the heat shock regulon.\"\n  (fuzzy 1 (iupac \"CCCCATNTA\"))\n  :category 'promoter :alphabet 'dna :example \"CCCCATTTA\"\n  :scan #f)\n\n(defmotif sigma38-minus-10\n  \"Sigma-38 (RpoS) -10 element of the general stress regulon. A C at -13\n   distinguishes many RpoS-dependent promoters from sigma-70 ones.\"\n  (iupac \"CTATACT\")\n  :category 'promoter :alphabet 'dna :example \"CTATACT\"\n  :scan #f)\n\n(defmotif sigma28-promoter\n  \"Sigma-28 (FliA) flagellar promoter: -35 TAAA and -10 GCCGATAA.\"\n  (seq (iupac \"TAAA\") (gap 13 17) (iupac \"GCCGATAA\"))\n  :category 'promoter :alphabet 'dna)\n\n;; ------------------------------------------------------- translation signals\n\n(defmotif shine-dalgarno\n  \"Shine-Dalgarno sequence, complementary to the 3' end of 16S rRNA (anti-SD CCUCC).\n   The core AGGAGG sits 5 to 10 bases upstream of the start codon.\"\n  (iupac \"AGGAGG\")\n  :category 'rbs :alphabet 'dna :example \"AGGAGG\"\n  :ref \"Shine & Dalgarno 1974, PNAS 71:1342\"\n  :scan #f)\n\n(defmotif ribosome-binding-site\n  \"A complete prokaryotic RBS: a Shine-Dalgarno core, a 4 to 12 base spacer\n   and a start codon. One mismatch is allowed in the SD, as most genes have.\"\n  (seq (named 'sd (fuzzy 1 (iupac \"AGGAGG\")))\n       (named 'spacer (gap 4 12))\n       (named 'start (alt \"ATG\" \"GTG\" \"TTG\")))\n  :category 'rbs :alphabet 'dna :example \"AGGAGGtataccATG\"\n  :ref \"Ringquist et al. 1992, Mol Microbiol 6:1219\")\n\n(defmotif strong-rbs\n  \"The strong synthetic RBS used in many expression vectors: a perfect\n   Shine-Dalgarno with an 8-base spacer to ATG.\"\n  (seq \"AAGGAGG\" (gap 5 9) \"ATG\")\n  :category 'rbs :alphabet 'dna :example \"AAGGAGGatatacatATG\")\n\n(defmotif start-codon\n  \"Bacterial start codon. ATG is used by roughly 80% of E. coli genes,\n   GTG by 12% and TTG by 8%.\"\n  (alt \"ATG\" \"GTG\" \"TTG\")\n  :category 'coding :alphabet 'dna :example \"ATG\"\n  :scan #f)\n\n(defmotif stop-codon\n  \"Any of the three stop codons. TAA is the most common in E. coli.\"\n  (alt \"TAA\" \"TAG\" \"TGA\")\n  :category 'coding :alphabet 'dna :example \"TAA\"\n  :scan #f)\n\n;; ------------------------------------------------------------- terminators\n\n(defmotif rho-independent-terminator\n  \"Intrinsic (Rho-independent) terminator: a GC-rich hairpin followed by a\n   run of uridines. The hairpin stalls RNA polymerase and the weak rU:dA\n   hybrid lets the transcript fall off.\"\n  (seq (named 'hairpin (hairpin (stem 5 10) (loop 3 8)))\n       (named 'utail (run \"T\" 4 9)))\n  :category 'terminator :alphabet 'dna :example \"GCGCCcgatGGCGCTTTTTTT\"\n  :ref \"d'Aubenton Carafa et al. 1990, J Mol Biol 216:835\")\n\n(defmotif t7-terminator\n  \"The T7 phage transcription terminator carried by pET vectors.\"\n  (literal \"CTAGCATAACCCCTTGGGGCCTCTAAACGGGTCTTGAGGGGTTTTTTG\")\n  :category 'terminator :alphabet 'dna)\n\n(defmotif rrnb-t1-terminator\n  \"The rrnB T1 terminator, the standard strong terminator in E. coli vectors.\"\n  (literal \"AGCCCGCCTAATGAGCGGGCTTTTTTTT\")\n  :category 'terminator :alphabet 'dna)\n\n;; --------------------------------------------------------------- operators\n\n(defmotif lac-operator\n  \"The primary lac operator O1, a near-palindrome bound by the Lac repressor.\n   Two auxiliary operators O2 and O3 loop the DNA with it.\"\n  (fuzzy 2 (literal \"AATTGTGAGCGGATAACAATT\"))\n  :category 'operator :alphabet 'dna :example \"AATTGTGAGCGGATAACAATT\"\n  :ref \"Gilbert & Maxam 1973, PNAS 70:3581\")\n\n(defmotif lac-operator-symmetric\n  \"The perfectly palindromic lac operator Osym, which binds LacI more tightly\n   than the natural O1 and is used in tightly repressed expression vectors.\"\n  (literal \"AATTGTGAGCGCTCACAATT\")\n  :category 'operator :alphabet 'dna)\n\n(defmotif crp-site\n  \"CRP (CAP) binding site. The core is a TGTGA half-site, six bases, then the\n   inverted TCACA. Binding bends the DNA by about 90 degrees.\"\n  (seq (named 'left \"TGTGA\") (gap 6 6) (named 'right \"TCACA\"))\n  :category 'operator :alphabet 'dna :example \"TGTGAtctagaTCACA\"\n  :ref \"Berg & von Hippel 1988, J Mol Biol 200:709\")\n\n(defmotif tet-operator\n  \"tetO2, bound by the Tet repressor and released by tetracycline or\n   doxycycline. The basis of Tet-On and Tet-Off systems.\"\n  (literal \"TCCCTATCAGTGATAGAGA\")\n  :category 'operator :alphabet 'dna)\n\n(defmotif lexa-box\n  \"LexA box (SOS box). LexA represses the SOS regulon until RecA-stimulated\n   autocleavage removes it after DNA damage.\"\n  (seq \"CTGT\" (gap 8 8) \"ACAG\")\n  :category 'operator :alphabet 'dna :example \"CTGTatatatatACAG\"\n  :ref \"Wertman & Mount 1985, J Bacteriol 163:376\")\n\n(defmotif fur-box\n  \"Fur box, the iron-responsive operator bound by Fur loaded with Fe(II).\"\n  (fuzzy 3 (literal \"GATAATGATAATCATTATC\"))\n  :category 'operator :alphabet 'dna)\n\n(defmotif trp-operator\n  \"trp operator, overlapping the trp promoter and bound by TrpR charged\n   with tryptophan.\"\n  (fuzzy 2 (literal \"ACTAGTTAACTAGTACGCAAGTT\"))\n  :category 'operator :alphabet 'dna)\n\n(defmotif ara-i1\n  \"araI1 half-site of the araBAD operator, bound by AraC.\"\n  (fuzzy 2 (literal \"AGCGGATCCTACCTGACGCT\"))\n  :category 'operator :alphabet 'dna)\n\n;; ------------------------------------------------- nucleoid and chromosome\n\n(defmotif dnaa-box\n  \"DnaA box. Five of them in oriC nucleate replication initiation.\"\n  (iupac \"TTATNCACA\")\n  :category 'replication :alphabet 'dna :example \"TTATCCACA\"\n  :ref \"Fuller et al. 1984, Cell 38:889\"\n  :scan #f)\n\n(defmotif oric-13mer\n  \"The AT-rich 13-mer repeat in the DNA unwinding element of oriC,\n   where the duplex first opens.\"\n  (iupac \"GATCTNTTNTTTT\")\n  :category 'replication :alphabet 'dna :example \"GATCTGTTCTTTT\"\n  :scan #f)\n\n(defmotif chi-site\n  \"Chi site. RecBCD switches from destructive nuclease to recombinase when it\n   runs into one, which is why Chi sites are over-represented on the leading strand.\"\n  (literal \"GCTGGTGG\")\n  :category 'recombination :alphabet 'dna :example \"GCTGGTGG\"\n  :ref \"Smith et al. 1981, Cell 24:429\")\n\n(defmotif ihf-site\n  \"Integration host factor binding site. IHF bends DNA by up to 160 degrees\n   and organises the nucleoid as well as phage lambda integration.\"\n  (iupac \"WATCAANNNNTTR\")\n  :category 'nucleoid :alphabet 'dna :example \"TATCAAGCATTTA\"\n  :scan #f)\n\n(defmotif fis-site\n  \"Fis binding site. Fis is the most abundant nucleoid protein in fast growth\n   and activates rRNA promoters.\"\n  (iupac \"GNTYAAAWTTTRANC\")\n  :category 'nucleoid :alphabet 'dna\n  :scan #f)\n\n(defmotif ter-site\n  \"Ter site, bound by Tus to form a replication fork trap that permits\n   forks to pass in one direction only.\"\n  (iupac \"GTTGTAACTAAAT\")\n  :category 'replication :alphabet 'dna\n  :scan #f)\n\n(defmotif rep-element\n  \"Repetitive extragenic palindromic (REP) element, a short palindrome present\n   in hundreds of copies in enterobacterial intergenic regions.\"\n  (fuzzy 2 (literal \"GCCGGATGCGGCGTGAACGCCTTATCCGGCCTAC\"))\n  :category 'repeat :alphabet 'dna)\n\n(defmotif tn5-mosaic-end\n  \"Tn5 mosaic end, the 19 bp sequence recognised by Tn5 transposase.\n   Nextera and ATAC-seq use it to insert sequencing adapters.\"\n  (literal \"CTGTCTCTTATACACATCT\")\n  :category 'transposon :alphabet 'dna :example \"CTGTCTCTTATACACATCT\")\n\n(defmotif is1-inverted-repeat\n  \"Terminal inverted repeat of IS1, the smallest and most common E. coli\n   insertion sequence.\"\n  (fuzzy 2 (literal \"GGTGATGCTGCCAACTTACT\"))\n  :category 'transposon :alphabet 'dna)\n\n(defmotif crispr-repeat-ecoli\n  \"Direct repeat of the E. coli type I-E CRISPR array. Spacers of about 32 bases\n   sit between copies.\"\n  (fuzzy 2 (literal \"GTGTTCCCCGCGCCAGCGGGGATAAACCG\"))\n  :category 'crispr :alphabet 'dna)\n\n(defmotif riboswitch-tpp-core\n  \"Conserved core of the thiamine pyrophosphate riboswitch aptamer,\n   the most widespread riboswitch class.\"\n  (seq (iupac \"CTGAGA\") (gap 20 60) (iupac \"CTTGAACC\"))\n  :category 'riboswitch :alphabet 'dna\n  :scan #f)\n\n(defmotif attenuator-trp-leader\n  \"The tandem tryptophan codons in the trpL leader peptide. Slow translation\n   here when tryptophan is scarce lets the antiterminator form.\"\n  (seq \"TGG\" \"TGG\")\n  :category 'attenuation :alphabet 'dna :example \"TGGTGG\"\n  :scan #f)\n", "eukaryote.mtf": ";;; eukaryote.mtf -- core promoter elements, transcription factor binding sites,\n;;; splicing signals and chromosome landmarks for animals and fungi.\n\n;; --------------------------------------------------------- core promoter\n\n(defmotif tata-box\n  \"TATA box, about 30 bases upstream of the start site in the third of human\n   promoters that have one. Bound by TBP, which bends the DNA by 80 degrees.\"\n  (iupac \"TATAWAWR\")\n  :category 'core-promoter :alphabet 'dna :example \"TATAAAAG\"\n  :ref \"Bucher 1990, J Mol Biol 212:563\")\n\n(defmotif tata-box-strict\n  \"The narrow TATA consensus TATAAA, without the degenerate flanks.\"\n  (literal \"TATAAA\")\n  :category 'core-promoter :alphabet 'dna :example \"TATAAA\")\n\n(defmotif initiator\n  \"Initiator element (Inr). The A is the transcription start site itself.\n   Human consensus is pyrimidine-pyrimidine-A-N-T/A-pyrimidine-pyrimidine.\"\n  (iupac \"YYANWYY\")\n  :category 'core-promoter :alphabet 'dna :example \"TCAGTCT\"\n  :ref \"Smale & Baltimore 1989, Cell 57:103\"\n  :scan #f)\n\n(defmotif dpe\n  \"Downstream promoter element, 28 to 32 bases past the start site.\n   Works with the Inr in TATA-less promoters, especially in Drosophila.\"\n  (iupac \"RGWYVT\")\n  :category 'core-promoter :alphabet 'dna :example \"AGACGT\"\n  :ref \"Burke & Kadonaga 1996, Genes Dev 10:711\"\n  :scan #f)\n\n(defmotif bre-upstream\n  \"TFIIB recognition element upstream of the TATA box; sets promoter direction.\"\n  (iupac \"SSRCGCC\")\n  :category 'core-promoter :alphabet 'dna :example \"GGACGCC\"\n  :scan #f)\n\n(defmotif bre-downstream\n  \"TFIIB recognition element downstream of the TATA box.\"\n  (iupac \"RTDKKKK\")\n  :category 'core-promoter :alphabet 'dna\n  :scan #f)\n\n(defmotif mte\n  \"Motif ten element, downstream of the start site; acts with the Inr\n   independently of the TATA box.\"\n  (iupac \"CSARCSSAACGS\")\n  :category 'core-promoter :alphabet 'dna\n  :scan #f)\n\n(defmotif caat-box\n  \"CCAAT box, typically 60 to 100 bases upstream, bound by NF-Y or C/EBP.\"\n  (literal \"CCAAT\")\n  :category 'core-promoter :alphabet 'dna :example \"CCAAT\"\n  :scan #f)\n\n(defmotif gc-box\n  \"GC box, the Sp1 binding site of housekeeping promoters. Often present\n   in several copies in CpG island promoters.\"\n  (iupac \"KRGGCKRRK\")\n  :category 'core-promoter :alphabet 'dna :example \"GGGGCGGGG\"\n  :scan #f)\n\n(defmotif tct-motif\n  \"TCT motif, the polypyrimidine initiator of ribosomal protein genes,\n   which replaces the ordinary Inr in that class of promoters.\"\n  (iupac \"YYCTTTYY\")\n  :category 'core-promoter :alphabet 'dna\n  :scan #f)\n\n(defmotif tata-inr-promoter\n  \"A canonical TATA-plus-Inr core promoter: TATA box, 18 to 30 bases,\n   then the initiator around the start site.\"\n  (seq (named 'tata (iupac \"TATAWAWR\")) (named 'spacer (gap 18 30)) (named 'inr (iupac \"YYANWYY\")))\n  :category 'core-promoter :alphabet 'dna)\n\n;; ------------------------------------------------------------ translation\n\n(defmotif kozak\n  \"Kozak sequence. The purine at -3 and the G at +4 matter most; a strong\n   Kozak has both, an adequate one has just the -3 purine.\"\n  (iupac \"GCCRCCATGG\")\n  :category 'translation :alphabet 'dna :example \"GCCACCATGG\"\n  :ref \"Kozak 1987, Nucleic Acids Res 15:8125\")\n\n(defmotif kozak-core\n  \"The minimal Kozak context: a purine three bases before ATG and a G after it.\"\n  (seq (any-of \"AG\") (gap 2 2) \"ATG\" \"G\")\n  :category 'translation :alphabet 'dna :example \"ACCATGG\"\n  :scan #f)\n\n(defmotif poly-a-signal\n  \"Canonical polyadenylation signal AATAAA, 10 to 30 bases upstream of the\n   cleavage site. About 70% of human genes use it, another 15% use ATTAAA.\"\n  (literal \"AATAAA\")\n  :category 'polyadenylation :alphabet 'dna :example \"AATAAA\"\n  :ref \"Proudfoot 2011, Genes Dev 25:1770\")\n\n(defmotif poly-a-signal-variant\n  \"The two main polyadenylation signals together, AATAAA and ATTAAA.\"\n  (alt \"AATAAA\" \"ATTAAA\")\n  :category 'polyadenylation :alphabet 'dna)\n\n(defmotif poly-a-site\n  \"A complete poly(A) site: the AATAAA hexamer, a spacer and the GU-rich\n   downstream element that CstF binds.\"\n  (seq (named 'hexamer (alt \"AATAAA\" \"ATTAAA\"))\n       (named 'spacer (gap 10 30))\n       (named 'dse (iupac \"YGTGTTYY\")))\n  :category 'polyadenylation :alphabet 'dna)\n\n;; ---------------------------------------------------------------- splicing\n\n(defmotif splice-donor\n  \"5' splice site (donor). The GT at the start of the intron is nearly\n   invariant; the flanking bases pair with U1 snRNA.\"\n  (seq (named 'exon (iupac \"MAG\")) (named 'intron (iupac \"GTRAGT\")))\n  :category 'splicing :alphabet 'dna :example \"CAGGTAAGT\"\n  :ref \"Shapiro & Senapathy 1987, Nucleic Acids Res 15:7155\")\n\n(defmotif splice-acceptor\n  \"3' splice site (acceptor): a polypyrimidine tract, then NCAG at the\n   intron end. The AG is nearly invariant.\"\n  (seq (named 'ppt (run \"CT\" 8 20)) (any-of \"ACGT\") (named 'ag \"AG\"))\n  :category 'splicing :alphabet 'dna :example \"TTTTTTTTTTCAG\")\n\n(defmotif branch-point\n  \"Intron branch point. The bulged A attacks the 5' splice site to form the\n   lariat. Human branch points are loose; yeast uses a rigid TACTAAC.\"\n  (iupac \"YTNAY\")\n  :category 'splicing :alphabet 'dna :example \"CTGAC\"\n  :scan #f)\n\n(defmotif branch-point-yeast\n  \"The invariant yeast branch point TACTAAC.\"\n  (literal \"TACTAAC\")\n  :category 'splicing :alphabet 'dna :example \"TACTAAC\"\n  :scan #f)\n\n(defmotif polypyrimidine-tract\n  \"Polypyrimidine tract upstream of the 3' splice site, bound by U2AF65.\n   Its length and purity predict splicing efficiency.\"\n  (run \"CT\" 10 25)\n  :category 'splicing :alphabet 'dna\n  :scan #f)\n\n(defmotif gt-ag-intron\n  \"A whole U2-type intron: GT at the donor, a branch point, a polypyrimidine\n   tract and AG at the acceptor. Over 99% of human introns are GT-AG.\"\n  (seq \"GT\" (gap 20 2000) (iupac \"YTNAY\") (run \"CT\" 5 25) (gap 0 5) \"AG\")\n  :category 'splicing :alphabet 'dna\n  :scan #f)\n\n(defmotif gc-ag-intron\n  \"The minor GC-AG intron class, about 0.7% of human introns.\"\n  (seq \"GC\" (gap 20 2000) (run \"CT\" 5 25) (gap 0 5) \"AG\")\n  :category 'splicing :alphabet 'dna\n  :scan #f)\n\n(defmotif u12-donor\n  \"U12-type (minor spliceosome) 5' splice site. These introns are rare\n   but conserved and often rate-limiting for their host gene.\"\n  (iupac \"RTATCCTT\")\n  :category 'splicing :alphabet 'dna)\n\n(defmotif exonic-splicing-enhancer\n  \"A purine-rich exonic splicing enhancer of the type bound by SR proteins.\"\n  (iupac \"GARGAR\")\n  :category 'splicing :alphabet 'dna :example \"GAAGAA\"\n  :scan #f)\n\n;; ---------------------------------------------- transcription factor sites\n\n(defmotif e-box\n  \"E-box CANNTG, bound by basic helix-loop-helix factors. Which bHLH binds\n   depends on the two central bases.\"\n  (iupac \"CANNTG\")\n  :category 'tfbs :alphabet 'dna :example \"CACGTG\"\n  :scan #f)\n\n(defmotif e-box-myc\n  \"The CACGTG E-box preferred by Myc/Max and USF.\"\n  (literal \"CACGTG\")\n  :category 'tfbs :alphabet 'dna :example \"CACGTG\")\n\n(defmotif e-box-myod\n  \"The CAGCTG E-box preferred by MyoD and other myogenic factors.\"\n  (literal \"CAGCTG\")\n  :category 'tfbs :alphabet 'dna\n  :scan #f)\n\n(defmotif cre\n  \"cAMP response element, bound by CREB as a dimer. A perfect palindrome.\"\n  (literal \"TGACGTCA\")\n  :category 'tfbs :alphabet 'dna :example \"TGACGTCA\"\n  :ref \"Montminy et al. 1986, PNAS 83:6682\")\n\n(defmotif ap1-site\n  \"AP-1 site (TRE), bound by Fos/Jun heterodimers. One base shorter than the CRE.\"\n  (literal \"TGACTCA\")\n  :category 'tfbs :alphabet 'dna :example \"TGACTCA\")\n\n(defmotif nfkb-site\n  \"NF-kappaB binding site (kappaB element).\"\n  (iupac \"GGGRNNYYCC\")\n  :category 'tfbs :alphabet 'dna :example \"GGGACTTTCC\"\n  :ref \"Kunsch et al. 1992, Mol Cell Biol 12:4412\")\n\n(defmotif p53-response-element\n  \"p53 response element: two decameric half-sites, separated by up to 13 bases.\"\n  (seq (named 'half1 (iupac \"RRRCWWGYYY\")) (gap 0 13) (named 'half2 (iupac \"RRRCWWGYYY\")))\n  :category 'tfbs :alphabet 'dna :example \"GGGCATGTCCGGGCAAGTCC\"\n  :ref \"el-Deiry et al. 1992, Nat Genet 1:45\")\n\n(defmotif gata-site\n  \"GATA factor binding site. The GATA core is invariant; the flanking\n   W and R set which family member binds.\"\n  (iupac \"WGATAR\")\n  :category 'tfbs :alphabet 'dna :example \"AGATAA\"\n  :scan #f)\n\n(defmotif sp1-site\n  \"Sp1 binding site, the GC box in its full form.\"\n  (iupac \"GGGGCGGGGC\")\n  :category 'tfbs :alphabet 'dna)\n\n(defmotif heat-shock-element\n  \"Heat shock element: inverted nGAAn repeats bound by HSF trimers.\n   Three units make a functional site.\"\n  (seq (iupac \"NGAAN\") (iupac \"NTTCN\") (iupac \"NGAAN\"))\n  :category 'tfbs :alphabet 'dna :example \"TGAACGTTCTAGAAC\"\n  :ref \"Amin et al. 1988, Mol Cell Biol 8:3761\")\n\n(defmotif estrogen-response-element\n  \"Estrogen response element: two AGGTCA half-sites as an inverted repeat\n   with a three-base spacer.\"\n  (seq \"GGTCA\" (gap 3 3) \"TGACC\")\n  :category 'nuclear-receptor :alphabet 'dna :example \"GGTCAnnnTGACC\")\n\n(defmotif glucocorticoid-response-element\n  \"Glucocorticoid response element, also used by the androgen, mineralocorticoid\n   and progesterone receptors.\"\n  (seq (iupac \"GGWACA\") (gap 3 3) (iupac \"TGTWCY\"))\n  :category 'nuclear-receptor :alphabet 'dna :example \"GGTACAnnnTGTTCT\")\n\n(defmotif nuclear-receptor-half-site\n  \"The AGGTCA half-site read by most nuclear receptors. Spacing and orientation\n   of two half-sites decide which receptor binds.\"\n  (literal \"AGGTCA\")\n  :category 'nuclear-receptor :alphabet 'dna :example \"AGGTCA\"\n  :scan #f)\n\n(defmotif direct-repeat-5\n  \"DR5: two AGGTCA half-sites in direct repeat with five spacer bases,\n   the retinoic acid receptor element.\"\n  (seq \"AGGTCA\" (gap 5 5) \"AGGTCA\")\n  :category 'nuclear-receptor :alphabet 'dna)\n\n(defmotif gas-element\n  \"Gamma-activated sequence, bound by STAT dimers after cytokine signalling.\"\n  (seq \"TTC\" (gap 3 3) \"GAA\")\n  :category 'tfbs :alphabet 'dna :example \"TTCnnnGAA\"\n  :scan #f)\n\n(defmotif isre\n  \"Interferon-stimulated response element, bound by the ISGF3 complex.\"\n  (iupac \"AGTTTCNNTTTC\")\n  :category 'tfbs :alphabet 'dna)\n\n(defmotif octamer\n  \"Octamer motif ATGCAAAT, bound by POU factors Oct-1 and Oct-2.\"\n  (literal \"ATGCAAAT\")\n  :category 'tfbs :alphabet 'dna :example \"ATGCAAAT\"\n  :scan #f)\n\n(defmotif ets-site\n  \"ETS family binding site built on the invariant GGA(A/T) core.\"\n  (iupac \"MGGAAGT\")\n  :category 'tfbs :alphabet 'dna :example \"AGGAAGT\"\n  :scan #f)\n\n(defmotif runx-site\n  \"RUNX (CBF) binding site.\"\n  (iupac \"TGYGGT\")\n  :category 'tfbs :alphabet 'dna\n  :scan #f)\n\n(defmotif carg-box\n  \"CArG box, the serum response element bound by SRF.\"\n  (iupac \"CCWWWWWWGG\")\n  :category 'tfbs :alphabet 'dna :example \"CCATATTAGG\"\n  :scan #f)\n\n(defmotif mef2-site\n  \"MEF2 binding site, an AT-rich relative of the CArG box.\"\n  (iupac \"YTAWWWWTAR\")\n  :category 'tfbs :alphabet 'dna\n  :scan #f)\n\n(defmotif hif-response-element\n  \"Hypoxia response element. The RCGTG core is bound by HIF-1alpha/ARNT.\"\n  (iupac \"RCGTG\")\n  :category 'tfbs :alphabet 'dna :example \"ACGTG\"\n  :scan #f)\n\n(defmotif antioxidant-response-element\n  \"Antioxidant response element, bound by NRF2/sMAF under oxidative stress.\"\n  (iupac \"TGACNNNGC\")\n  :category 'tfbs :alphabet 'dna\n  :scan #f)\n\n(defmotif hnf1-site\n  \"HNF1 binding site, an inverted palindrome driving liver-specific genes.\"\n  (iupac \"GTTAATNATTAAC\")\n  :category 'tfbs :alphabet 'dna)\n\n(defmotif ctcf-core\n  \"CTCF core motif. CTCF anchors chromatin loops and its orientation decides\n   which loops form.\"\n  (iupac \"CCRCNAGGNGGCRG\")\n  :category 'insulator :alphabet 'dna\n  :ref \"Kim et al. 2007, Cell 128:1231\")\n\n(defmotif gal4-uas\n  \"GAL4 upstream activating sequence: CGG triplets 11 bases apart, the\n   binding site of the yeast GAL4 zinc cluster.\"\n  (seq \"CGG\" (gap 11 11) \"CCG\")\n  :category 'tfbs :alphabet 'dna :example \"CGGnnnnnnnnnnnCCG\"\n  :scan #f)\n\n(defmotif rap1-site\n  \"Rap1 binding site in yeast, found at telomeres, the silent mating loci\n   and ribosomal protein promoters.\"\n  (iupac \"RMACCCANNCAYY\")\n  :category 'tfbs :alphabet 'dna\n  :scan #f)\n\n;; ------------------------------------------------------ chromosome features\n\n(defmotif telomere-repeat-vertebrate\n  \"Vertebrate telomere repeat TTAGGG, added by telomerase.\"\n  (literal \"TTAGGG\")\n  :category 'telomere :alphabet 'dna :example \"TTAGGG\")\n\n(defmotif telomere-repeat-plant\n  \"Plant telomere repeat TTTAGGG (Arabidopsis type).\"\n  (literal \"TTTAGGG\")\n  :category 'telomere :alphabet 'dna)\n\n(defmotif telomere-repeat-worm\n  \"Caenorhabditis elegans telomere repeat TTAGGC.\"\n  (literal \"TTAGGC\")\n  :category 'telomere :alphabet 'dna)\n\n(defmotif telomere-tract\n  \"A telomeric tract: at least three consecutive vertebrate repeats.\"\n  (repeat (literal \"TTAGGG\") 3)\n  :category 'telomere :alphabet 'dna\n  :scan #f)\n\n(defmotif ars-consensus\n  \"Autonomously replicating sequence consensus, the 11 bp core of a\n   budding yeast replication origin.\"\n  (iupac \"WTTTAYRTTTW\")\n  :category 'replication :alphabet 'dna :example \"ATTTATGTTTA\"\n  :ref \"Broach et al. 1983, Cold Spring Harb Symp 47:1165\"\n  :scan #f)\n\n(defmotif rss-heptamer\n  \"Recombination signal sequence heptamer, the RAG1/RAG2 cut site in V(D)J\n   recombination.\"\n  (literal \"CACAGTG\")\n  :category 'recombination :alphabet 'dna :example \"CACAGTG\"\n  :scan #f)\n\n(defmotif rss-12\n  \"A 12-RSS: heptamer, 12-base spacer, nonamer. Recombines only with a 23-RSS,\n   which is the 12/23 rule.\"\n  (seq (named 'heptamer \"CACAGTG\") (named 'spacer (gap 12 12)) (named 'nonamer (iupac \"ACAAAAACC\")))\n  :category 'recombination :alphabet 'dna\n  :scan #f)\n\n(defmotif rss-23\n  \"A 23-RSS: heptamer, 23-base spacer, nonamer.\"\n  (seq (named 'heptamer \"CACAGTG\") (named 'spacer (gap 23 23)) (named 'nonamer (iupac \"ACAAAAACC\")))\n  :category 'recombination :alphabet 'dna\n  :scan #f)\n\n(defmotif g-quadruplex\n  \"G-quadruplex forming sequence: four G-tracts separated by short loops.\n   Common at telomeres, promoters and replication origins.\"\n  (seq (run \"G\" 3 6) (gap 1 7) (run \"G\" 3 6) (gap 1 7) (run \"G\" 3 6) (gap 1 7) (run \"G\" 3 6))\n  :category 'structure :alphabet 'dna :example \"GGGTTAGGGTTAGGGTTAGGG\"\n  :ref \"Huppert & Balasubramanian 2005, Nucleic Acids Res 33:2908\")\n\n(defmotif z-dna-prone\n  \"Alternating purine-pyrimidine tract that can flip to left-handed Z-DNA\n   under negative supercoiling.\"\n  (repeat (iupac \"CG\") 6)\n  :category 'structure :alphabet 'dna\n  :scan #f)\n\n(defmotif microsatellite-ca\n  \"CA dinucleotide microsatellite, the classic polymorphic marker.\"\n  (repeat (literal \"CA\") 8)\n  :category 'repeat :alphabet 'dna\n  :scan #f)\n\n(defmotif trinucleotide-cag\n  \"CAG trinucleotide repeat. Expansion past about 36 copies causes\n   Huntington disease and several spinocerebellar ataxias.\"\n  (repeat (literal \"CAG\") 10)\n  :category 'repeat :alphabet 'dna\n  :ref \"MacDonald et al. 1993, Cell 72:971\"\n  :scan #f)\n\n(defmotif alu-box-a\n  \"The A box of the internal RNA polymerase III promoter carried by Alu elements.\"\n  (iupac \"TGGCTCACGCC\")\n  :category 'repeat :alphabet 'dna\n  :scan #f)\n", "plant.mtf": ";;; plant.mtf -- cis-regulatory elements from plant promoters, plus a few\n;;; plant-specific structural landmarks. Most of these come from the\n;;; PLACE and PlantCARE catalogues of experimentally mapped elements.\n;;; Reference: Higo et al. 1999, Nucleic Acids Res 27:297 (PLACE);\n;;;            Lescot et al. 2002, Nucleic Acids Res 30:325 (PlantCARE).\n\n;; --------------------------------------------------------------- promoters\n\n(defmotif camv-35s-tata\n  \"TATA box of the cauliflower mosaic virus 35S promoter, the constitutive\n   promoter behind most plant transgenes.\"\n  (literal \"TATATAA\")\n  :category 'promoter :alphabet 'dna :example \"TATATAA\")\n\n(defmotif as1-element\n  \"activation sequence-1 of the 35S promoter: two TGACG motifs four bases\n   apart. Responds to salicylic acid and auxin through TGA factors.\"\n  (seq \"TGACG\" (gap 4 4) \"TGACG\")\n  :category 'promoter :alphabet 'dna :example \"TGACGtataTGACG\"\n  :ref \"Lam et al. 1989, PNAS 86:7890\")\n\n(defmotif plant-kozak\n  \"Plant translation initiation context. Plants prefer A at -3 and A at +4,\n   unlike the G that vertebrates prefer at +4.\"\n  (iupac \"AAMAATGGC\")\n  :category 'translation :alphabet 'dna :example \"AACAATGGC\"\n  :scan #f)\n\n(defmotif tata-box-plant\n  \"Plant TATA box. Sits closer to the start site than in animals, typically\n   at -25 to -30.\"\n  (iupac \"TATAWAW\")\n  :category 'promoter :alphabet 'dna\n  :scan #f)\n\n(defmotif ccaat-box-plant\n  \"CCAAT box bound by plant NF-Y (HAP) complexes.\"\n  (literal \"CCAAT\")\n  :category 'promoter :alphabet 'dna\n  :scan #f)\n\n;; ------------------------------------------------------ hormone responses\n\n(defmotif abre\n  \"Abscisic acid responsive element. The ACGT core with a G at -2 is bound by\n   bZIP AREB/ABF factors; two copies are needed for a working ABA response.\"\n  (iupac \"YACGTGGC\")\n  :category 'hormone :alphabet 'dna :example \"CACGTGGC\"\n  :ref \"Guiltinan et al. 1990, Science 250:267\")\n\n(defmotif abre-core\n  \"The minimal ABA response element core ACGTG.\"\n  (literal \"ACGTG\")\n  :category 'hormone :alphabet 'dna\n  :scan #f)\n\n(defmotif auxre\n  \"Auxin response element, bound by ARF factors. TGTCTC is the classic form;\n   the TGTC core is the part that matters.\"\n  (literal \"TGTCTC\")\n  :category 'hormone :alphabet 'dna :example \"TGTCTC\"\n  :ref \"Ulmasov et al. 1997, Plant Cell 9:1963\")\n\n(defmotif auxre-core\n  \"The minimal auxin response element core TGTCNN, present in DR5 reporters.\"\n  (iupac \"TGTCNN\")\n  :category 'hormone :alphabet 'dna\n  :scan #f)\n\n(defmotif gare\n  \"Gibberellin response element (GARE), bound by GAMYB in cereal aleurone.\"\n  (iupac \"TAACARA\")\n  :category 'hormone :alphabet 'dna :example \"TAACAAA\")\n\n(defmotif gcc-box\n  \"GCC box, the ethylene response element bound by ERF/AP2 factors.\n   Central to pathogen-induced PR gene expression.\"\n  (literal \"GCCGCC\")\n  :category 'hormone :alphabet 'dna :example \"AGCCGCC\"\n  :ref \"Ohme-Takagi & Shinshi 1995, Plant Cell 7:173\")\n\n(defmotif erelee4\n  \"Ethylene responsive element from the tomato E4 gene.\"\n  (iupac \"AWTTCAAA\")\n  :category 'hormone :alphabet 'dna)\n\n(defmotif tgacg-motif\n  \"TGACG motif, responsive to methyl jasmonate and salicylic acid,\n   bound by TGA bZIP factors.\"\n  (literal \"TGACG\")\n  :category 'hormone :alphabet 'dna :example \"TGACG\"\n  :scan #f)\n\n(defmotif cgtca-motif\n  \"CGTCA motif, the reverse orientation of the TGACG jasmonate element.\"\n  (literal \"CGTCA\")\n  :category 'hormone :alphabet 'dna\n  :scan #f)\n\n(defmotif p-box\n  \"P-box, a gibberellin responsive element of cereal seed promoters.\"\n  (literal \"CCTTTTG\")\n  :category 'hormone :alphabet 'dna)\n\n(defmotif tatc-box\n  \"TATC box, a gibberellin responsive element.\"\n  (literal \"TATCCCA\")\n  :category 'hormone :alphabet 'dna)\n\n;; --------------------------------------------------------- abiotic stress\n\n(defmotif dre-crt\n  \"Dehydration responsive element / C-repeat. Bound by CBF/DREB1 in cold and\n   DREB2 in drought. The CCGAC core is the required part.\"\n  (iupac \"RCCGAC\")\n  :category 'stress :alphabet 'dna :example \"ACCGAC\"\n  :ref \"Yamaguchi-Shinozaki & Shinozaki 1994, Plant Cell 6:251\")\n\n(defmotif crt-core\n  \"The bare C-repeat / DRE core CCGAC.\"\n  (literal \"CCGAC\")\n  :category 'stress :alphabet 'dna\n  :scan #f)\n\n(defmotif ltre\n  \"Low temperature responsive element.\"\n  (literal \"CCGAAA\")\n  :category 'stress :alphabet 'dna)\n\n(defmotif hse-plant\n  \"Plant heat shock element, inverted nGAAn repeats bound by plant HSFs.\"\n  (iupac \"AGAANNTTCT\")\n  :category 'stress :alphabet 'dna :example \"AGAACGTTCT\")\n\n(defmotif mbs\n  \"MYB binding site involved in drought inducibility.\"\n  (iupac \"CAACTG\")\n  :category 'stress :alphabet 'dna\n  :scan #f)\n\n(defmotif myb-core\n  \"MYB recognition core, the general binding site of R2R3-MYB factors.\"\n  (iupac \"CNGTTR\")\n  :category 'tfbs :alphabet 'dna :example \"CAGTTA\"\n  :scan #f)\n\n(defmotif myc-core\n  \"MYC recognition element (a plant E-box), bound by bHLH factors in\n   ABA and jasmonate signalling.\"\n  (iupac \"CANNTG\")\n  :category 'tfbs :alphabet 'dna\n  :scan #f)\n\n(defmotif w-box\n  \"W-box, bound by WRKY transcription factors. The invariant TTGAC core\n   drives most plant defence gene expression.\"\n  (iupac \"TTGACY\")\n  :category 'defence :alphabet 'dna :example \"TTGACC\"\n  :ref \"Eulgem et al. 2000, Trends Plant Sci 5:199\"\n  :scan #f)\n\n(defmotif w-box-cluster\n  \"Two W-boxes within 60 bases, the arrangement typical of strongly\n   pathogen-inducible promoters.\"\n  (seq (named 'w1 (iupac \"TTGACY\")) (gap 5 60) (named 'w2 (iupac \"TTGACY\")))\n  :category 'defence :alphabet 'dna)\n\n(defmotif tc-rich-repeat\n  \"TC-rich repeat involved in defence and stress responsiveness.\"\n  (literal \"ATTTTCTTCA\")\n  :category 'defence :alphabet 'dna)\n\n;; ------------------------------------------------------------------- light\n\n(defmotif g-box\n  \"G-box CACGTG, the most widespread plant light-responsive element.\n   Bound by bZIP factors such as HY5 and by bHLH factors such as PIFs.\"\n  (literal \"CACGTG\")\n  :category 'light :alphabet 'dna :example \"CACGTG\"\n  :ref \"Giuliano et al. 1988, PNAS 85:7089\")\n\n(defmotif g-box-extended\n  \"The extended G-box context CCACGTGG.\"\n  (literal \"CCACGTGG\")\n  :category 'light :alphabet 'dna)\n\n(defmotif gt1-motif\n  \"GT1 motif, a light-responsive element of the rbcS and other photosynthesis genes.\"\n  (iupac \"GRWAAW\")\n  :category 'light :alphabet 'dna\n  :scan #f)\n\n(defmotif i-box\n  \"I-box, a conserved light-responsive element upstream of many\n   photosynthesis-associated nuclear genes.\"\n  (literal \"GATAAG\")\n  :category 'light :alphabet 'dna :example \"GATAAG\")\n\n(defmotif box-4\n  \"Box 4, part of a conserved module in light-responsive plant promoters.\"\n  (literal \"ATTAAT\")\n  :category 'light :alphabet 'dna\n  :scan #f)\n\n(defmotif gata-motif-plant\n  \"GATA motif, a light-responsive element bound by plant GATA factors.\"\n  (iupac \"WGATAR\")\n  :category 'light :alphabet 'dna\n  :scan #f)\n\n(defmotif sp1-plant\n  \"Light-responsive GC-rich element found in monocot promoters.\"\n  (literal \"GGGCGG\")\n  :category 'light :alphabet 'dna\n  :scan #f)\n\n(defmotif evening-element\n  \"Evening element, the circadian clock output motif bound by CCA1 and LHY.\n   Confers evening-phased expression.\"\n  (literal \"AAAATATCT\")\n  :category 'circadian :alphabet 'dna :example \"AAAATATCT\"\n  :ref \"Harmer et al. 2000, Science 290:2110\")\n\n(defmotif ca1-binding-site\n  \"CCA1 binding site, the morning element of the plant circadian clock.\"\n  (literal \"AAAAATCT\")\n  :category 'circadian :alphabet 'dna)\n\n;; -------------------------------------------------- tissue and development\n\n(defmotif ry-element\n  \"RY element (Sph box), the seed-specific element bound by B3 domain factors\n   such as ABI3 and FUS3.\"\n  (literal \"CATGCA\")\n  :category 'seed :alphabet 'dna :example \"CATGCATG\"\n  :scan #f)\n\n(defmotif prolamin-box\n  \"Prolamin box (endosperm box), driving cereal seed storage protein genes.\"\n  (literal \"TGTAAAG\")\n  :category 'seed :alphabet 'dna\n  :scan #f)\n\n(defmotif skn-1-motif\n  \"Skn-1 motif, required for endosperm expression.\"\n  (literal \"GTCAT\")\n  :category 'seed :alphabet 'dna\n  :scan #f)\n\n(defmotif pollen-lat52\n  \"POLLEN1LELAT52, a pollen-specific element from the tomato LAT52 promoter.\"\n  (literal \"AGAAA\")\n  :category 'pollen :alphabet 'dna\n  :scan #f)\n\n(defmotif cat-box\n  \"CAT box, associated with meristem expression.\"\n  (literal \"GCCACT\")\n  :category 'meristem :alphabet 'dna\n  :scan #f)\n\n(defmotif circadian-cab\n  \"Conserved element of chlorophyll a/b binding protein promoters.\"\n  (literal \"CAANNNNATC\")\n  :category 'circadian :alphabet 'dna\n  :scan #f)\n\n;; ---------------------------------------------------------- plant genomes\n\n(defmotif plant-poly-a-signal\n  \"Plant near-upstream element. Plants use AATAAA less strictly than\n   animals; the surrounding region is simply A-rich.\"\n  (alt \"AATAAA\" \"AATAAT\" \"AATGAA\")\n  :category 'polyadenylation :alphabet 'dna\n  :scan #f)\n\n(defmotif plant-intron-donor\n  \"Plant 5' splice site. Plant introns are markedly U-rich, and that\n   composition matters more than the consensus itself.\"\n  (iupac \"AGGTAAGT\")\n  :category 'splicing :alphabet 'dna)\n\n(defmotif plant-telomere\n  \"Arabidopsis-type telomere repeat TTTAGGG.\"\n  (literal \"TTTAGGG\")\n  :category 'telomere :alphabet 'dna)\n\n(defmotif plant-centromere-178\n  \"Conserved segment of the 178 bp Arabidopsis centromeric repeat.\"\n  (fuzzy 3 (literal \"AGTATAAGAACTTAAACCGCAACCGATCTTAAAAGCCTAAGTAGTG\"))\n  :category 'centromere :alphabet 'dna)\n\n(defmotif chloroplast-promoter\n  \"Plastid-encoded polymerase promoter. Chloroplasts kept the bacterial\n   -35/-10 arrangement from their cyanobacterial ancestor.\"\n  (seq (fuzzy 1 (iupac \"TTGACA\")) (gap 15 19) (fuzzy 1 (iupac \"TATAAT\")))\n  :category 'organelle :alphabet 'dna)\n\n(defmotif rbcs-conserved\n  \"Conserved element upstream of rbcS genes encoding the Rubisco small subunit.\"\n  (fuzzy 1 (literal \"CCACGTGGCC\"))\n  :category 'light :alphabet 'dna)\n", "rna.mtf": ";;; rna.mtf -- RNA elements: structure, stability, localisation, modification\n;;; and small RNA targets. Written with U; the engine reads U and T as the same\n;;; base, so these motifs work against DNA sequences too.\n\n;; -------------------------------------------------------------- structure\n\n(defmotif rna-hairpin\n  \"A generic RNA hairpin: a stem of 4 to 12 paired bases and a loop of 3 to 10.\n   Wobble G:U pairs are allowed, as they are in real RNA.\"\n  (hairpin (stem 4 12) (loop 3 10) :wobble #t)\n  :category 'rna-structure :alphabet 'rna :example \"GGCGCuuuuGCGCC\"\n  :scan #f)\n\n(defmotif tetraloop-gnra\n  \"GNRA tetraloop, the most common stable loop in structured RNA.\n   Closed by a strong stem, it is unusually resistant to unfolding.\"\n  (hairpin (stem 4 10) (iupac \"GNRA\") :wobble #t)\n  :category 'rna-structure :alphabet 'rna :example \"GGCCgcaaGGCC\"\n  :ref \"Woese et al. 1990, PNAS 87:8467\")\n\n(defmotif tetraloop-uncg\n  \"UNCG tetraloop, the other exceptionally stable tetraloop family.\"\n  (hairpin (stem 4 10) (iupac \"UNCG\") :wobble #t)\n  :category 'rna-structure :alphabet 'rna)\n\n(defmotif rna-g-quadruplex\n  \"RNA G-quadruplex. Unlike DNA quadruplexes these are almost always\n   parallel, and they regulate translation from 5' UTRs.\"\n  (seq (run \"G\" 2 5) (gap 1 7) (run \"G\" 2 5) (gap 1 7) (run \"G\" 2 5) (gap 1 7) (run \"G\" 2 5))\n  :category 'rna-structure :alphabet 'rna\n  :scan #f)\n\n(defmotif kissing-loop-stem\n  \"A stem-loop with a 6 to 8 base loop, the size that can form a\n   kissing interaction with a complementary loop.\"\n  (hairpin (stem 5 12) (loop 6 8) :wobble #t)\n  :category 'rna-structure :alphabet 'rna\n  :scan #f)\n\n;; ------------------------------------------------------- translation control\n\n(defmotif iron-responsive-element\n  \"Iron responsive element. IRP1 and IRP2 bind the CAGUGH loop of this hairpin\n   when iron is scarce, blocking ferritin translation and stabilising the\n   transferrin receptor message.\"\n  (hairpin (stem 5 6) (iupac \"CAGUGH\") :wobble #t)\n  :category 'utr :alphabet 'rna :example \"GGGGCCAGUGUGCCCC\"\n  :ref \"Hentze & Kuhn 1996, PNAS 93:8175\")\n\n(defmotif ire-loop\n  \"The bare IRE apical loop CAGUGH, without the stem context.\"\n  (iupac \"CAGUGH\")\n  :category 'utr :alphabet 'rna :example \"CAGUGU\"\n  :scan #f)\n\n(defmotif secis-core\n  \"Core of the SECIS element, which recodes an in-frame UGA as selenocysteine.\n   The non-Watson-Crick quartet is the invariant part.\"\n  (seq (iupac \"AUGA\") (gap 8 20) (iupac \"GA\"))\n  :category 'utr :alphabet 'rna\n  :ref \"Walczak et al. 1996, RNA 2:367\"\n  :scan #f)\n\n(defmotif upstream-orf\n  \"An upstream open reading frame in a 5' UTR: a start codon in good context\n   followed by a short reading frame and a stop. uORFs dampen translation of\n   the main ORF and mediate stress responses.\"\n  (seq (any-of \"AG\") (gap 2 2) \"AUG\" (repeat (gap 3 3) 2 60) (alt \"UAA\" \"UAG\" \"UGA\"))\n  :category 'utr :alphabet 'rna\n  :scan #f)\n\n(defmotif kozak-rna\n  \"Kozak context in RNA form.\"\n  (iupac \"GCCRCCAUGG\")\n  :category 'translation :alphabet 'rna\n  :scan #f)\n\n(defmotif shine-dalgarno-rna\n  \"Shine-Dalgarno sequence in RNA form, pairing with the 16S rRNA 3' end.\"\n  (iupac \"AGGAGG\")\n  :category 'translation :alphabet 'rna\n  :scan #f)\n\n(defmotif slippery-site\n  \"Ribosomal frameshift slippery heptamer X XXY YYZ. Followed by a downstream\n   pseudoknot it makes the ribosome shift back one base, as in retroviral\n   gag-pol and coronavirus ORF1ab.\"\n  (iupac \"NNNWWWH\")\n  :category 'recoding :alphabet 'rna :example \"UUUAAAC\"\n  :ref \"Brierley et al. 1989, Cell 57:537\"\n  :scan #f)\n\n(defmotif slippery-site-canonical\n  \"The two most common slippery heptamers, UUUAAAC and UUUUUUA.\"\n  (alt \"UUUAAAC\" \"UUUUUUA\" \"AAAAAAC\" \"GGGAAAC\")\n  :category 'recoding :alphabet 'rna)\n\n;; ---------------------------------------------------------- mRNA stability\n\n(defmotif au-rich-element\n  \"AU-rich element core AUUUA. In a U-rich context it recruits decay factors\n   and shortens the life of cytokine and proto-oncogene messages.\"\n  (literal \"AUUUA\")\n  :category 'stability :alphabet 'rna :example \"AUUUA\"\n  :ref \"Shaw & Kamen 1986, Cell 46:659\")\n\n(defmotif are-class-ii\n  \"Class II AU-rich element: overlapping AUUUA pentamers in a U-rich stretch,\n   the strongly destabilising form found in TNF and GM-CSF messages.\"\n  (seq (iupac \"WW\") \"A\" (repeat (literal \"UUUA\") 2 6) (iupac \"WW\"))\n  :category 'stability :alphabet 'rna :example \"UUAUUUAUUUAUU\")\n\n(defmotif are-nonamer\n  \"The nonamer UUAUUUAWW used to score functional AU-rich elements.\"\n  (iupac \"UUAUUUAWW\")\n  :category 'stability :alphabet 'rna\n  :scan #f)\n\n(defmotif pumilio-response-element\n  \"Pumilio response element UGUANAUA, bound by PUF proteins to repress\n   and destabilise target messages.\"\n  (iupac \"UGUANAUA\")\n  :category 'stability :alphabet 'rna :example \"UGUAAAUA\")\n\n(defmotif histone-stem-loop\n  \"Histone mRNA 3' stem-loop. Replication-dependent histone messages end\n   here instead of carrying a poly(A) tail; SLBP binds it.\"\n  (iupac \"GGYYCUUUUMAGRGCC\")\n  :category 'stability :alphabet 'rna :example \"GGCUCUUUUCAGAGCC\"\n  :ref \"Marzluff et al. 2008, Nat Rev Genet 9:843\")\n\n(defmotif zipcode-beta-actin\n  \"Beta-actin zipcode, the 54-base 3' UTR element that localises the message\n   to the leading edge of migrating fibroblasts. Core ACACCC.\"\n  (literal \"ACACCC\")\n  :category 'localisation :alphabet 'rna\n  :scan #f)\n\n(defmotif cpe\n  \"Cytoplasmic polyadenylation element, bound by CPEB to extend the poly(A)\n   tail and activate translation of stored maternal messages.\"\n  (iupac \"UUUUUAU\")\n  :category 'translation :alphabet 'rna :example \"UUUUUAU\"\n  :scan #f)\n\n;; ------------------------------------------------------------ modification\n\n(defmotif m6a-drach\n  \"DRACH consensus of N6-methyladenosine. The methylated A is the fourth base.\n   The commonest instance is GGACU.\"\n  (iupac \"DRACH\")\n  :category 'modification :alphabet 'rna :example \"GGACU\"\n  :ref \"Dominissini et al. 2012, Nature 485:201\"\n  :scan #f)\n\n(defmotif m6a-ggact\n  \"The GGACU core, the most frequently methylated DRACH instance.\"\n  (literal \"GGACU\")\n  :category 'modification :alphabet 'rna)\n\n(defmotif pseudouridine-box-h\n  \"H box of H/ACA snoRNAs, ANANNA, which guides pseudouridylation.\"\n  (iupac \"ANANNA\")\n  :category 'modification :alphabet 'rna\n  :scan #f)\n\n(defmotif snorna-c-box\n  \"C box of C/D box snoRNAs, which guide 2'-O-methylation.\"\n  (iupac \"RUGAUGA\")\n  :category 'modification :alphabet 'rna :example \"AUGAUGA\"\n  :scan #f)\n\n(defmotif snorna-d-box\n  \"D box of C/D box snoRNAs. The methylated nucleotide of the target sits\n   exactly five bases upstream of it.\"\n  (literal \"CUGA\")\n  :category 'modification :alphabet 'rna\n  :scan #f)\n\n;; ------------------------------------------------------------- small RNAs\n\n(defmotif mirna-seed-let7\n  \"Target site for the let-7 seed. let-7 was the second microRNA found and\n   is conserved from worms to humans.\"\n  (literal \"CUACCUC\")\n  :category 'mirna :alphabet 'rna :example \"CUACCUC\")\n\n(defmotif mirna-seed-mir21\n  \"Target site for the miR-21 seed. miR-21 is the microRNA most consistently\n   over-expressed in solid tumours.\"\n  (literal \"AUAAGCUA\")\n  :category 'mirna :alphabet 'rna)\n\n(defmotif mirna-seed-mir155\n  \"Target site for the miR-155 seed.\"\n  (literal \"AGCAUUAA\")\n  :category 'mirna :alphabet 'rna)\n\n(defmotif pre-mirna-hairpin\n  \"Precursor microRNA hairpin: a stem of roughly 22 base pairs with a\n   terminal loop. Drosha and Dicer cut it into the mature duplex.\"\n  (hairpin (stem 18 30) (loop 4 15) :wobble #t :mismatches 4)\n  :category 'mirna :alphabet 'rna\n  :scan #f)\n\n(defmotif piwi-1u\n  \"The 5' uridine preference of piRNAs, a strong signature of the\n   PIWI-bound small RNA class.\"\n  (seq at-start \"U\")\n  :category 'small-rna :alphabet 'rna\n  :scan #f)\n\n;; ------------------------------------------------------- splicing and 3' end\n\n(defmotif branch-point-rna\n  \"Branch point adenosine in its RNA context.\"\n  (iupac \"YURAY\")\n  :category 'splicing-rna :alphabet 'rna :example \"CUGAC\"\n  :scan #f)\n\n(defmotif u1-binding-site\n  \"5' splice site as U1 snRNA sees it, in RNA form.\"\n  (iupac \"MAGGURAGU\")\n  :category 'splicing-rna :alphabet 'rna\n  :scan #f)\n\n(defmotif poly-a-signal-rna\n  \"Poly(A) signal AAUAAA in RNA form.\"\n  (literal \"AAUAAA\")\n  :category 'polyadenylation :alphabet 'rna\n  :scan #f)\n\n(defmotif poly-a-tail\n  \"A poly(A) tail: a run of at least 12 adenosines.\"\n  (run \"A\" 12)\n  :category 'polyadenylation :alphabet 'rna\n  :scan #f)\n\n;; ------------------------------------------------------------------- tRNA\n\n(defmotif trna-t-loop\n  \"The T-loop signature GUUCGA (T-psi-C-G in the modified RNA). One of the\n   most conserved sequences in all of biology.\"\n  (literal \"GUUCGA\")\n  :category 'trna :alphabet 'rna :example \"GUUCGA\"\n  :scan #f)\n\n(defmotif trna-d-loop\n  \"The dihydrouridine loop signature, a GG dinucleotide in a short loop.\"\n  (seq \"GG\" (gap 1 3) (any-of \"AU\"))\n  :category 'trna :alphabet 'rna\n  :scan #f)\n\n(defmotif trna-cca-end\n  \"The CCA end added to every tRNA after transcription. The amino acid\n   attaches to its terminal adenosine.\"\n  (seq \"CCA\" at-end)\n  :category 'trna :alphabet 'rna\n  :scan #f)\n\n(defmotif trna-acceptor-stem\n  \"tRNA acceptor stem: seven base pairs at the ends of the molecule.\"\n  (hairpin (stem 7 7) (loop 50 80) :wobble #t :mismatches 1)\n  :category 'trna :alphabet 'rna\n  :scan #f)\n\n;; ------------------------------------------------------------ riboswitches\n\n(defmotif riboswitch-purine\n  \"Conserved core of the purine riboswitch aptamer. The pyrimidine at\n   position 74 decides whether it reads guanine or adenine.\"\n  (seq (iupac \"CUCUUAUA\") (gap 20 60) (iupac \"UAUAAUCG\"))\n  :category 'riboswitch :alphabet 'rna\n  :scan #f)\n\n(defmotif riboswitch-sam\n  \"Conserved element of the S-adenosylmethionine (SAM-I) riboswitch,\n   which controls methionine and cysteine biosynthesis in Gram positives.\"\n  (seq (iupac \"CUUAUCAAGAG\") (gap 20 80) (iupac \"GGCUGGUGG\"))\n  :category 'riboswitch :alphabet 'rna\n  :scan #f)\n\n(defmotif ires-poly-u\n  \"Polypyrimidine tract of a type II internal ribosome entry site,\n   found in picornaviral 5' UTRs.\"\n  (seq (run \"CU\" 8 20) (gap 15 25) \"AUG\")\n  :category 'ires :alphabet 'rna\n  :scan #f)\n\n(defmotif rev-response-element-core\n  \"Stem-loop IIB core of the HIV-1 Rev response element, the site Rev binds\n   to export unspliced viral RNA.\"\n  (fuzzy 2 (literal \"GGGCGCAGCGUCAAUGACGCUGACGGUACAGGCC\"))\n  :category 'viral :alphabet 'rna)\n\n(defmotif tar-element\n  \"HIV-1 TAR element apical loop, bound by Tat with cyclin T1 to allow\n   transcription elongation.\"\n  (fuzzy 1 (literal \"CUGGGA\"))\n  :category 'viral :alphabet 'rna\n  :scan #f)\n", "protein.mtf": ";;; protein.mtf -- protein sequence motifs: post-translational modification\n;;; sites, targeting signals, structural motifs, catalytic signatures and\n;;; protease cleavage sites.\n;;;\n;;; Most are written in PROSITE syntax, where x is any residue, [ABC] is a\n;;; choice, {AB} is an exclusion, and (n,m) is a repeat count. Short patterns\n;;; like these match by chance in large proteomes; treat every hit as a\n;;; candidate to be checked against structure and context.\n;;; Reference: Sigrist et al. 2013, Nucleic Acids Res 41:D344 (PROSITE).\n\n;; ---------------------------------------------- post-translational sites\n\n(defmotif n-glycosylation\n  \"N-linked glycosylation sequon N-X-S/T, where X is not proline.\n   The proline exclusion is the reason the third position matters.\"\n  (prosite \"N-{P}-[ST]-{P}\")\n  :category 'modification :alphabet 'protein :example \"NGSA\"\n  :ref \"PROSITE PS00001\")\n\n(defmotif casein-kinase-2\n  \"Casein kinase II phosphorylation site: S or T followed by an acidic\n   residue two positions later.\"\n  (prosite \"[ST]-x(2)-[DE]\")\n  :category 'modification :alphabet 'protein :example \"SLTE\"\n  :ref \"PROSITE PS00006\"\n  :scan #f)\n\n(defmotif protein-kinase-c\n  \"Protein kinase C phosphorylation site.\"\n  (prosite \"[ST]-x-[RK]\")\n  :category 'modification :alphabet 'protein :example \"SPR\"\n  :ref \"PROSITE PS00005\"\n  :scan #f)\n\n(defmotif pka-site\n  \"cAMP- and cGMP-dependent protein kinase phosphorylation site.\n   Two basic residues precede the phosphoacceptor.\"\n  (prosite \"[RK](2)-x-[ST]\")\n  :category 'modification :alphabet 'protein :example \"RRAS\"\n  :ref \"PROSITE PS00004\"\n  :scan #f)\n\n(defmotif tyrosine-kinase-site\n  \"Tyrosine kinase phosphorylation site: acidic residues upstream of the\n   target tyrosine.\"\n  (prosite \"[RK]-x(2,3)-[DE]-x(2,3)-Y\")\n  :category 'modification :alphabet 'protein :example \"KAADGGY\"\n  :ref \"PROSITE PS00007\"\n  :scan #f)\n\n(defmotif n-myristoylation\n  \"N-terminal myristoylation site. The glycine becomes the N-terminus after\n   the initiator methionine is removed, and the myristate anchors the\n   protein to a membrane.\"\n  (prosite \"G-{EDRKHPFYW}-x(2)-[STAGCN]-{P}\")\n  :category 'modification :alphabet 'protein :example \"GQSLSK\"\n  :ref \"PROSITE PS00008\")\n\n(defmotif amidation\n  \"C-terminal amidation site. The glycine donates its nitrogen to the\n   preceding residue and is lost.\"\n  (prosite \"x-G-[RK]-[RK]\")\n  :category 'modification :alphabet 'protein\n  :ref \"PROSITE PS00009\"\n  :scan #f)\n\n(defmotif prenylation-caax\n  \"CAAX box. The cysteine is farnesylated or geranylgeranylated and the\n   last three residues are then clipped off.\"\n  (prosite \"C-[AVLIM](2)-x>\")\n  :category 'modification :alphabet 'protein :example \"CVLS\"\n  :scan #f)\n\n(defmotif farnesylation\n  \"CAAX box with an X that directs farnesylation rather than\n   geranylgeranylation.\"\n  (prosite \"C-[AVLIM](2)-[SMQA]>\")\n  :category 'modification :alphabet 'protein :example \"CVLS\"\n  :scan #f)\n\n(defmotif geranylgeranylation\n  \"C-terminal CC or CXC motif recognised by Rab geranylgeranyl transferase.\"\n  (prosite \"C-x(0,1)-C>\")\n  :category 'modification :alphabet 'protein\n  :scan #f)\n\n(defmotif gag-attachment\n  \"Glycosaminoglycan attachment site, where a xylose links a heparan or\n   chondroitin sulfate chain to a serine.\"\n  (prosite \"S-G-x-G\")\n  :category 'modification :alphabet 'protein\n  :ref \"PROSITE PS00002\"\n  :scan #f)\n\n(defmotif sumoylation\n  \"SUMO consensus psi-K-x-[DE], where psi is a large hydrophobic residue.\"\n  (prosite \"[ILVFM]-K-x-[DE]\")\n  :category 'modification :alphabet 'protein :example \"VKTE\"\n  :scan #f)\n\n(defmotif palmitoylation-cc\n  \"A cysteine pair of the kind commonly S-palmitoylated near a membrane anchor.\"\n  (prosite \"C-C\")\n  :category 'modification :alphabet 'protein\n  :scan #f)\n\n;; ------------------------------------------------------ targeting signals\n\n(defmotif nls-monopartite\n  \"Classical monopartite nuclear localisation signal, the SV40 large T type.\n   Bound by importin alpha.\"\n  (prosite \"K-[KR]-x-[KR]\")\n  :category 'targeting :alphabet 'protein :example \"KKKR\"\n  :ref \"Kalderon et al. 1984, Cell 39:499\"\n  :scan #f)\n\n(defmotif nls-bipartite\n  \"Bipartite nuclear localisation signal: two basic clusters separated by a\n   10 to 12 residue linker, as in nucleoplasmin.\"\n  (prosite \"[KR](2)-x(10,12)-[KR](3,5)\")\n  :category 'targeting :alphabet 'protein\n  :ref \"Robbins et al. 1991, Cell 64:615\")\n\n(defmotif nes-leucine-rich\n  \"Leucine-rich nuclear export signal recognised by CRM1/exportin-1,\n   the target of leptomycin B.\"\n  (prosite \"L-x(2,3)-[LIVFM]-x(2,3)-L-x-[LI]\")\n  :category 'targeting :alphabet 'protein :example \"LQKLTLDLTL\"\n  :scan #f)\n\n(defmotif er-retention-kdel\n  \"KDEL, the C-terminal signal that retrieves soluble proteins from the\n   Golgi back to the endoplasmic reticulum.\"\n  (prosite \"K-D-E-L>\")\n  :category 'targeting :alphabet 'protein :example \"KDEL\")\n\n(defmotif er-retention-hdel\n  \"HDEL, the yeast and plant version of the ER retrieval signal.\"\n  (prosite \"H-D-E-L>\")\n  :category 'targeting :alphabet 'protein :example \"HDEL\"\n  :scan #f)\n\n(defmotif er-membrane-kkxx\n  \"Dilysine ER retrieval motif on the cytosolic tail of a membrane protein.\"\n  (prosite \"K-K-x(2)>\")\n  :category 'targeting :alphabet 'protein :example \"KKAA\"\n  :scan #f)\n\n(defmotif peroxisome-pts1\n  \"Peroxisomal targeting signal type 1: an SKL-like tripeptide at the very\n   C-terminus, read by PEX5.\"\n  (prosite \"[SAC]-[KRH]-[LM]>\")\n  :category 'targeting :alphabet 'protein :example \"SKL\")\n\n(defmotif peroxisome-pts2\n  \"Peroxisomal targeting signal type 2, an N-terminal nonapeptide read by PEX7.\"\n  (prosite \"[RK]-[LVI]-x(5)-[HQ]-[LA]\")\n  :category 'targeting :alphabet 'protein\n  :scan #f)\n\n(defmotif vacuole-npir\n  \"NPIR-type vacuolar sorting determinant of plant and yeast proteins.\"\n  (prosite \"N-P-[IL]-R\")\n  :category 'targeting :alphabet 'protein\n  :scan #f)\n\n(defmotif mitochondrial-cleavage\n  \"R-2 motif at the cleavage site of a mitochondrial presequence, cut by\n   the matrix processing peptidase.\"\n  (prosite \"R-x-[FLIY]-[ST]\")\n  :category 'targeting :alphabet 'protein\n  :scan #f)\n\n(defmotif signal-peptide-h-region\n  \"Hydrophobic core of a secretory signal peptide followed by the small\n   residues of an A-x-A signal peptidase site.\"\n  (seq at-start (gap 1 12) (run \"AVLIFMWC\" 7 20) (prosite \"A-x-A\"))\n  :category 'targeting :alphabet 'protein\n  :ref \"von Heijne 1990, J Membr Biol 115:195\")\n\n(defmotif twin-arginine-signal\n  \"Twin-arginine translocation signal, which exports already folded proteins\n   across the bacterial inner membrane.\"\n  (prosite \"[ST]-R-R-x-F-L-K\")\n  :category 'targeting :alphabet 'protein :example \"SRRSFLK\"\n  :scan #f)\n\n;; --------------------------------------------------- nucleotide binding\n\n(defmotif p-loop\n  \"P-loop, the Walker A motif that cradles the phosphates of bound ATP or GTP.\n   The most common nucleotide binding element in all of biology.\"\n  (prosite \"[AG]-x(4)-G-K-[ST]\")\n  :category 'domain :alphabet 'protein :example \"GPSSSGKT\"\n  :ref \"Walker et al. 1982, EMBO J 1:945\")\n\n(defmotif walker-b\n  \"Walker B motif, four hydrophobic residues ending in an aspartate that\n   coordinates the catalytic magnesium.\"\n  (prosite \"[ILVFM](4)-[DE]\")\n  :category 'domain :alphabet 'protein :example \"LLLLD\"\n  :scan #f)\n\n(defmotif rossmann-fold\n  \"Glycine-rich dinucleotide binding fingerprint of the Rossmann fold,\n   which binds NAD or FAD.\"\n  (prosite \"G-x-G-x(2)-G\")\n  :category 'domain :alphabet 'protein :example \"GAGVVG\"\n  :scan #f)\n\n(defmotif ras-g1\n  \"G1 box of the small GTPase family, the P-loop in its Ras form.\"\n  (prosite \"G-x(4)-G-K-[ST]\")\n  :category 'domain :alphabet 'protein)\n\n(defmotif ras-g3\n  \"G3 box (switch II) of small GTPases, the DxxG motif that senses the\n   gamma phosphate.\"\n  (prosite \"D-x(2)-G\")\n  :category 'domain :alphabet 'protein\n  :scan #f)\n\n;; ------------------------------------------------- structural and binding\n\n(defmotif ef-hand\n  \"EF-hand calcium binding loop. The aspartate at position 1 and the\n   glutamate at position 12 grip the calcium ion.\"\n  (prosite \"D-x-[DNS]-{ILVFYW}-[DENSTG]-[DNQGHRK]-{GP}-[LIVMC]-[DENQSTAGC]-x(2)-[DE]-[LIVMFYW]\")\n  :category 'domain :alphabet 'protein\n  :ref \"PROSITE PS00018\")\n\n(defmotif zinc-finger-c2h2\n  \"Classical C2H2 zinc finger. Two cysteines and two histidines hold a zinc\n   ion; three or more fingers in tandem read a DNA sequence.\"\n  (prosite \"C-x(2,4)-C-x(3)-[LIVMFYWC]-x(8)-H-x(3,5)-H\")\n  :category 'domain :alphabet 'protein\n  :ref \"PROSITE PS00028\")\n\n(defmotif zinc-finger-ring\n  \"RING finger of E3 ubiquitin ligases, a cross-brace of eight\n   zinc-coordinating residues.\"\n  (prosite \"C-x(2)-C-x(9,39)-C-x(1,3)-H-x(2,3)-C-x(2)-C-x(4,48)-C-x(2)-C\")\n  :category 'domain :alphabet 'protein)\n\n(defmotif leucine-zipper\n  \"Leucine zipper: leucines every seventh residue over four heptads,\n   the dimerisation element of bZIP transcription factors.\"\n  (prosite \"L-x(6)-L-x(6)-L-x(6)-L\")\n  :category 'domain :alphabet 'protein\n  :ref \"Landschulz et al. 1988, Science 240:1759\")\n\n(defmotif bzip-basic-region\n  \"Basic region of a bZIP factor, immediately upstream of the zipper,\n   with the invariant N-x(7)-R spacing that contacts DNA.\"\n  (prosite \"N-x(7)-R-x(2)-[LIVM]\")\n  :category 'domain :alphabet 'protein\n  :scan #f)\n\n(defmotif rrm-rnp1\n  \"RNP1 submotif of the RNA recognition motif, the aromatic-rich octamer\n   that stacks against the bases.\"\n  (prosite \"[RK]-G-[FY]-[GA]-[FY]-[ILV]-x-[FY]\")\n  :category 'domain :alphabet 'protein\n  :ref \"PROSITE PS50102\")\n\n(defmotif rrm-rnp2\n  \"RNP2 submotif of the RNA recognition motif.\"\n  (prosite \"[ILV]-[FY]-[ILV]-x-N-L\")\n  :category 'domain :alphabet 'protein\n  :scan #f)\n\n(defmotif rgd-motif\n  \"RGD cell attachment sequence, the integrin binding tripeptide of\n   fibronectin and many other matrix proteins.\"\n  (prosite \"R-G-D\")\n  :category 'binding-site :alphabet 'protein :example \"RGD\"\n  :ref \"Pierschbacher & Ruoslahti 1984, Nature 309:30\"\n  :scan #f)\n\n(defmotif ldl-receptor-class-b\n  \"YWTD repeat signature of the LDL receptor class B propeller.\"\n  (prosite \"Y-W-[ST]-D\")\n  :category 'domain :alphabet 'protein\n  :scan #f)\n\n(defmotif wd40-signature\n  \"The GH dipeptide and terminal WD of a WD40 repeat, which builds a\n   seven-bladed beta propeller.\"\n  (prosite \"G-H-x(23,41)-W-D\")\n  :category 'domain :alphabet 'protein\n  :scan #f)\n\n(defmotif pdz-binding-c-terminal\n  \"Class I PDZ-binding motif at the extreme C-terminus, which docks a\n   protein into a scaffold such as PSD-95.\"\n  (prosite \"[ST]-x-[VIL]>\")\n  :category 'binding-site :alphabet 'protein :example \"TKV\"\n  :scan #f)\n\n(defmotif sh3-binding-pxxp\n  \"PxxP core of an SH3 binding site, a left-handed polyproline II helix.\"\n  (prosite \"P-x(2)-P\")\n  :category 'binding-site :alphabet 'protein :example \"PPLP\"\n  :scan #f)\n\n(defmotif sh2-binding\n  \"Phosphotyrosine motif of an SH2 binding site.\"\n  (prosite \"Y-x(2)-[ILVM]\")\n  :category 'binding-site :alphabet 'protein\n  :scan #f)\n\n(defmotif fourteen-three-three-mode1\n  \"Mode 1 binding motif for 14-3-3 proteins, recognised once the central\n   serine is phosphorylated.\"\n  (prosite \"R-S-x-S-x-P\")\n  :category 'binding-site :alphabet 'protein\n  :scan #f)\n\n(defmotif d-box\n  \"Destruction box, the signal that marks mitotic cyclins for the\n   anaphase promoting complex.\"\n  (prosite \"R-x(2)-L-x(4)-N\")\n  :category 'degradation :alphabet 'protein :example \"RAALGVIQN\"\n  :scan #f)\n\n(defmotif ken-box\n  \"KEN box, the second APC/C degradation signal, read by Cdh1.\"\n  (prosite \"K-E-N\")\n  :category 'degradation :alphabet 'protein :example \"KEN\"\n  :scan #f)\n\n(defmotif pest-region\n  \"A proline, glutamate, serine and threonine rich stretch flanked by basic\n   residues, associated with rapid proteasomal turnover.\"\n  (seq (any-of \"KRH\") (run \"PESTDNQGAV\" 12 40) (any-of \"KRH\"))\n  :category 'degradation :alphabet 'protein\n  :ref \"Rogers et al. 1986, Science 234:364\")\n\n;; ------------------------------------------------- catalytic signatures\n\n(defmotif zinc-metalloprotease\n  \"HExxH zinc binding motif of the metzincin and gluzincin metalloproteases.\n   Two histidines and a downstream glutamate hold the catalytic zinc.\"\n  (prosite \"H-E-x(2)-H\")\n  :category 'catalytic :alphabet 'protein :example \"HELGH\"\n  :ref \"PROSITE PS00142\")\n\n(defmotif serine-protease-catalytic\n  \"GDSGGP signature around the catalytic serine of the chymotrypsin family.\"\n  (prosite \"G-D-S-G-G-P\")\n  :category 'catalytic :alphabet 'protein :example \"GDSGGP\")\n\n(defmotif serine-protease-histidine\n  \"The histidine of the chymotrypsin family catalytic triad in its\n   conserved context.\"\n  (prosite \"[LIVM]-[ST]-A-[STAG]-H-C\")\n  :category 'catalytic :alphabet 'protein\n  :ref \"PROSITE PS00134\"\n  :scan #f)\n\n(defmotif aspartyl-protease\n  \"The D-T/S-G triad of aspartyl proteases such as pepsin, renin and\n   HIV-1 protease.\"\n  (prosite \"[LIVMFGAC]-[LIVMTADN]-[LIVFSA]-D-[ST]-G-[STAV]\")\n  :category 'catalytic :alphabet 'protein\n  :ref \"PROSITE PS00141\")\n\n(defmotif cysteine-protease\n  \"The catalytic cysteine of the papain family in its conserved setting.\"\n  (prosite \"Q-x(3)-[GE]-x-C-[YW]-x(2)-[STAGC]\")\n  :category 'catalytic :alphabet 'protein\n  :ref \"PROSITE PS00139\"\n  :scan #f)\n\n(defmotif lipase-gxsxg\n  \"GxSxG nucleophile elbow of the alpha/beta hydrolase fold, present in\n   lipases, esterases and serine hydrolases generally.\"\n  (prosite \"[LIV]-x-[LIVFY]-[LIVMST]-G-[HYWV]-S-x-G-[GSTAC]\")\n  :category 'catalytic :alphabet 'protein\n  :ref \"PROSITE PS00120\")\n\n(defmotif thioredoxin-active-site\n  \"CXXC redox active site of thioredoxins and the wider thioredoxin fold.\"\n  (prosite \"W-C-[GATP]-[PLIVMFYWC]-C\")\n  :category 'catalytic :alphabet 'protein :example \"WCGPC\"\n  :scan #f)\n\n(defmotif kinase-hrd\n  \"HRD motif of the protein kinase catalytic loop, whose aspartate is the\n   catalytic base.\"\n  (prosite \"H-[RC]-D-[LIVMFY]-[KR]-x(2)-N\")\n  :category 'catalytic :alphabet 'protein\n  :scan #f)\n\n(defmotif kinase-dfg\n  \"DFG motif at the start of the kinase activation loop. Its in and out\n   conformations decide whether type I or type II inhibitors bind.\"\n  (prosite \"D-F-G\")\n  :category 'catalytic :alphabet 'protein :example \"DFG\"\n  :scan #f)\n\n(defmotif kinase-atp-binding\n  \"Protein kinase ATP-binding signature: the glycine-rich loop of subdomain I\n   followed by the invariant VAIK lysine of subdomain II, which positions the\n   alpha and beta phosphates of ATP.\"\n  (prosite \"[LIV]-G-{P}-G-{P}-[FYWMGSTNH]-[SGA]-{PW}-[LIVCAT]-{PD}-x-[GSTACLIVMFY]-x(5,18)-[LIVMFYWCSTAR]-[AIVP]-[LIVMFAGCKR]-K\")\n  :category 'catalytic :alphabet 'protein\n  :ref \"PROSITE PS00107\")\n\n(defmotif kinase-active-site\n  \"Serine/threonine kinase active site signature, built around the catalytic\n   aspartate of the HRD motif.\"\n  (prosite \"[LIVMFYC]-x-[HY]-x-D-[LIVMFY]-K-x(2)-N-[LIVMFYCT](3)\")\n  :category 'catalytic :alphabet 'protein\n  :ref \"PROSITE PS00108\")\n\n(defmotif tyrosine-kinase-active-site\n  \"Tyrosine kinase active site signature.\"\n  (prosite \"[LIVMFYC]-x-[HY]-x-D-[LIVMFY]-[RSTAC]-x(2)-N-[LIVMFYC](3)\")\n  :category 'catalytic :alphabet 'protein\n  :ref \"PROSITE PS00109\")\n\n(defmotif glycine-rich-loop\n  \"Glycine-rich (P-loop-like) nucleotide binding loop of protein kinases,\n   GxGxxG. Not the same as the Walker A P-loop, though it does the same job.\"\n  (prosite \"G-x-G-x(2)-[GSA]\")\n  :category 'catalytic :alphabet 'protein :example \"GEGSFG\"\n  :scan #f)\n\n(defmotif atp-binding-abc\n  \"ABC transporter signature, the LSGGQ motif that couples ATP hydrolysis\n   to transport.\"\n  (prosite \"L-S-G-G-[QE]\")\n  :category 'catalytic :alphabet 'protein :example \"LSGGQ\"\n  :scan #f)\n\n(defmotif selenocysteine\n  \"A selenocysteine residue, encoded by an in-frame UGA read through a\n   SECIS element. Written U in one-letter code.\"\n  (prosite \"U\")\n  :category 'modification :alphabet 'protein\n  :scan #f)\n\n;; ------------------------------------------------ protease cleavage sites\n\n(defmotif trypsin-site\n  \"Trypsin cleaves after lysine or arginine, unless proline follows.\"\n  (prosite \"[KR]-{P}\")\n  :category 'protease :alphabet 'protein :example \"KA\")\n\n(defmotif chymotrypsin-site\n  \"Chymotrypsin cleaves after large hydrophobic residues, unless\n   proline follows.\"\n  (prosite \"[FYW]-{P}\")\n  :category 'protease :alphabet 'protein)\n\n(defmotif glu-c-site\n  \"Endoproteinase Glu-C (V8 protease) cleaves after glutamate, and after\n   aspartate in phosphate buffer.\"\n  (prosite \"[DE]-{P}\")\n  :category 'protease :alphabet 'protein)\n\n(defmotif furin-site\n  \"Furin cleaves after R-X-K/R-R in the trans-Golgi, activating many\n   growth factors, receptors and viral envelope proteins.\"\n  (prosite \"R-x-[KR]-R\")\n  :category 'protease :alphabet 'protein :example \"RQKR\"\n  :ref \"Molloy et al. 1992, J Biol Chem 267:16396\")\n\n(defmotif caspase-3-site\n  \"Caspase-3 and caspase-7 cleave after DEVD, the canonical apoptotic\n   substrate motif.\"\n  (prosite \"D-E-V-D\")\n  :category 'protease :alphabet 'protein :example \"DEVD\")\n\n(defmotif caspase-1-site\n  \"Caspase-1 cleaves after YVAD, releasing mature IL-1beta.\"\n  (prosite \"[YW]-[VE]-[AH]-D\")\n  :category 'protease :alphabet 'protein :example \"YVAD\")\n\n(defmotif granzyme-b-site\n  \"Granzyme B cleaves after IEPD, the way cytotoxic lymphocytes trigger\n   apoptosis in a target cell.\"\n  (prosite \"I-E-P-D\")\n  :category 'protease :alphabet 'protein :example \"IEPD\")\n\n(defmotif tev-protease-site\n  \"Tobacco etch virus protease cleaves between Q and G in ENLYFQ/G.\n   The standard way to remove an affinity tag.\"\n  (prosite \"E-N-L-Y-F-Q-[GS]\")\n  :category 'protease :alphabet 'protein :example \"ENLYFQG\")\n\n(defmotif thrombin-site\n  \"Thrombin cleaves LVPR/GS, the site built into GST and many His-tag vectors.\"\n  (prosite \"L-V-P-R-G-S\")\n  :category 'protease :alphabet 'protein :example \"LVPRGS\")\n\n(defmotif factor-xa-site\n  \"Factor Xa cleaves after IEGR or IDGR, leaving no extra residues.\"\n  (prosite \"I-[ED]-G-R\")\n  :category 'protease :alphabet 'protein :example \"IEGR\")\n\n(defmotif enterokinase-site\n  \"Enteropeptidase cleaves after DDDDK, leaving a native N-terminus.\"\n  (prosite \"D-D-D-D-K\")\n  :category 'protease :alphabet 'protein :example \"DDDDK\")\n\n(defmotif prescission-site\n  \"HRV 3C (PreScission) protease cleaves between Q and G in LEVLFQ/GP.\n   Works at 4 degrees, which is why it is preferred for fragile proteins.\"\n  (prosite \"L-E-V-L-F-Q-G-P\")\n  :category 'protease :alphabet 'protein :example \"LEVLFQGP\")\n\n(defmotif sortase-lpxtg\n  \"LPXTG sorting signal. Sortase A cuts between T and G and joins the\n   protein to the cell wall, and is now the standard protein ligation tool.\"\n  (prosite \"L-P-x-T-G\")\n  :category 'protease :alphabet 'protein :example \"LPETG\")\n\n(defmotif signal-peptidase-axa\n  \"A-x-A signal peptidase I cleavage site, the -3,-1 rule.\"\n  (prosite \"A-x-A\")\n  :category 'protease :alphabet 'protein :example \"AQA\"\n  :scan #f)\n", "tags.mtf": ";;; tags.mtf -- the sequences of molecular biology practice: affinity tags,\n;;; linkers, promoters and terminators for in vitro transcription,\n;;; recombinase sites, CRISPR components, cloning standards and adapters.\n\n;; ------------------------------------------------------- protein tags\n\n(defmotif his-tag\n  \"Polyhistidine tag. Six histidines is the usual length; eight or ten bind\n   nickel resin more tightly at the cost of more background.\"\n  (prosite \"H(6,10)\")\n  :category 'tag :alphabet 'protein :example \"HHHHHH\")\n\n(defmotif flag-tag\n  \"FLAG tag DYKDDDDK. Hydrophilic, usually surface-exposed, and removable\n   by enterokinase, which cleaves after the final lysine.\"\n  (literal \"DYKDDDDK\")\n  :category 'tag :alphabet 'protein :example \"DYKDDDDK\")\n\n(defmotif flag-tag-3x\n  \"3xFLAG tag, three tandem epitopes for higher sensitivity.\"\n  (literal \"DYKDHDGDYKDHDIDYKDDDDK\")\n  :category 'tag :alphabet 'protein)\n\n(defmotif ha-tag\n  \"HA tag from influenza hemagglutinin, one of the most used epitope tags.\"\n  (literal \"YPYDVPDYA\")\n  :category 'tag :alphabet 'protein :example \"YPYDVPDYA\")\n\n(defmotif myc-tag\n  \"c-Myc epitope tag, recognised by the 9E10 antibody.\"\n  (literal \"EQKLISEEDL\")\n  :category 'tag :alphabet 'protein :example \"EQKLISEEDL\")\n\n(defmotif v5-tag\n  \"V5 tag from the simian virus 5 P and V proteins.\"\n  (literal \"GKPIPNPLLGLDST\")\n  :category 'tag :alphabet 'protein)\n\n(defmotif strep-tag-ii\n  \"Strep-tag II, which binds Strep-Tactin and elutes gently with desthiobiotin.\"\n  (literal \"WSHPQFEK\")\n  :category 'tag :alphabet 'protein :example \"WSHPQFEK\")\n\n(defmotif twin-strep-tag\n  \"Twin-Strep-tag: two Strep-tag II copies on a flexible linker, for\n   markedly tighter binding.\"\n  (seq \"WSHPQFEK\" (gap 8 16) \"WSHPQFEK\")\n  :category 'tag :alphabet 'protein)\n\n(defmotif s-tag\n  \"S-tag, the S-peptide of ribonuclease A, which binds S-protein.\"\n  (literal \"KETAAAKFERQHMDS\")\n  :category 'tag :alphabet 'protein)\n\n(defmotif avi-tag\n  \"AviTag (biotin acceptor peptide). BirA biotinylates the central lysine,\n   giving a single defined biotin per molecule.\"\n  (literal \"GLNDIFEAQKIEWHE\")\n  :category 'tag :alphabet 'protein :example \"GLNDIFEAQKIEWHE\")\n\n(defmotif alfa-tag\n  \"ALFA-tag, a short helical epitope with a nanobody binder,\n   useful in super-resolution microscopy.\"\n  (literal \"SRLEEELRRRLTE\")\n  :category 'tag :alphabet 'protein)\n\n(defmotif spot-tag\n  \"Spot-tag, another short nanobody-bound epitope.\"\n  (literal \"PDRVRAVSHWSS\")\n  :category 'tag :alphabet 'protein)\n\n(defmotif calmodulin-binding-peptide\n  \"Calmodulin binding peptide, the second tag of the original TAP tag.\"\n  (literal \"KRRWKKNFIAVSAANRFKKISSSGAL\")\n  :category 'tag :alphabet 'protein)\n\n(defmotif gs-linker\n  \"Flexible glycine-serine linker (GGGGS)n, the default spacer between\n   fused domains.\"\n  (repeat (literal \"GGGGS\") 1 6)\n  :category 'linker :alphabet 'protein :example \"GGGGSGGGGS\"\n  :scan #f)\n\n(defmotif rigid-linker-eaaak\n  \"Rigid alpha-helical linker (EAAAK)n, used when two domains must be\n   held apart rather than allowed to touch.\"\n  (repeat (literal \"EAAAK\") 1 6)\n  :category 'linker :alphabet 'protein\n  :scan #f)\n\n;; ------------------------------------------- promoters for in vitro work\n\n(defmotif t7-promoter\n  \"T7 RNA polymerase class III promoter. Transcription starts at the G\n   immediately after it.\"\n  (literal \"TAATACGACTCACTATAG\")\n  :category 'vector :alphabet 'dna :example \"TAATACGACTCACTATAG\")\n\n(defmotif sp6-promoter\n  \"SP6 RNA polymerase promoter.\"\n  (literal \"ATTTAGGTGACACTATAG\")\n  :category 'vector :alphabet 'dna :example \"ATTTAGGTGACACTATAG\")\n\n(defmotif t3-promoter\n  \"T3 RNA polymerase promoter.\"\n  (literal \"AATTAACCCTCACTAAAG\")\n  :category 'vector :alphabet 'dna :example \"AATTAACCCTCACTAAAG\")\n\n(defmotif u6-promoter-end\n  \"3' end of the human U6 promoter, where a polymerase III transcript such\n   as a guide RNA begins.\"\n  (literal \"CTTGTGGAAAGGACGAAACACCG\")\n  :category 'vector :alphabet 'dna)\n\n(defmotif pelb-signal\n  \"pelB leader peptide, which directs a recombinant protein to the\n   E. coli periplasm.\"\n  (literal \"MKYLLPTAAAGLLLLAAQPAMA\")\n  :category 'vector :alphabet 'protein)\n\n;; ----------------------------------------------------- recombinase sites\n\n(defmotif loxp\n  \"loxP site: two 13 bp inverted repeats around an 8 bp asymmetric spacer.\n   Cre recombines two of them, and the spacer's asymmetry sets the outcome,\n   excision or inversion.\"\n  (literal \"ATAACTTCGTATAATGTATGCTATACGAAGTTAT\")\n  :category 'recombination :alphabet 'dna :example \"ATAACTTCGTATAATGTATGCTATACGAAGTTAT\"\n  :ref \"Hoess et al. 1982, PNAS 79:3398\")\n\n(defmotif loxp-arm\n  \"The 13 bp inverted repeat arm of a loxP site, which also finds the\n   lox2272 and loxN variants.\"\n  (literal \"ATAACTTCGTATA\")\n  :category 'recombination :alphabet 'dna)\n\n(defmotif lox2272\n  \"lox2272, a spacer variant that recombines with itself but not with loxP.\n   Used in Brainbow and other multi-colour lineage systems.\"\n  (literal \"ATAACTTCGTATAAAGTATCCTATACGAAGTTAT\")\n  :category 'recombination :alphabet 'dna)\n\n(defmotif frt\n  \"FRT site, recognised by Flp recombinase from the yeast 2 micron plasmid.\"\n  (literal \"GAAGTTCCTATTCTCTAGAAAGTATAGGAACTTC\")\n  :category 'recombination :alphabet 'dna)\n\n(defmotif attb1-gateway\n  \"Gateway attB1 site, used in BP and LR recombination cloning.\"\n  (literal \"ACAAGTTTGTACAAAAAAGCAGGCT\")\n  :category 'cloning :alphabet 'dna)\n\n(defmotif attb2-gateway\n  \"Gateway attB2 site.\"\n  (literal \"ACCCAGCTTTCTTGTACAAAGTGGT\")\n  :category 'cloning :alphabet 'dna)\n\n(defmotif attb-phic31\n  \"attB site of phage phiC31 integrase, which recombines irreversibly\n   with attP and is used for site-specific genomic integration.\"\n  (literal \"GGCTTGTCGACGACGGCGGTCTCCGTCGTCAGGATCAT\")\n  :category 'recombination :alphabet 'dna)\n\n;; ---------------------------------------------------------- CRISPR\n\n(defmotif pam-spcas9\n  \"NGG protospacer adjacent motif of Streptococcus pyogenes Cas9.\n   Without a PAM the target is not cut, whatever the guide.\"\n  (iupac \"NGG\")\n  :category 'crispr :alphabet 'dna :example \"AGG\"\n  :ref \"Jinek et al. 2012, Science 337:816\"\n  :scan #f)\n\n(defmotif pam-spcas9-relaxed\n  \"The NAG PAM that SpCas9 cuts weakly, a common source of off-target activity.\"\n  (iupac \"NAG\")\n  :category 'crispr :alphabet 'dna\n  :scan #f)\n\n(defmotif pam-sacas9\n  \"NNGRRT PAM of Staphylococcus aureus Cas9, small enough to package\n   with its guide in a single AAV.\"\n  (iupac \"NNGRRT\")\n  :category 'crispr :alphabet 'dna\n  :scan #f)\n\n(defmotif pam-cas12a\n  \"TTTV PAM of Cas12a (Cpf1). It sits 5' of the protospacer, the opposite\n   side from Cas9, and Cas12a leaves staggered ends.\"\n  (iupac \"TTTV\")\n  :category 'crispr :alphabet 'dna :example \"TTTA\"\n  :scan #f)\n\n(defmotif spacer-with-pam\n  \"A complete SpCas9 target: a 20 base protospacer followed by an NGG PAM.\n   The cut falls 3 bases into the protospacer from the PAM.\"\n  (seq (named 'protospacer (gap 20 20)) (named 'pam (iupac \"NGG\")))\n  :category 'crispr :alphabet 'dna\n  :scan #f)\n\n(defmotif spacer-gn19-pam\n  \"An SpCas9 target starting with G, which U6-driven guides need for\n   efficient polymerase III initiation.\"\n  (seq \"G\" (named 'protospacer (gap 19 19)) (named 'pam (iupac \"NGG\")))\n  :category 'crispr :alphabet 'dna\n  :scan #f)\n\n(defmotif sgrna-scaffold\n  \"The Streptococcus pyogenes single guide RNA scaffold that follows the\n   20 base spacer.\"\n  (literal \"GTTTTAGAGCTAGAAATAGCAAGTTAAAATAAGGCTAGTCCGTTATCAACTTGAAAAAGTGGCACCGAGTCGGTGC\")\n  :category 'crispr :alphabet 'dna)\n\n;; ----------------------------------------------------- cloning standards\n\n(defmotif biobrick-prefix\n  \"BioBrick RFC 10 prefix, carrying EcoRI, NotI and XbaI sites.\"\n  (literal \"GAATTCGCGGCCGCTTCTAGAG\")\n  :category 'cloning :alphabet 'dna)\n\n(defmotif biobrick-suffix\n  \"BioBrick RFC 10 suffix, carrying SpeI, NotI and PstI sites.\"\n  (literal \"TACTAGTAGCGGCCGCTGCAG\")\n  :category 'cloning :alphabet 'dna)\n\n(defmotif golden-gate-bsai\n  \"A Golden Gate cassette: BsaI, one spacer base and the four base fusion\n   overhang it exposes. The overhang, not the enzyme site, joins the parts.\"\n  (seq \"GGTCTC\" (gap 1 1) (named 'overhang (gap 4 4)))\n  :category 'cloning :alphabet 'dna\n  :scan #f)\n\n(defmotif golden-gate-bsmbi\n  \"A Golden Gate cassette using BsmBI (Esp3I), the second enzyme in\n   MoClo and Loop assembly hierarchies.\"\n  (seq \"CGTCTC\" (gap 1 1) (named 'overhang (gap 4 4)))\n  :category 'cloning :alphabet 'dna\n  :scan #f)\n\n(defmotif his-tag-dna\n  \"DNA encoding a six-histidine tag, as most vectors spell it.\"\n  (alt \"CACCACCACCACCACCAC\" \"CATCACCATCACCATCAC\" \"CATCATCATCATCATCAT\")\n  :category 'tag :alphabet 'dna\n  :scan #f)\n\n(defmotif m13-forward-primer\n  \"M13 forward (-20) primer site, present in nearly every cloning vector.\"\n  (literal \"GTAAAACGACGGCCAGT\")\n  :category 'vector :alphabet 'dna)\n\n(defmotif m13-reverse-primer\n  \"M13 reverse primer site.\"\n  (literal \"CAGGAAACAGCTATGAC\")\n  :category 'vector :alphabet 'dna)\n\n(defmotif sv40-polya\n  \"SV40 late polyadenylation signal region, the terminator of most\n   mammalian expression cassettes.\"\n  (fuzzy 2 (literal \"AATAAAGCAATAGCATCACAAATTTCACAAATAAAGCA\"))\n  :category 'vector :alphabet 'dna)\n\n(defmotif bgh-polya\n  \"Bovine growth hormone polyadenylation signal, used in pcDNA vectors.\"\n  (fuzzy 2 (literal \"CTGTGCCTTCTAGTTGCCAGCCATCTGTTGT\"))\n  :category 'vector :alphabet 'dna)\n\n;; ---------------------------------------------------- sequencing adapters\n\n(defmotif illumina-p5\n  \"Illumina P5 adapter, which anneals to the flow cell lawn.\"\n  (literal \"AATGATACGGCGACCACCGAGATCTACAC\")\n  :category 'adapter :alphabet 'dna)\n\n(defmotif illumina-p7\n  \"Illumina P7 adapter.\"\n  (literal \"CAAGCAGAAGACGGCATACGAGAT\")\n  :category 'adapter :alphabet 'dna)\n\n(defmotif illumina-read1-primer\n  \"Illumina Read 1 sequencing primer site. Finding it inside a read means\n   adapter read-through from a short insert.\"\n  (literal \"ACACTCTTTCCCTACACGACGCTCTTCCGATCT\")\n  :category 'adapter :alphabet 'dna)\n\n(defmotif illumina-read2-primer\n  \"Illumina Read 2 sequencing primer site.\"\n  (literal \"GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCT\")\n  :category 'adapter :alphabet 'dna)\n\n(defmotif truseq-adapter-read-through\n  \"The first 13 bases of the TruSeq adapter, the part that actually shows up\n   at the 3' end of reads from short inserts.\"\n  (literal \"AGATCGGAAGAGC\")\n  :category 'adapter :alphabet 'dna :example \"AGATCGGAAGAGC\")\n\n(defmotif nextera-mosaic-end\n  \"Nextera mosaic end, the Tn5 transposase recognition sequence carried\n   by tagmentation adapters.\"\n  (literal \"AGATGTGTATAAGAGACAG\")\n  :category 'adapter :alphabet 'dna)\n\n(defmotif poly-a-primer\n  \"Oligo-dT priming site: a run of adenosines long enough to capture\n   with oligo-dT beads.\"\n  (run \"A\" 15)\n  :category 'adapter :alphabet 'dna\n  :scan #f)\n\n(defmotif umi-8\n  \"An eight base unique molecular identifier, written as an N-run.\n   Matches anywhere, so use it as a template for building read structures,\n   not as a search pattern.\"\n  (iupac \"NNNNNNNN\")\n  :category 'adapter :alphabet 'dna\n  :scan #f)\n\n(defmotif tso-10x\n  \"Template switch oligo tail used in 10x Genomics and Smart-seq chemistries.\"\n  (literal \"AAGCAGTGGTATCAACGCAGAGTACATGGG\")\n  :category 'adapter :alphabet 'dna)\n", "restriction.mtf": ";;; restriction.mtf -- restriction endonuclease recognition sites.\n;;;\n;;; Sites are written the way REBASE writes them:\n;;;   \"G^AATTC\"      cut after G on the top strand; the bottom cut mirrors it\n;;;   \"G^AATT_C\"     explicit top (^) and bottom (_) cuts\n;;;   \"GGTCTC(1/5)\"  Type IIS: cuts 1 and 5 bases past the site\n;;; Sequences may use IUPAC ambiguity codes (N R Y W S K M B D H V).\n;;;\n;;; Reference: Roberts et al., REBASE, Nucleic Acids Research (rebase.neb.com).\n\n(defenzyme AatII   \"GACGT^C\")\n(defenzyme Acc65I  \"G^GTACC\")\n(defenzyme AccI    \"GT^MKAC\")\n(defenzyme AclI    \"AA^CGTT\")\n(defenzyme AfeI    \"AGC^GCT\")\n(defenzyme AflII   \"C^TTAAG\")\n(defenzyme AflIII  \"A^CRYGT\")\n(defenzyme AgeI    \"A^CCGGT\")\n(defenzyme AhdI    \"GACNNN^NNGTC\")\n(defenzyme AleI    \"CACNN^NNGTG\")\n(defenzyme AluI    \"AG^CT\")\n(defenzyme AlwNI   \"CAGNNN^CTG\")\n(defenzyme ApaI    \"GGGCC^C\")\n(defenzyme ApaLI   \"G^TGCAC\")\n(defenzyme AscI    \"GG^CGCGCC\")\n(defenzyme AseI    \"AT^TAAT\")\n(defenzyme AsiSI   \"GCGAT^CGC\")\n(defenzyme AvaI    \"C^YCGRG\")\n(defenzyme AvrII   \"C^CTAGG\")\n(defenzyme BamHI   \"G^GATCC\")\n(defenzyme BanI    \"G^GYRCC\")\n(defenzyme BanII   \"GRGCY^C\")\n(defenzyme BbsI    \"GAAGAC(2/6)\")\n(defenzyme BbvCI   \"CC^TCAGC\")\n(defenzyme BclI    \"T^GATCA\")\n(defenzyme BfaI    \"C^TAG\")\n(defenzyme BglI    \"GCCNNNN^NGGC\")\n(defenzyme BglII   \"A^GATCT\")\n(defenzyme BlpI    \"GC^TNAGC\")\n(defenzyme BmtI    \"GCTAG^C\")\n(defenzyme BsaAI   \"YAC^GTR\")\n(defenzyme BsaHI   \"GR^CGYC\")\n(defenzyme BsaI    \"GGTCTC(1/5)\")\n(defenzyme BsaJI   \"C^CNNGG\")\n(defenzyme BsaWI   \"W^CCGGW\")\n(defenzyme BseYI   \"CCCAGC(-5/-1)\")\n(defenzyme BsgI    \"GTGCAG(16/14)\")\n(defenzyme BsiEI   \"CGRY^CG\")\n(defenzyme BsiWI   \"C^GTACG\")\n(defenzyme BslI    \"CCNNNNN^NNGG\")\n(defenzyme BsmAI   \"GTCTC(1/5)\")\n(defenzyme BsmBI   \"CGTCTC(1/5)\")\n(defenzyme BsmI    \"GAATGC(1/-1)\")\n(defenzyme BsoBI   \"C^YCGRG\")\n(defenzyme BspEI   \"T^CCGGA\")\n(defenzyme BspHI   \"T^CATGA\")\n(defenzyme BspQI   \"GCTCTTC(1/4)\")\n(defenzyme BsrBI   \"CCG^CTC\")\n(defenzyme BsrGI   \"T^GTACA\")\n(defenzyme BssHII  \"G^CGCGC\")\n(defenzyme BstBI   \"TT^CGAA\")\n(defenzyme BstEII  \"G^GTNACC\")\n(defenzyme BstNI   \"CC^WGG\")\n(defenzyme BstXI   \"CCANNNNN^NTGG\")\n(defenzyme BstZ17I \"GTA^TAC\")\n(defenzyme Bsu36I  \"CC^TNAGG\")\n(defenzyme BtgI    \"C^CRYGG\")\n(defenzyme BtgZI   \"GCGATG(10/14)\")\n(defenzyme ClaI    \"AT^CGAT\")\n(defenzyme CviQI   \"G^TAC\")\n(defenzyme DdeI    \"C^TNAG\")\n(defenzyme DpnI    \"GA^TC\")\n(defenzyme DraI    \"TTT^AAA\")\n(defenzyme DraIII  \"CACNNN^GTG\")\n(defenzyme DrdI    \"GACNNNN^NNGTC\")\n(defenzyme EaeI    \"Y^GGCCR\")\n(defenzyme EagI    \"C^GGCCG\")\n(defenzyme EarI    \"CTCTTC(1/4)\")\n(defenzyme EciI    \"GGCGGA(11/9)\")\n(defenzyme Eco53kI \"GAG^CTC\")\n(defenzyme EcoNI   \"CCTNN^NNNAGG\")\n(defenzyme EcoO109I \"RG^GNCCY\")\n(defenzyme EcoRI   \"G^AATTC\")\n(defenzyme EcoRV   \"GAT^ATC\")\n(defenzyme FatI    \"^CATG\")\n(defenzyme FauI    \"CCCGC(4/6)\")\n(defenzyme Fnu4HI  \"GC^NGC\")\n(defenzyme FokI    \"GGATG(9/13)\")\n(defenzyme FseI    \"GGCCGG^CC\")\n(defenzyme FspI    \"TGC^GCA\")\n(defenzyme HaeII   \"RGCGC^Y\")\n(defenzyme HaeIII  \"GG^CC\")\n(defenzyme HgaI    \"GACGC(5/10)\")\n(defenzyme HhaI    \"GCG^C\")\n(defenzyme HincII  \"GTY^RAC\")\n(defenzyme HindIII \"A^AGCTT\")\n(defenzyme HinfI   \"G^ANTC\")\n(defenzyme HinP1I  \"G^CGC\")\n(defenzyme HpaI    \"GTT^AAC\")\n(defenzyme HpaII   \"C^CGG\")\n(defenzyme HphI    \"GGTGA(8/7)\")\n(defenzyme KasI    \"G^GCGCC\")\n(defenzyme KpnI    \"GGTAC^C\")\n(defenzyme MboI    \"^GATC\")\n(defenzyme MfeI    \"C^AATTG\")\n(defenzyme MluI    \"A^CGCGT\")\n(defenzyme MlyI    \"GAGTC(5/5)\")\n(defenzyme MscI    \"TGG^CCA\")\n(defenzyme MseI    \"T^TAA\")\n(defenzyme MslI    \"CAYNN^NNRTG\")\n(defenzyme MspI    \"C^CGG\")\n(defenzyme NaeI    \"GCC^GGC\")\n(defenzyme NarI    \"GG^CGCC\")\n(defenzyme NcoI    \"C^CATGG\")\n(defenzyme NdeI    \"CA^TATG\")\n(defenzyme NgoMIV  \"G^CCGGC\")\n(defenzyme NheI    \"G^CTAGC\")\n(defenzyme NlaIII  \"CATG^\")\n(defenzyme NlaIV   \"GGN^NCC\")\n(defenzyme NotI    \"GC^GGCCGC\")\n(defenzyme NruI    \"TCG^CGA\")\n(defenzyme NsiI    \"ATGCA^T\")\n(defenzyme NspI    \"RCATG^Y\")\n(defenzyme PacI    \"TTAAT^TAA\")\n(defenzyme PciI    \"A^CATGT\")\n(defenzyme PflMI   \"CCANNNN^NTGG\")\n(defenzyme PleI    \"GAGTC(4/5)\")\n(defenzyme PmeI    \"GTTT^AAAC\")\n(defenzyme PmlI    \"CAC^GTG\")\n(defenzyme PpuMI   \"RG^GWCCY\")\n(defenzyme PshAI   \"GACNN^NNGTC\")\n(defenzyme PsiI    \"TTA^TAA\")\n(defenzyme PspOMI  \"G^GGCCC\")\n(defenzyme PstI    \"CTGCA^G\")\n(defenzyme PvuI    \"CGAT^CG\")\n(defenzyme PvuII   \"CAG^CTG\")\n(defenzyme RsaI    \"GT^AC\")\n(defenzyme RsrII   \"CG^GWCCG\")\n(defenzyme SacI    \"GAGCT^C\")\n(defenzyme SacII   \"CCGC^GG\")\n(defenzyme SalI    \"G^TCGAC\")\n(defenzyme SapI    \"GCTCTTC(1/4)\")\n(defenzyme Sau3AI  \"^GATC\")\n(defenzyme Sau96I  \"G^GNCC\")\n(defenzyme SbfI    \"CCTGCA^GG\")\n(defenzyme ScaI    \"AGT^ACT\")\n(defenzyme ScrFI   \"CC^NGG\")\n(defenzyme SexAI   \"A^CCWGGT\")\n(defenzyme SfcI    \"C^TRYAG\")\n(defenzyme SfiI    \"GGCCNNNN^NGGCC\")\n(defenzyme SfoI    \"GGC^GCC\")\n(defenzyme SgrAI   \"CR^CCGGYG\")\n(defenzyme SmaI    \"CCC^GGG\")\n(defenzyme SmlI    \"C^TYRAG\")\n(defenzyme SnaBI   \"TAC^GTA\")\n(defenzyme SpeI    \"A^CTAGT\")\n(defenzyme SphI    \"GCATG^C\")\n(defenzyme SrfI    \"GCCC^GGGC\")\n(defenzyme SspI    \"AAT^ATT\")\n(defenzyme StuI    \"AGG^CCT\")\n(defenzyme StyI    \"C^CWWGG\")\n(defenzyme SwaI    \"ATTT^AAAT\")\n(defenzyme TaqI    \"T^CGA\")\n(defenzyme TfiI    \"G^AWTC\")\n(defenzyme TseI    \"G^CWGC\")\n(defenzyme Tsp509I \"^AATT\")\n(defenzyme XbaI    \"T^CTAGA\")\n(defenzyme XcmI    \"CCANNNNN^NNNNTGG\")\n(defenzyme XhoI    \"C^TCGAG\")\n(defenzyme XmaI    \"C^CCGGG\")\n(defenzyme XmnI    \"GAANN^NNTTC\")\n(defenzyme ZraI    \"GAC^GTC\")\n\n;; Methylation-sensitive sites that are not enzymes themselves.\n(defmotif dam-site\n  \"Dam methyltransferase target GATC in E. coli; the A is N6-methylated.\n   DpnI needs it methylated, MboI needs it unmethylated, DpnII is blocked by it.\"\n  (iupac \"GATC\")\n  :category 'methylation :alphabet 'dna :example \"GATC\"\n  :scan #f)\n\n(defmotif dcm-site\n  \"Dcm methyltransferase target CCWGG; the inner C is C5-methylated.\n   Blocks some enzymes and is the reason plasmids from dcm+ strains resist certain digests.\"\n  (iupac \"CCWGG\")\n  :category 'methylation :alphabet 'dna :example \"CCAGG\"\n  :scan #f)\n\n(defmotif cpg-dinucleotide\n  \"The CpG dinucleotide, the target of vertebrate DNA methylation and the reason\n   HpaII (blocked by methylation) and MspI (not blocked) give different digests.\"\n  (iupac \"CG\")\n  :category 'methylation :alphabet 'dna :example \"CG\"\n  :scan #f)\n\n(defmotif ecoki-site\n  \"EcoKI type I restriction/modification recognition site of E. coli K-12.\"\n  (seq (iupac \"AAC\") (gap 6) (iupac \"GTGC\"))\n  :category 'methylation :alphabet 'dna :example \"AACNNNNNNGTGC\"\n  :scan #f)\n"};
+const BIOMOTIF_DATA = {"operon": "; Synthetic bacterial operon. Sigma-70 promoter at 120, Shine-Dalgarno\n; before each of three genes, intrinsic terminator near the 3' end.\n>synthetic_operon promoter+3genes+terminator\nCGTCGGAGGTACATGATTGGAAGAAAACCTGGCGCCTTTGCACATCTCTTAATCTCAGTAACTTAAAATA\nGCATAGACAATTCTACTGATAATCCAAGAGCCTCGTAATTAATTATTGCATTGACAATAGATGCAGAAGT\nGCTTATAATAAACAACAAGGAGGGACTTGGATGGATAGAAAGAACTGGGGGTTCAACGCGCTCGTACATT\nTTACAGACGTATGCGTAGGGTACTGGCCCGGCTGCTCTCGCTACTCGGAGGCGCCTGATGCCACAGCTTT\nTTCTGTACCTGTAGATCGGTCCACCGTCAACGCACTCATGGGGCTGGCCTGTATTAAACAGGGCATAAGG\nTGGGGACGGTGCCATGGAATACGGTATTGGTCTCCTGATCATAGACTGTCCTCCGGTTTACAAAGGCGTC\nAAATCCGCGCGCTGCATTCCTTGCGTACAAACTAATAGGCTAACATAAAGCGGTTGACAAAAGGAGGCGA\nACGGATGGCCGTGCGATACTGGACCTGTGTAACTCGTGCGTGGCCGGAGTCTTACTTACTAGCTATAGTA\nTATGCTGGTATCTGCTTGTTGGAATACCATTGGTCGCCCACCCGGGACGTGCTCAACTATAATTACAGGC\nCATACAGAAGCCTTGTATCCGGGTTACTGTTAACCATCGAACACGTAGCGCTTTCCGAGCATCCTTCCTG\nCATATCCTTGCTTGAGATAGAACTGGCAAACTTGCTTCGATACGAGCTCGGGACAGAACGCTTCTGTCAA\nCTAACTCGGTATTGCCTCCATAGTGCCTGTACTGTTAACAGTATCGGCCATCCCGCCACGGTAACTCTTA\nTTATAGAACGGCCGCGCGAAAGCATAGCGGCGGAATCCGCCTCGATGGTCTATTGGCATCATTGTATCTT\nTTAATAATAATCTACGAAGTTAGTGGAAAAAGGAGGAGGGAAAATGTCCTTTTGTACCAATTTCCTAGTG\nCATCTACTTCGGGCAAAAGGGTCCAGTCGTGTCCGAAGTAGGCTTAAATGCTACGGGTCGGCGCGAGCAC\nTGTTGTATATTTGGGTCGTTTATCGATGCTCTGGGGTGGTGCGAGTAACACCACTAAAACCCGCGGCGAT\nGTTAGGACCAGGAGAGGAACCTTTTGCTGGGGTGTTGAACTAAGTACAACAATGGTGTGTAGTATACAGG\nGCGCGCCAGCTTCGGCTGGCGCGCCCTTTTTTTTCGATCGGCAGGATAAAAATCTTATTATCCTAGTTCT\nTGAGCAAGACGCAGCTGTTTAATT\n", "plasmid": "; Synthetic expression plasmid: T7 promoter, RBS, His-TEV-ORF, a multiple\n; cloning site, T7 terminator and a loxP site. Treat it as circular.\n>pSYN1 synthetic_expression_vector circular\nGAGTACCCTTTCTACCAGCCAGAATCGGTTACAGACCGCTGGGCCCATGCGATCCGCGATTAGAAAATCG\nGCCGGCATTTAAATCGTCATGGAGTCCTCGCAGGGCTTAATTTATAAGGAGACATCATCTAACCAGTGCT\nCACTACCTGCCCACGGCACTGTGGTAAAAATCGCAAATACTTTACTGTCCTGATCAGTACCCTATGCCGA\nAGCTAGTTACGTCCCGGTTCTGTCCTGAGCCGCTTCATACACCAACGGGATGACTCCGCCCCAGAATTGT\nGGTAAAGGTGCATAGTTACCTAATACGACTCACTATAGCATCCAGAATAGAAGGAGGATATACATATGCA\nTCACCATCACCATCACGAAAACCTGTATTTTCAGGGCGGTGCGACTACTGTTATCCGGGGACGTCATCTC\nCGTCCGCGCCAGGACGCTCGTCTCTCCGCGGTATCGGGTAGAATACGTCTGATGTGGTCTTTGAAAGTCA\nTACTCCTAGAGTTATCGGGTCTCTTATCCTCCATTCTTCCTTCCTATTGGATTCCCCGCAGGTATAGTCA\nTGGCTATGCGAAAGGCGGTTACGATGTTGTGAAGATTAAGCGGCCCCCCTTGAATATTGCCCGGTGCGGC\nCCTCGACATCCGCGCTTTCTGCCCTTCGTACGACAGCAACATATTTCCTGTCAGGAGTATTGCACCCAGA\nATCGCGATCTTCGTCATGATAGTGTGTACCCGGCAACACGATTAGCCCCTGTAGCTCTTACTCAGATTGC\nACCCAGCCGCTACGCTGTCCTTCACAACCACTACGCTTTTTGTGATATCAGTTGGTGGTCGTCTGATTCC\nGTGTCTCCAATCGGTGGCTTTGCTCCTTACGTAGAACGATCAGCTGCGCAGGGTTTAGCGGTGGGAACCG\nGCATAGGATATTCTAATGCGGGCAGACGGAGACTTTCGAGGAATCATTTGTACTCTGGCCGGCCATTACG\nTGACGGGGGTGGAAGATTGGCTGAGGAGTTGTAAGAATTCGCGGCCGCTCTAGAGGTACCCTCGAGGGAT\nCCAAGCTTCTGCAGAGCCCGCGCTCGGTCGGTTCTTGTCAGATTAATCGACTATCTAATTTCTCAACATC\nCCTCCCGCTGCGCGCGCGTGGGATGAGTCTGCAAGATAGTATTCGCCGGCGGTGCTCTATCGTTAGATTA\nGATCCTGCGCCATCACATACTAATTGTTGGTAAGATTCGCGTTAGATAACGCCGTCGTTGTTTGAATAGG\nGGTGGGTTGAGGACGCTAAGGTCACGGTGTGGGTCTAATCCACAGGAAAGTAAACTAGCATAACCCCTTG\nGGGCCTCTAAACGGGTCTTGAGGGGTTTTTTGTTCGGCTCCGCTCGGTTGAGCTAAACGGCCAAAGGACG\nACTGGGATTGCGTTGACGCCCACTGCGGCTCTCGTGCTGTGCGACTCGGTATGGTTGGTCTTTTCCTACC\nAATGGAAAGATCTAGAGTTCTAAGGTATCCCGGGCCGGACCGAATCGCCCCAACTACTAGCGAATGGGGA\nGGAAGGCCTGTGATGAAGCAGGGGTGATCGCCTTGGCTCTACGCACTTCTCCTGTCAAAAAGCTAGGTGT\nGTAATGGGTTACCAACTGCCGCAGGCGGTTAACTCCCAACTCGTCCACGAAGCGCCCCGGTGAAGGTTCG\nATACGTGCCCTCGTCCTGTAGGCGGTGCCAGTTCCCGAGCTCCCCCGGAACATGGCGATGGGCGAGAGGA\nGACCGGTAACATGGCACTCGAAACCCCCTCACCAACCCGTGTGAGGCATCAAGACGTCTCAGATGCCTCT\nTTATTCCCCCGAAAAGGGTAATGCGGACCGGCATGGCACACGTATCTGTCGTGTAATTGACAGCGAGCCT\nCGGGATGCGGAGCATGCGCGCTTTAAAGGGCCTTAATCCTGAGCATCGGACCGAAGCCACGTCGTGCGAA\nCTAGCCCGCTAGTTCATACGGTTCCATGAGTGCGTGATTCCCCTGAGTGACCACTGTTGGCGGTTTTCGC\nACGCGACCGTCTGATCCGGCAGTTTCGGTCCCCAAATACCGCAGACGTCGAGATGCCTACCAATTTGCTC\nCGATTGGCCAACGCGCAATTTTTTTACAGATATTCTCTGTTGGGCCTCCTGAGGCTAGTCCCCCATGCGT\nGAGTTCAGCCGCAGTCACTGCTTGGTCGCTAGCGCGTCGAAGTTTTACCTGGCATTGTAGTGTTTCTATA\nTCAACAATCCTCCGGGAAGACCATAACTTCGTATAATGTATGCTATACGAAGTTATAACTGTATTATTTT\nGTTTTAGGTCGGGCGTCAAACTCCTACAACCTGCCGTCGGATTCCACGGTAAGACCTTTTGGTATATTTT\nAACATTATTTTCGAGTAACAGACCACAACCTTGCTCTCTAACGGCATCAATCTTCCCCTTTGTTAGAGCT\nGCGGACTAGGCTTTACCAAGGACCTACTTGGTAGTAAGTAGCCTCATTAACCATACCCAGCGCGAATTAA\nTCAAATGTACTTCCTGAAGACCTACTACACCACGACGAAGGTGGTCGCCTCTGTTAGATATCCGCGCCTC\nGTATTCCGATCCTCACTATAGTACTAAGCCCTTGTTCGTCTGGTCATCCATGTCTGTACTCGGTGATGTG\nCGTGTGCGGCTAGTCGGCGGGTAATTCGCTATTGGC\n", "gene": "; Synthetic eukaryotic gene: TATA promoter, four exons, three GT-AG introns\n; with branch points and polypyrimidine tracts, and a poly(A) site.\n; Spliced and translated it gives a 189 residue protein.\n>SYNGENE1 four exons, three GT-AG introns\nTCCGTTTGGCGGTTTAGACGATGACTATGGAGAATCTCGCTTCGCTCGGACTGAATTTAGTATAAAAGCC\nCGGAAATTGCGGATTAAATTTCGAGCCACCATGGATGCCAAATTGTCATTTCAAATAAATAGTAACGGGC\nCGTATGTGCCCAGGCCCAACGCTAGTAGCTGCCGGTTATTGGGAATTAGCATTGTACTTCAGAACCCCCC\nTACAATTCAGGTAAGTTCAATATAGTAAGTTTACTCAGTTTCTTCTATCGCCCATTCAGACTACAAGAAT\nGTCTGGGGTTATGTCAACATCGCGTAATGACAATAATCACAAAACTTATCTGTTATGTTCTCATAATAGT\nTAAATGGCTCGAAGTCAATAGCGATCGTATTTTTAGGATATAACAGATAAGATAATATCGTCTTGTATTG\nATACAGTGAATTCGCTAGGCTAATAGATATTATGAAATAAGTCTCCACGTAGGGTCAAACAAATATATCA\nAAATGCGGTGTTTTAAATTTTTCTGGATAGCAAATGGTGTTCAAAAATTTCTACGCTCATATTGAAACAG\nACGACCTGGATCACGAATGCCGGAGCGTATATAGCGCGGCTAATAGTGAATTTATGTACCCATTCGCTGA\nCTTTTCTTTTCCTTTTCTTTCAGCGCCTGGAGTCCCACACCCAGATCGATCTCCATACCGTCGCGGCGGG\nGTCGAAGAGTCTAGGGCTGCTGCAGATGTCTTTGCTGCTAACTGCAATAGCGCAACTATCGCATGAACAT\nCTCTCGCTGTTCCGACGTGCTCTGGGACACAAACGCAATATTGCAGGTAAGTTTAGAAGGGCTTACCATT\nACTTTGTTGTTAAGCTTAAAATGGTATTCATTATCGTTATAAAACGGCGTGCAATGGCCATAACGGTGGG\nAGGTTTCTTGATGATGCATCAAACGCTCCGATATTGTTAAGTATCACGCATTGGACGTTTAGACAAATCG\nACATCGATTGAGTTGATTGCCTTTTCTAATTAATTCTATAATACCGGGTTTGTCGTCGCTACGGAACGTT\nGATACCACTAAGTTATACCTCAATCGGGAGTAGCTGCTGCTAACCAATTATATGATATCGAATCAAACAA\nCTCTCGGGTAACTTCTCATTCACACTATCTACATCTTTAGTTGAGCTTCTGACTTTTCTTTTCCTTTTCT\nTTCAGGGTGGGGCGACCCCCTCCACACGGAAGCGCAGGTCGAACAGTCCAACCAACATGGCATTTTGACG\nCGTCTAGTCATTAGCGTCTACGATTGGCGACGTCTGACTTCAAATACATGGCGTAGATGCAGTCGTAAAA\nGGTAAGTTTTTTTAGCCAACACCGGTTGGTGGGCGTCAGTAGCGACCGGCTTTACGCTACTTTACATTAA\nGCTGATTATTAAACGATCCTAGGGAAAAAATAGCTGACGTGAAGCTCTATAATTAGCACCCTGTTTTTTG\nACTCACAACGCCATACTAGAATTGCTGTAGTATCGTTGACTATTTTTAAATGAAGCATCTCCGAACTTGA\nACCTCATCTTATCCTATATCATGATGCCGCACGAGGCACTGACTTTTCTTTTCCTTTTCTTTCAGACTCG\nGGACTGTGGCTGGCTTCCTCAAAAATTCTACGCAAGCTGTAGTCGAGCATTGCAACATTTTTAGTTCCGC\nAGCGGCGCGTTCCAATCACGTTGTAGCTGGGCACGCAGAGTATATGCACCATATAGTACTCACATGCCTT\nTCATAAAATAAAAGGTTGAGTCGGCCACTTTGTGTTTTAAAAATAGTAAAATTTACGAGTTTCTACAAAC\nTGAACAAT\n", "utr3": "; Synthetic 3' UTRs carrying an AU-rich element, an iron responsive element,\n; a histone stem-loop, a let-7 site and poly(A) signals.\n>TNF_like synthetic 3'UTR\nCAATGTGCTGTGTCAATAGGATATTATTAGATGTACGGATTAAGCGCCAACTCTGTGCAAATTTAGATGT\nGCTTACTGCCTAAGATCTCTTTAAAAGAAGACAGATGTGCTTTAGTGGGATTATTTATTTATTATTTATT\nTTAGTACTTAACAATGCCCTACCCTAACGCGTTGTGCCTGCAAGCAGCATGGGATACGAAGACAAGTTAC\nATGTCCTGAACACATAAATAAACTCTATTTTTTTATTCATCGTCAGGATTATTGAGAATAATGGACTTAC\nGTAGATCTCGAAACACAGTTGTTGCAT\n>FTH_like synthetic 3'UTR\nTTGTTTTATGCCAAGGATTTGCCCTTTGGGAATAACAGATATATTTATACACAGTTGATCTAATTACGAA\nAGCCCCCTAACACTTTTACAAAACTGTGTGGTGGAACCATACACTTCTTAGGGGCCAGTGTGCCCCATTA\nCTGATGTTTAGTAAGACATGAAAACTGGGTTTCTTTAAGAATAGGTGAGAGATCAATATTCAATAAAATA\nTAACATTATCTATCACAACGTGCAATTATTGCTTTACGTGCAAAGGGACTATGAGTAGTTCGTATTTCAG\nGTTGTTGAAG\n>HIST_like synthetic 3'UTR\nACTAGTCGTTCTGATTTTTCTTTATGTGTGACTATTTGTGCAGTGCGAGAAATTGTAGCAGAAAATCGAA\nATGTGACCTTTGTTAAATACGAATATCGCGTCACTAACTGATGTCTGCATGGCTCTTTTCAGAGCCGGTT\nTTTACCGTCTGTCCGAGCTTATTGTTATATTTGCGCATACGCGAGAAGGACTCTCGTGCTACCTCAGGCA\nAGTCATCAATTA\n>MYC_like synthetic 3'UTR\nTACCAAAGTAAGATAGTAAATACGATGTGGCTAACTTAAAGAATAAGATAGCCATAAGCAAATCTTACCT\nGAATAGACGAACCGTATAATTGGAAATATGAATCTAAGGTCACATGGGTTCTACCTCTTACCCAAGACCC\nTTGAATCCAGCGGTTTTAGACGGGCATATTGATCCTTATCACACTTTGCCAAATATTTAATATTATAACA\nATAAGTACATCGGAAGAATGTAGAAAGAATTAGCAAATAAAATGTAGCCATTCCAGACGTTATCACTCAG\nGTTTATCGTAAATTCATGGACTCTGAAACATTGCGAGGGATCCAGAGATCAG\n>QUIET_like synthetic 3'UTR\nAGCTTTTGGGTTTTTATTTCTACAAAGAAGTCATCCTAGCGCATGACGTAACTATCCGTGTGCCCAACTT\nTTACATGGATTGTTGCGTATCTACTGCCCGTACCATTGATTTACCCCTTAAATAAATTGCTAACAAATAA\nTTAAAAAAAATCTTTTTTAATACATAGTTCGACAGAACCGTTCATGTTTCCACGGACTTCGTAGATTTAG\nTATGTATAAATATCGTCA\n", "proteins": "; Protein sequences. SECRETED01 is bovine serum albumin with a KDEL added;\n; KINASE01 and NUCLEAR01 and MEMBRANE01 are drawn from real kinase, zinc finger\n; and Ras sequences; TAGGED01 is a synthetic construct with common tags.\n>SECRETED01 signal peptide + N-glycosylation + KDEL\nMKWVTFISLLLLFSSAYSRGVFRRDTHKSEIAHRFKDLGEENFKALVLIAFAQYLQQCPFDEHVKLVNEL\nTEFAKTCVADESHAGCEKSLHTLFGDELCKVASLRETYGDMADCCEKQEPERNECFLSHKDDSPDLPKLK\nPDPNTLCDEFKADEKKFWGKYLYEIARRHPYFYAPELLYYANKYNGVFQECCQAEDKGACLLPKIETMRE\nKVLTSSARQRLRCASIQKFGERALKAWSVARLSQKFPKAEFVEVTKLVTDLTKVHKECCHGDLLECADDR\nADLAKYICDNQDTISSKLKECCDKPLLEKSHCIAEVEKDAIPENLPPLTADFAEDKDVCKNYQEAKDAFL\nGSFLYEYSRRHPEYAVSVLLRLAKEYEATLEECCAKDDPHACYSTVFDKLKHLVDEPQNLIKQNCDQFEK\nLGEYGFQNALIVRYTRKVPQVSTPTLVEVSRSLGKVGTRCCTKPESERMPCTEDYLSLILNRLCVLHEKT\nPVSEKVTKCCTESLVNRRPCFSALTPDETYVPKAFDEKLFTFHADICTLPDTEKQIKKQTALVELLKHKP\nKATEEQLKTVMENFVAFVDKCCAADDKEACFAVEGPKLVVSTQTALAKDEL\n>KINASE01 P-loop + HRD + DFG\nMSGKEQLIYRVGDLLGEGSFGKVYKARHKETGQIVAIKIIDKTQLNPSSLQKLFREVRIMKMLNHPNIVK\nLFEVIETEKTLYLVMEYASGGEVFDYLVAHGRMKEKEARSKFRQIVSAVQYCHQKFIVHRDLKAENLLLD\nADMNIKIADFGFSNEFTVGGKLDTFCGSPPYAAPELFQGKKYDGPEVDVWSLGVILYTLVSGSLPFDGQN\nLKELRERVLRGKYRIPFYMSTDCENLLKRFLVLNPIKRGTLEQIMKDRWMNVGHEEEELKPYVEPLPDYK\nDPRRTELMVSMGYTREEIQDSLVGQRYNEVMATYLLLGYKSSELEGDTITLKPRPSADLTNSSTSSPHHK\nVQRSVSANQKQRRFSDQAGPAIPTSNSYSKKTQSNNAENKRPEEKKRSTSTGEKNGKNSGKKGSSLFSKF\nTSKFVRRNLSFRFARRSNSDDGVQPAKLGSVSQPAQKAGNKENAHLQ\n>TAGGED01 His-TEV-FLAG-protein-PTS1\nMGSSHHHHHHSSGLVPRGSHMASMTGGQQMGRGSENLYFQGDYKDDDDKMANQVSKSAWAVLNGSTPLER\nGDSVKAAQKLLEEHGIKVDVCGPCRGDLTAEQKAALEDLIRSHGVKTFVSSTNKELSGSHHWQAGRVENL\nYFQSGSGSAKL\n>NUCLEAR01 bipartite NLS + zinc fingers\nMDSREPKRKRSPSVEDSKKRKAETSVPSAVQSNGERRPFQCRICMRNFSRSDHLTTHIRTHTGEKPFACD\nICGRKFARSDERKRHTKIHLRQKDKKAEKSVPCPHCDRCFSRSDHLTTHIRTHTGEKPYKCPECGKSFSQ\nSSNLQKHQRVHTGEKPYECGECGKAFSHSSDLIKHQRTHTGEKPYKCEECGKAFNRSSNLTTHKIIHTGE\nKPYKCEECGKAFNQSSTLTTHKIIHTGEKPYKCEECGKAFNQSSNLTTHKIIHSGEKKA\n>MEMBRANE01 CAAX + palmitoylation\nMTEYKLVVVGAGGVGKSALTIQLIQNHFVDEYDPTIEDSYRKQVVIDGETCLLDILDTAGQEEYSAMRDQ\nYMRTGEGFLCVFAINNTKSFEDIHQYREQIKRVKDSDDVPMVLVGNKCDLAARTVESRQAQDLARSYGIP\nYIETSAKTRQGVEDAFYTLVREIRQHKLRKLNPPDESGPGCMSCKCVLS\n"};
+window.BIOMOTIF_LIBRARY = BIOMOTIF_LIBRARY;
+window.BIOMOTIF_DATA = BIOMOTIF_DATA;
+
+/* ==== engine.js ==== */
+/* Biomotif engine: s-expression reader, motif combinators, search.
+   No dependencies. The matchers are generators, so backtracking is the
+   generator protocol: Seq asks an earlier part for its next alternative
+   whenever a later part fails. */
+
+/* ------------------------------------------------------------------ reader */
+
+class Sym {
+  constructor(name) { this.name = name; }
+  toString() { return this.name; }
+}
+const SYMS = new Map();
+function sym(name) {
+  let s = SYMS.get(name);
+  if (!s) { s = new Sym(name); SYMS.set(name, s); }
+  return s;
+}
+const isSym = (x, name) => x instanceof Sym && (name === undefined || x.name === name);
+
+const TOKEN = /\s*(?:(;[^\n]*)|(['`])|("(?:\\.|[^\\"])*")|([^\s()'`";]+)|([()]))/y;
+
+function tokenize(src) {
+  const out = [];
+  let pos = 0, line = 1;
+  while (pos < src.length) {
+    TOKEN.lastIndex = pos;
+    const m = TOKEN.exec(src);
+    if (!m) {
+      if (!src.slice(pos).trim()) break;
+      throw new BiomotifError(`line ${line}: cannot read ${JSON.stringify(src.slice(pos, pos + 20))}`);
+    }
+    line += (src.slice(pos, m.index + m[0].length).match(/\n/g) || []).length;
+    pos = TOKEN.lastIndex;
+    if (m[1] !== undefined) continue;            // comment
+    out.push([m[2] ?? m[3] ?? m[4] ?? m[5], line]);
+  }
+  return out;
+}
+
+class BiomotifError extends Error {}
+
+function unescape(body) {
+  let out = "";
+  for (let i = 0; i < body.length; i++) {
+    if (body[i] === "\\" && i + 1 < body.length) {
+      const c = body[++i];
+      out += c === "n" ? "\n" : c === "t" ? "\t" : c;
+    } else out += body[i];
+  }
+  return out;
+}
+
+function atom(tok) {
+  // Library docstrings run across several lines, so raw newlines are legal here.
+  if (tok[0] === '"') return unescape(tok.slice(1, -1));
+  if (/^[+-]?\d+$/.test(tok)) return parseInt(tok, 10);
+  if (/^[+-]?(\d+\.\d*|\.\d+)([eE][+-]?\d+)?$/.test(tok)) return parseFloat(tok);
+  if (tok === "#t") return true;
+  if (tok === "#f") return false;
+  return sym(tok);
+}
+
+class Reader {
+  constructor(src) { this.toks = tokenize(src); this.i = 0; }
+  peek() { return this.i < this.toks.length ? this.toks[this.i] : null; }
+  next() { return this.i < this.toks.length ? this.toks[this.i++] : null; }
+  read() {
+    const t = this.next();
+    if (!t) throw new BiomotifError("unexpected end of input");
+    const [tok, line] = t;
+    if (tok === "(") {
+      const items = [];
+      for (;;) {
+        const nxt = this.peek();
+        if (!nxt) throw new BiomotifError(`line ${line}: missing ')'`);
+        if (nxt[0] === ")") { this.next(); return items; }
+        items.push(this.read());
+      }
+    }
+    if (tok === ")") throw new BiomotifError(`line ${line}: unexpected ')'`);
+    if (tok === "'" || tok === "`") return [sym("quote"), this.read()];
+    return atom(tok);
+  }
+}
+
+function parse(src) {
+  const r = new Reader(src);
+  const form = r.read();
+  if (r.peek()) throw new BiomotifError("more than one expression");
+  return form;
+}
+
+function parseAll(src) {
+  const r = new Reader(src);
+  const forms = [];
+  while (r.peek()) forms.push(r.read());
+  return forms;
+}
+
+function balanced(src) {
+  let depth = 0;
+  try {
+    for (const [tok] of tokenize(src)) {
+      if (tok === "(") depth++;
+      else if (tok === ")") depth--;
+    }
+  } catch { return false; }
+  return depth === 0;
+}
+
+/* -------------------------------------------------------------- alphabets */
+
+const IUPAC = {
+  A: "A", C: "C", G: "G", T: "T", U: "T",
+  R: "AG", Y: "CT", S: "CG", W: "AT", K: "GT", M: "AC",
+  B: "CGT", D: "AGT", H: "ACT", V: "ACG", N: "ACGT",
+};
+const AMINO = "ACDEFGHIKLMNPQRSTVWY";
+
+const COMP_DNA = { A: "T", C: "G", G: "C", T: "A", U: "A", R: "Y", Y: "R", S: "S", W: "W",
+                   K: "M", M: "K", B: "V", D: "H", H: "D", V: "B", N: "N", "-": "-" };
+
+function complement(seq) {
+  const rna = /U/i.test(seq) && !/T/i.test(seq);
+  let out = "";
+  for (const ch of seq) {
+    const up = ch.toUpperCase();
+    let c = COMP_DNA[up] ?? "N";
+    if (rna && c === "T") c = "U";
+    out += ch === up ? c : c.toLowerCase();
+  }
+  return out;
+}
+const revcomp = (seq) => [...complement(seq)].reverse().join("");
+const transcribe = (seq) => seq.replace(/T/g, "U").replace(/t/g, "u");
+
+function normalize(seq, kind) {
+  const s = seq.toUpperCase();
+  return (kind === "dna" || kind === "rna") ? s.replace(/U/g, "T") : s;
+}
+
+function guessType(seq) {
+  const s = seq.toUpperCase().replace(/[\s\-*.]/g, "");
+  if (!s) return "dna";
+  const letters = new Set(s);
+  let nuc = 0;
+  for (const c of s) if ("ACGTUN".includes(c)) nuc++;
+  if (nuc / s.length > 0.9) return (letters.has("U") && !letters.has("T")) ? "rna" : "dna";
+  return "protein";
+}
+
+function expandIupac(pattern) {
+  let out = [""];
+  for (const c of pattern.toUpperCase()) {
+    const bases = IUPAC[c] ?? c;
+    const next = [];
+    for (const r of out) for (const b of bases) next.push(r + b);
+    out = next;
+    if (out.length > 4096) break;
+  }
+  return out;
+}
+
+function toIupac(bases) {
+  const key = [...new Set([...bases].map((b) => (b === "U" ? "T" : b)))].sort().join("");
+  for (const [code, members] of Object.entries(IUPAC)) {
+    if (code !== "U" && [...members].sort().join("") === key) return code;
+  }
+  return "N";
+}
+
+/* -------------------------------------------------------------- matchers */
+
+const q = (s) => '"' + String(s).replace(/"/g, '\\"') + '"';
+
+class Matcher {
+  * matchAt() {}
+  describe() { return "#<matcher>"; }
+  firstSet() { return null; }
+}
+
+class Literal extends Matcher {
+  constructor(text) {
+    super();
+    if (typeof text !== "string") throw new BiomotifError(`literal needs a string, got ${text}`);
+    this.text = text;
+    this.nuc = text.toUpperCase().replace(/U/g, "T");
+    this.prot = text.toUpperCase();
+  }
+  pattern(ctx) { return ctx.nuc ? this.nuc : this.prot; }
+  * matchAt(ctx, i, binds) {
+    const p = this.pattern(ctx);
+    if (ctx.seq.startsWith(p, i)) yield [i + p.length, binds];
+  }
+  firstSet(ctx) { const p = this.pattern(ctx); return p ? new Set([p[0]]) : null; }
+  describe() { return q(this.text); }
+}
+
+class Iupac extends Matcher {
+  constructor(text) {
+    super();
+    this.text = text;
+    this.sets = [...text.toUpperCase()].map((c) => {
+      const bases = IUPAC[c];
+      if (!bases) throw new BiomotifError(`iupac: ${JSON.stringify(c)} is not a nucleotide code in ${q(text)}`);
+      return new Set(bases);
+    });
+  }
+  * matchAt(ctx, i, binds) {
+    const n = this.sets.length;
+    if (i + n > ctx.seq.length) return;
+    for (let k = 0; k < n; k++) if (!this.sets[k].has(ctx.seq[i + k])) return;
+    yield [i + n, binds];
+  }
+  firstSet() { return this.sets.length ? new Set(this.sets[0]) : null; }
+  describe() { return `(iupac ${q(this.text)})`; }
+}
+
+class AnyOf extends Matcher {
+  constructor(chars) {
+    super();
+    this.chars = chars;
+    this.nuc = new Set(chars.toUpperCase().replace(/U/g, "T"));
+    this.prot = new Set(chars.toUpperCase());
+  }
+  set(ctx) { return ctx.nuc ? this.nuc : this.prot; }
+  accepts(ctx, c) { return this.set(ctx).has(c); }
+  * matchAt(ctx, i, binds) { if (i < ctx.seq.length && this.set(ctx).has(ctx.seq[i])) yield [i + 1, binds]; }
+  firstSet(ctx) { return new Set(this.set(ctx)); }
+  describe() { return `(any-of ${q(this.chars)})`; }
+}
+
+class NoneOf extends Matcher {
+  constructor(chars) {
+    super();
+    this.chars = chars;
+    this.nuc = new Set(chars.toUpperCase().replace(/U/g, "T"));
+    this.prot = new Set(chars.toUpperCase());
+  }
+  set(ctx) { return ctx.nuc ? this.nuc : this.prot; }
+  accepts(ctx, c) { return !this.set(ctx).has(c); }
+  * matchAt(ctx, i, binds) { if (i < ctx.seq.length && !this.set(ctx).has(ctx.seq[i])) yield [i + 1, binds]; }
+  describe() { return `(none-of ${q(this.chars)})`; }
+}
+
+class AnyChar extends Matcher {
+  accepts() { return true; }
+  * matchAt(ctx, i, binds) { if (i < ctx.seq.length) yield [i + 1, binds]; }
+  describe() { return "any"; }
+}
+
+class Seq extends Matcher {
+  constructor(parts) { super(); this.parts = parts.map(coerce); }
+  * matchAt(ctx, i, binds) {
+    const parts = this.parts;
+    if (!parts.length) { yield [i, binds]; return; }
+    const stack = [parts[0].matchAt(ctx, i, binds)];
+    while (stack.length) {
+      const k = stack.length - 1;
+      const step = stack[k].next();
+      if (step.done) { stack.pop(); continue; }
+      const [j, b] = step.value;
+      if (k + 1 === parts.length) yield [j, b];
+      else stack.push(parts[k + 1].matchAt(ctx, j, b));
+    }
+  }
+  firstSet(ctx) { return this.parts.length ? this.parts[0].firstSet(ctx) : null; }
+  describe() { return "(seq " + this.parts.map((p) => p.describe()).join(" ") + ")"; }
+}
+
+class Alt extends Matcher {
+  constructor(parts) { super(); this.parts = parts.map(coerce); }
+  * matchAt(ctx, i, binds) { for (const p of this.parts) yield* p.matchAt(ctx, i, binds); }
+  firstSet(ctx) {
+    const out = new Set();
+    for (const p of this.parts) {
+      const fs = p.firstSet(ctx);
+      if (!fs) return null;
+      for (const c of fs) out.add(c);
+    }
+    return out;
+  }
+  describe() { return "(alt " + this.parts.map((p) => p.describe()).join(" ") + ")"; }
+}
+
+class Repeat extends Matcher {
+  constructor(inner, min = 0, max = null) {
+    super();
+    this.inner = coerce(inner);
+    this.min = min;
+    this.max = max;
+    if (max !== null && max < min) throw new BiomotifError("repeat: max is smaller than min");
+  }
+  static advance(gen, pos) {
+    for (;;) {
+      const step = gen.next();
+      if (step.done) return null;
+      if (step.value[0] !== pos) return step.value;   // skip zero-width, it would loop
+    }
+  }
+  * matchAt(ctx, i, binds) {
+    const max = this.max === null ? Infinity : this.max;
+    const stack = [];
+    let pos = i, b = binds;
+    for (;;) {
+      if (stack.length < max) {
+        const gen = this.inner.matchAt(ctx, pos, b);
+        const nxt = Repeat.advance(gen, pos);
+        if (nxt) { stack.push([gen, pos, b]); [pos, b] = nxt; continue; }
+      }
+      if (stack.length >= this.min) yield [pos, b];
+      let resumed = false;
+      while (stack.length) {
+        const [gen, ppos, pb] = stack[stack.length - 1];
+        const nxt = Repeat.advance(gen, ppos);
+        if (nxt) { [pos, b] = nxt; resumed = true; break; }
+        stack.pop();
+        pos = ppos; b = pb;
+        if (stack.length >= this.min) yield [pos, b];
+      }
+      if (!resumed) return;
+    }
+  }
+  firstSet(ctx) { return this.min > 0 ? this.inner.firstSet(ctx) : null; }
+  describe() {
+    const mx = this.max === null ? "" : ` ${this.max}`;
+    return `(repeat ${this.inner.describe()} ${this.min}${mx})`;
+  }
+}
+
+/** Fast path for repeating a single-character class: (gap 20 35), (run "AT" 4 8). */
+class CharRun extends Matcher {
+  constructor(cls, min = 0, max = null, label = null) {
+    super(); this.cls = cls; this.min = min; this.max = max; this.label = label;
+  }
+  * matchAt(ctx, i, binds) {
+    const seq = ctx.seq;
+    const limit = this.max === null ? seq.length - i : Math.min(this.max, seq.length - i);
+    let count = 0;
+    while (count < limit && this.cls.accepts(ctx, seq[i + count])) count++;
+    for (let k = count; k >= this.min; k--) yield [i + k, binds];
+  }
+  firstSet(ctx) { return this.min > 0 ? this.cls.firstSet(ctx) : null; }
+  describe() {
+    if (this.label) return this.label;
+    const mx = this.max === null ? "" : ` ${this.max}`;
+    return `(repeat ${this.cls.describe()} ${this.min}${mx})`;
+  }
+}
+
+class Named extends Matcher {
+  constructor(label, inner) { super(); this.label = label; this.inner = coerce(inner); }
+  * matchAt(ctx, i, binds) {
+    for (const [j, b] of this.inner.matchAt(ctx, i, binds)) {
+      yield [j, { ...b, [this.label]: [i, j] }];
+    }
+  }
+  firstSet(ctx) { return this.inner.firstSet(ctx); }
+  describe() { return `(named '${this.label} ${this.inner.describe()})`; }
+}
+
+function positionSets(m, ctx) {
+  if (m instanceof Literal) return [...m.pattern(ctx)].map((c) => new Set([c]));
+  if (m instanceof Iupac) return m.sets;
+  if (m instanceof AnyOf) return [m.set(ctx)];
+  if (m instanceof AnyChar) return [null];
+  if (m instanceof Tagged || m instanceof Named) return positionSets(m.inner, ctx);
+  if (m instanceof Seq) {
+    const out = [];
+    for (const p of m.parts) {
+      const ps = positionSets(p, ctx);
+      if (!ps) return null;
+      out.push(...ps);
+    }
+    return out;
+  }
+  if (m instanceof CharRun && m.max === m.min && (m.cls instanceof AnyOf || m.cls instanceof AnyChar)) {
+    const one = positionSets(m.cls, ctx);
+    return one ? Array(m.min).fill(one[0]) : null;
+  }
+  return null;
+}
+
+class Fuzzy extends Matcher {
+  constructor(k, inner) { super(); this.k = k; this.inner = coerce(inner); this.cache = new Map(); }
+  sets(ctx) {
+    if (!this.cache.has(ctx.nuc)) {
+      const ps = positionSets(this.inner, ctx);
+      if (!ps) throw new BiomotifError("fuzzy needs a fixed-width motif (a literal, iupac, any-of, or a seq of those)");
+      this.cache.set(ctx.nuc, ps);
+    }
+    return this.cache.get(ctx.nuc);
+  }
+  * matchAt(ctx, i, binds) {
+    const sets = this.sets(ctx);
+    const n = sets.length;
+    if (i + n > ctx.seq.length) return;
+    let errors = 0;
+    for (let p = 0; p < n; p++) {
+      if (sets[p] && !sets[p].has(ctx.seq[i + p])) {
+        if (++errors > this.k) return;
+      }
+    }
+    yield [i + n, { ...binds, $mismatches: (binds.$mismatches || 0) + errors }];
+  }
+  describe() { return `(fuzzy ${this.k} ${this.inner.describe()})`; }
+}
+
+class Edit extends Matcher {
+  constructor(k, text) { super(); this.k = k; this.lit = new Literal(text); }
+  * matchAt(ctx, i, binds) {
+    const p = this.lit.pattern(ctx);
+    const window = ctx.seq.slice(i, i + p.length + this.k);
+    let prev = Array.from({ length: window.length + 1 }, (_, c) => c);
+    for (let r = 1; r <= p.length; r++) {
+      const cur = [r];
+      for (let c = 1; c <= window.length; c++) {
+        const cost = p[r - 1] === window[c - 1] ? 0 : 1;
+        cur.push(Math.min(prev[c] + 1, cur[c - 1] + 1, prev[c - 1] + cost));
+      }
+      prev = cur;
+    }
+    const ends = [];
+    for (let c = 1; c <= window.length; c++) if (prev[c] <= this.k) ends.push([prev[c], c]);
+    ends.sort((a, b) => a[0] - b[0] || b[1] - a[1]);
+    const seen = new Set();
+    for (const [d, c] of ends) {
+      if (seen.has(c)) continue;
+      seen.add(c);
+      yield [i + c, { ...binds, $edits: (binds.$edits || 0) + d }];
+    }
+  }
+  describe() { return `(edit ${this.k} ${q(this.lit.text)})`; }
+}
+
+const PAIRS = new Set(["AT", "TA", "GC", "CG"]);
+const WOBBLE = new Set(["GT", "TG"]);
+
+class Hairpin extends Matcher {
+  constructor(stemMin, stemMax, loop, wobble = false, mismatches = 0) {
+    super();
+    this.stemMin = stemMin; this.stemMax = stemMax;
+    this.loop = coerce(loop); this.wobble = wobble; this.mismatches = mismatches;
+  }
+  pairs(a, b) {
+    let errors = 0;
+    for (let k = 0; k < a.length; k++) {
+      const p = a[k] + b[b.length - 1 - k];
+      if (!PAIRS.has(p) && !(this.wobble && WOBBLE.has(p))) {
+        if (++errors > this.mismatches) return false;
+      }
+    }
+    return true;
+  }
+  * matchAt(ctx, i, binds) {
+    const seq = ctx.seq, n = seq.length;
+    for (let L = this.stemMax; L >= this.stemMin; L--) {
+      if (i + 2 * L > n) continue;
+      const stem = seq.slice(i, i + L);
+      for (const [j, b] of this.loop.matchAt(ctx, i + L, binds)) {
+        if (j + L > n) continue;
+        if (this.pairs(stem, seq.slice(j, j + L))) {
+          yield [j + L, { ...b, stem5: [i, i + L], loop: [i + L, j], stem3: [j, j + L] }];
+        }
+      }
+    }
+  }
+  describe() {
+    const extra = (this.wobble ? " :wobble #t" : "") + (this.mismatches ? ` :mismatches ${this.mismatches}` : "");
+    return `(hairpin (stem ${this.stemMin} ${this.stemMax}) ${this.loop.describe()}${extra})`;
+  }
+}
+
+class Pwm extends Matcher {
+  constructor(matrix, threshold = 0.8, counts = null) {
+    super();
+    this.matrix = {};
+    for (const [k, v] of Object.entries(matrix)) this.matrix[k.toUpperCase().replace("U", "T")] = v.slice();
+    this.letters = Object.keys(this.matrix).sort();
+    this.width = this.matrix[this.letters[0]].length;
+    for (const l of this.letters) {
+      if (this.matrix[l].length !== this.width) throw new BiomotifError("pwm: rows differ in length");
+    }
+    this.threshold = threshold;
+    this.counts = counts;
+    this.maxScore = 0; this.minScore = 0;
+    for (let p = 0; p < this.width; p++) {
+      const col = this.letters.map((l) => this.matrix[l][p]);
+      this.maxScore += Math.max(...col);
+      this.minScore += Math.min(...col);
+    }
+  }
+  static fromSites(sites, { threshold = 0.8, pseudocount = 0.5, alphabet = "ACGT" } = {}) {
+    const clean = sites.map((s) => s.toUpperCase().replace(/U/g, "T"));
+    const width = clean[0].length;
+    if (clean.some((s) => s.length !== width)) throw new BiomotifError("pwm: all sites must be the same length");
+    const counts = {};
+    for (const l of alphabet) counts[l] = Array(width).fill(0);
+    for (const s of clean) for (let p = 0; p < width; p++) if (counts[s[p]]) counts[s[p]][p]++;
+    const bg = 1 / alphabet.length;
+    const matrix = {};
+    for (const l of alphabet) {
+      matrix[l] = Array.from({ length: width }, (_, p) => {
+        let total = pseudocount * alphabet.length;
+        for (const x of alphabet) total += counts[x][p];
+        return Math.log2(((counts[l][p] + pseudocount) / total) / bg);
+      });
+    }
+    return new Pwm(matrix, threshold, counts);
+  }
+  score(s) {
+    let total = 0;
+    for (let p = 0; p < s.length; p++) {
+      const row = this.matrix[s[p]];
+      total += row ? row[p] : this.minScore / this.width;
+    }
+    return total;
+  }
+  relative(score) {
+    const span = this.maxScore - this.minScore;
+    return span ? (score - this.minScore) / span : 1;
+  }
+  consensus() {
+    let out = "";
+    for (let p = 0; p < this.width; p++) {
+      out += this.letters.reduce((a, b) => (this.matrix[a][p] >= this.matrix[b][p] ? a : b));
+    }
+    return out;
+  }
+  * matchAt(ctx, i, binds) {
+    if (i + this.width > ctx.seq.length) return;
+    const sc = this.score(ctx.seq.slice(i, i + this.width));
+    const rel = this.relative(sc);
+    if (rel >= this.threshold) {
+      yield [i + this.width, { ...binds, $score: Math.round(sc * 1000) / 1000, $relative: Math.round(rel * 1000) / 1000 }];
+    }
+  }
+  describe() { return `(pwm ${this.consensus()} :width ${this.width} :threshold ${this.threshold})`; }
+}
+
+class AtStart extends Matcher {
+  * matchAt(ctx, i, binds) { if (i === 0) yield [i, binds]; }
+  describe() { return "at-start"; }
+}
+class AtEnd extends Matcher {
+  * matchAt(ctx, i, binds) { if (i === ctx.seq.length) yield [i, binds]; }
+  describe() { return "at-end"; }
+}
+
+class Regex extends Matcher {
+  constructor(pattern) { super(); this.pattern = pattern; this.re = new RegExp(pattern, "iy"); }
+  * matchAt(ctx, i, binds) {
+    this.re.lastIndex = i;
+    const m = this.re.exec(ctx.seq);
+    if (m) yield [i + m[0].length, binds];
+  }
+  describe() { return `(regex ${q(this.pattern)})`; }
+}
+
+/** Wraps a matcher with a library name without changing how it matches. */
+class Tagged extends Matcher {
+  constructor(inner, name) { super(); this.inner = coerce(inner); this.name = name; }
+  matchAt(ctx, i, binds) { return this.inner.matchAt(ctx, i, binds); }
+  firstSet(ctx) { return this.inner.firstSet(ctx); }
+  describe() { return this.inner.describe(); }
+}
+
+function coerce(x) {
+  if (x instanceof Matcher) return x;
+  if (typeof x === "string") return new Literal(x);
+  if (Array.isArray(x)) return new Seq(x);
+  throw new BiomotifError(`not a motif: ${x}`);
+}
+
+/* --------------------------------------------------------------- PROSITE */
+
+const PROSITE_ELEM = /^(<)?(\[[A-Z]+\]|\{[A-Z]+\}|[A-Zx])(?:\((\d+)(?:,(\d+))?\))?(>)?$/;
+
+function prosite(pattern) {
+  const text = pattern.trim().replace(/\.$/, "").replace(/\s+/g, "");
+  const parts = [];
+  for (const raw of text.split("-")) {
+    const m = PROSITE_ELEM.exec(raw);
+    if (!m) throw new BiomotifError(`prosite: cannot read element ${q(raw)} in ${q(pattern)}`);
+    const [, start, elem, lo, hi, end] = m;
+    if (start) parts.push(new AtStart());
+    let cls;
+    if (elem === "x") cls = new AnyChar();
+    else if (elem.startsWith("[")) cls = new AnyOf(elem.slice(1, -1));
+    else if (elem.startsWith("{")) cls = new NoneOf(elem.slice(1, -1));
+    else cls = new Literal(elem);
+    if (lo !== undefined) {
+      const a = parseInt(lo, 10), b = hi === undefined ? a : parseInt(hi, 10);
+      if (cls instanceof Literal) parts.push(new Repeat(cls, a, b));
+      else parts.push(new CharRun(cls, a, b, elem === "x" ? `(gap ${a} ${b})` : null));
+    } else parts.push(cls);
+    if (end) parts.push(new AtEnd());
+  }
+  const s = new Seq(parts);
+  s.describe = () => `(prosite ${q(pattern)})`;
+  return s;
+}
+
+/* ---------------------------------------------------------------- records */
+
+class Record {
+  constructor(name, seq, type = null, { offset = 0, description = "" } = {}) {
+    this.name = name;
+    this.seq = seq;
+    this.type = type || guessType(seq);
+    this.offset = offset;
+    this.description = description;
+  }
+  get length() { return this.seq.length; }
+  sub(start, end, name = null) {
+    return new Record(name ?? `${this.name}:${this.offset + start}-${this.offset + end}`,
+      this.seq.slice(start, end), this.type,
+      { offset: this.offset + start, description: this.description });
+  }
+}
+
+function parseFasta(text, type = null) {
+  const records = [];
+  let name = null, desc = "", chunks = [];
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith(";")) continue;
+    if (line.startsWith(">")) {
+      if (name !== null) records.push(new Record(name, chunks.join(""), type, { description: desc }));
+      const header = line.slice(1).trim();
+      const sp = header.indexOf(" ");
+      name = sp === -1 ? header : header.slice(0, sp);
+      desc = sp === -1 ? "" : header.slice(sp + 1);
+      chunks = [];
+    } else chunks.push(line.replace(/\s/g, ""));
+  }
+  if (name !== null) records.push(new Record(name, chunks.join(""), type, { description: desc }));
+  if (!records.length && text.trim()) {
+    // A bare sequence with no header is still a sequence.
+    const seq = text.replace(/[^A-Za-z*\-]/g, "");
+    if (seq) records.push(new Record("sequence", seq, type));
+  }
+  return records;
+}
+
+function formatFasta(records, width = 70) {
+  return records.map((r) => {
+    const lines = [`>${r.name}${r.description ? " " + r.description : ""}`];
+    for (let i = 0; i < r.seq.length; i += width) lines.push(r.seq.slice(i, i + width));
+    return lines.join("\n");
+  }).join("\n") + "\n";
+}
+
+/* ----------------------------------------------------------------- search */
+
+const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+
+class Match {
+  constructor(motif, start, end, strand, seq, bindings, record, score, extra) {
+    this.motif = motif; this.start = start; this.end = end; this.strand = strand;
+    this.seq = seq; this.bindings = bindings; this.record = record;
+    this.score = score; this.extra = extra || {};
+  }
+  get absStart() { return this.start + (this.record ? this.record.offset : 0); }
+  get absEnd() { return this.end + (this.record ? this.record.offset : 0); }
+  get length() { return this.end - this.start; }
+}
+
+function makeMatch(name, ctx, i, j, binds, strand, n, record, original) {
+  const [start, end] = strand === "+" ? [i, j] : [n - j, n - i];
+  const bindings = {};
+  let score = null;
+  const extra = {};
+  for (const [k, v] of Object.entries(binds)) {
+    if (k.startsWith("$")) {
+      if (k === "$score") score = v; else extra[k.slice(1)] = v;
+      continue;
+    }
+    const [a, b] = v;
+    bindings[k] = strand === "+" ? [a, b, original.slice(a, b)] : [n - b, n - a, ctx.seq.slice(a, b)];
+  }
+  const text = strand === "+" ? original.slice(start, end) : ctx.seq.slice(i, j);
+  return new Match(name, start, end, strand, text, bindings, record, score, extra);
+}
+
+function search(matcher, target, { strand = "both", overlap = true, limit = null, name = null } = {}) {
+  const m = coerce(matcher);
+  const record = target instanceof Record ? target : null;
+  const raw = record ? record.seq : target;
+  const kind = record ? record.type : guessType(raw);
+  const text = normalize(raw, kind);
+  const n = text.length;
+  const nuc = kind === "dna" || kind === "rna";
+  const label = name ?? (m instanceof Tagged ? m.name : m.describe());
+  const strands = !nuc ? ["+"] : (strand === "both" ? ["+", "-"] : [strand]);
+  const results = [];
+  const seen = new Set();
+  for (const s of strands) {
+    const seq = s === "+" ? text : revcomp(text);
+    const ctx = { seq, kind, nuc };
+    const fs = m.firstSet(ctx);
+    let i = 0;
+    while (i <= n) {
+      if (fs) {
+        while (i < n && !fs.has(seq[i])) i++;
+        if (i >= n) break;
+      }
+      let found = null;
+      for (const step of m.matchAt(ctx, i, {})) {
+        if (step[0] > i) { found = step; break; }
+      }
+      if (!found) { i++; continue; }
+      const [j, b] = found;
+      const hit = makeMatch(label, ctx, i, j, b, s, n, record, text);
+      const key = `${hit.start}:${hit.end}:${hit.seq}`;
+      // A palindromic motif matches the same span on both strands. One site, one row.
+      if (!(s === "-" && seen.has(key))) { results.push(hit); seen.add(key); }
+      if (limit !== null && results.length >= limit) return results;
+      i = overlap ? i + 1 : j;
+    }
+  }
+  // Plain byte order, not localeCompare: locale rules can sort "-" before "+".
+  results.sort((a, b) => a.start - b.start || cmp(a.strand, b.strand));
+  return results;
+}
+
+function matchesFull(matcher, text, kind = null) {
+  const m = coerce(matcher);
+  const k = kind || guessType(text);
+  const ctx = { seq: normalize(text, k), kind: k, nuc: k === "dna" || k === "rna" };
+  for (const [j] of m.matchAt(ctx, 0, {})) if (j === ctx.seq.length) return true;
+  return false;
+}
+
+/** Overlapping hits of one motif are usually one site found at several offsets. */
+function collapse(matches, key = "longest") {
+  const kept = [];
+  const sorted = [...matches].sort((a, b) =>
+    cmp(a.motif, b.motif) || cmp(a.strand, b.strand) ||
+    a.absStart - b.absStart || b.length - a.length);
+  for (const m of sorted) {
+    const clash = kept.find((k) => k.motif === m.motif && k.strand === m.strand &&
+      k.absStart < m.absEnd && m.absStart < k.absEnd);
+    if (!clash) kept.push(m);
+    else if ((key === "longest" && m.length > clash.length) ||
+             (key === "best" && (m.score || 0) > (clash.score || 0))) {
+      kept[kept.indexOf(clash)] = m;
+    }
+  }
+  kept.sort((a, b) => a.absStart - b.absStart || cmp(a.motif, b.motif));
+  return kept;
+}
+
+
+/* namespace alias the modules used before bundling */
+const E = { AMINO, Alt, AnyChar, AnyOf, AtEnd, AtStart, BiomotifError, CharRun, Edit, Fuzzy, Hairpin, IUPAC, Iupac, Literal, Match, Matcher, Named, NoneOf, Pwm, Record, Regex, Repeat, Seq, Sym, Tagged, balanced, coerce, collapse, complement, expandIupac, formatFasta, guessType, isSym, matchesFull, normalize, parse, parseAll, parseFasta, prosite, revcomp, search, sym, toIupac, tokenize, transcribe };
+
+/* ==== library.js ==== */
+/* Loading the .mtf motif library, restriction digests, and the sequence
+   utilities the interface needs. The .mtf files are the single source of
+   truth and are parsed here verbatim: no build step rewrites them. */
+
+/* --------------------------------------------------- motif from s-expression */
+
+/** The name in `'promoter`, `:promoter` or `promoter`. Quote reads as a list. */
+function nameOf(x) {
+  if (Array.isArray(x) && x.length === 2 && x[0] instanceof Sym && x[0].name === "quote") x = x[1];
+  return x instanceof Sym ? x.name.replace(/^:/, "") : String(x);
+}
+
+/** Turn a motif s-expression into a matcher. Constructors only: no variables,
+    no lambdas. A bare symbol names a library motif or an anchor. */
+function buildMotif(form, registry = null) {
+  if (typeof form === "string") return new Literal(form);
+  if (form instanceof Matcher) return form;
+  if (form instanceof Sym) {
+    if (form.name === "at-start") return new AtStart();
+    if (form.name === "at-end") return new AtEnd();
+    if (form.name === "any") return new AnyChar();
+    const entry = registry?.get(form.name);
+    if (entry) return entry.matcher;
+    throw new BiomotifError(`unknown motif name: ${form.name}`);
+  }
+  if (!Array.isArray(form)) throw new BiomotifError(`not a motif: ${form}`);
+  if (!form.length) throw new BiomotifError("empty motif");
+  const head = form[0];
+  if (!(head instanceof Sym)) throw new BiomotifError(`a motif must start with a name, got ${head}`);
+  const op = head.name;
+  const { args, kw } = splitArgs(form.slice(1));
+  const M = (x) => buildMotif(x, registry);
+  const int = (x, what) => {
+    if (typeof x !== "number") throw new BiomotifError(`${op}: ${what} must be a number, got ${x}`);
+    return x;
+  };
+  const str = (x, what) => {
+    if (typeof x !== "string") throw new BiomotifError(`${op}: ${what} must be a string in quotes, got ${x}`);
+    return x;
+  };
+
+  switch (op) {
+    case "quote": return M(args[0]);
+    case "seq": return new Seq(args.map(M));
+    case "alt": return new Alt(args.flatMap((a) => (Array.isArray(a) && a[0] instanceof Sym ? [M(a)] : Array.isArray(a) ? a.map(M) : [M(a)])));
+    case "literal": return new Literal(str(args[0], "the sequence"));
+    case "iupac": case "dna": case "rna": return new Iupac(str(args[0], "the pattern"));
+    case "prosite": case "protein": return prosite(str(args[0], "the pattern"));
+    case "regex": return new Regex(str(args[0], "the pattern"));
+    case "any-of": return new AnyOf(str(args[0], "the characters"));
+    case "none-of": return new NoneOf(str(args[0], "the characters"));
+    case "any": return new AnyChar();
+    case "gap": {
+      const lo = int(args[0], "the minimum");
+      const hi = args.length > 1 ? int(args[1], "the maximum") : lo;
+      return new CharRun(new AnyChar(), lo, hi, `(gap ${lo} ${hi})`);
+    }
+    case "run": {
+      const chars = str(args[0], "the characters");
+      const lo = args.length > 1 ? int(args[1], "the minimum") : 1;
+      const hi = args.length > 2 ? int(args[2], "the maximum") : null;
+      return new CharRun(new AnyOf(chars), lo, hi, `(run "${chars}" ${lo}${hi === null ? "" : " " + hi})`);
+    }
+    case "repeat": {
+      const inner = M(args[0]);
+      const lo = args.length > 1 ? int(args[1], "the minimum") : 0;
+      const hi = args.length > 2 ? int(args[2], "the maximum") : null;
+      if (inner instanceof AnyOf || inner instanceof NoneOf || inner instanceof AnyChar) {
+        return new CharRun(inner, lo, hi);
+      }
+      return new Repeat(inner, lo, hi);
+    }
+    case "opt": return new Repeat(M(args[0]), 0, 1);
+    case "exactly": { const n = int(args[1], "the count"); return new Repeat(M(args[0]), n, n); }
+    case "named": return new Named(nameOf(args[0]), M(args[1]));
+    case "fuzzy": return new Fuzzy(int(args[0], "the mismatch budget"), M(args[1]));
+    case "edit": return new Edit(int(args[0], "the edit budget"), str(args[1], "the sequence"));
+    case "revcomp-motif": return new Literal(revcomp(str(args[0], "the sequence")));
+    case "n-terminal": return new Seq([new AtStart(), M(args[0])]);
+    case "c-terminal": return new Seq([M(args[0]), new AtEnd()]);
+    case "stem": return { stem: [int(args[0], "the minimum"), args.length > 1 ? int(args[1], "the maximum") : int(args[0], "the maximum")] };
+    case "loop":
+      if (typeof args[0] === "number") {
+        const lo = args[0], hi = args.length > 1 ? args[1] : lo;
+        return new CharRun(new AnyChar(), lo, hi, `(loop ${lo} ${hi})`);
+      }
+      return M(args[0]);
+    case "hairpin": {
+      const stem = buildMotif(args[0], registry);
+      if (!stem || !stem.stem) throw new BiomotifError("hairpin: the first argument must be (stem min max)");
+      const loop = typeof args[1] === "number"
+        ? new CharRun(new AnyChar(), args[1], args[2] ?? args[1])
+        : M(args[1]);
+      return new Hairpin(stem.stem[0], stem.stem[1], loop, !!kw.wobble, kw.mismatches ?? 0);
+    }
+    case "pwm-from-sites":
+      return Pwm.fromSites((args[0] || []).map((s) => str(s, "each site")),
+        { threshold: kw.threshold ?? 0.8, pseudocount: kw.pseudocount ?? 0.5 });
+    case "pwm": {
+      const matrix = {};
+      for (const row of args[0]) matrix[nameOf(row[0])] = row.slice(1);
+      return new Pwm(matrix, kw.threshold ?? 0.8);
+    }
+    default:
+      throw new BiomotifError(`unknown motif form: (${op} ...)`);
+  }
+}
+
+function splitArgs(items) {
+  const args = [], kw = {};
+  for (let i = 0; i < items.length; i++) {
+    const a = items[i];
+    if (a instanceof Sym && a.name.startsWith(":") && a.name.length > 1 && i + 1 < items.length) {
+      kw[a.name.slice(1).replace(/-/g, "_")] = items[++i];
+    } else args.push(a);
+  }
+  return { args, kw };
+}
+
+/* ------------------------------------------------------------ restriction */
+
+const TYPE_IIS = /^([ACGTRYSWKMBDHVN]+)\((-?\d+)\/(-?\d+)\)$/i;
+
+function parseSite(spec) {
+  const s = spec.trim().toUpperCase();
+  const m = TYPE_IIS.exec(s);
+  if (m) {
+    const site = m[1];
+    return { site, cutTop: site.length + parseInt(m[2], 10), cutBottom: site.length + parseInt(m[3], 10), kind: "IIS" };
+  }
+  const site = s.replace(/\^/g, "").replace(/_/g, "");
+  if (!s.includes("^")) throw new BiomotifError(`restriction site ${spec} has no cut mark (^)`);
+  const top = s.indexOf("^");
+  const bottom = s.includes("_") ? s.replace("^", "").indexOf("_") : site.length - top;
+  return { site, cutTop: top, cutBottom: bottom, kind: "II" };
+}
+
+function overhang(info) {
+  const d = info.cutBottom - info.cutTop;
+  if (d === 0) return "blunt";
+  return d > 0 ? `5' overhang of ${d}` : `3' overhang of ${-d}`;
+}
+
+function digest(record, enzymes, { circular = false } = {}) {
+  const n = record.seq.length;
+  const sites = [];
+  const cuts = new Set();
+  for (const { name, info } of enzymes) {
+    const pal = info.site === revcomp(info.site);
+    const hits = search(new Iupac(info.site), record, { strand: pal ? "+" : "both", name });
+    const seen = new Set();
+    for (const h of hits) {
+      const top = h.strand === "+" ? h.start + info.cutTop : h.end - info.cutBottom;
+      const bottom = h.strand === "+" ? h.start + info.cutBottom : h.end - info.cutTop;
+      const key = `${h.start}:${top}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (!circular && (top < 0 || top > n)) continue;
+      const topPos = circular ? ((top % n) + n) % n : top;
+      sites.push({ enzyme: name, start: h.start, end: h.end, strand: h.strand, cutTop: topPos, cutBottom: bottom });
+      cuts.add(topPos);
+    }
+  }
+  const cutList = [...cuts].filter((c) => c >= 0 && c <= n).sort((a, b) => a - b);
+  const fragments = [];
+  if (circular) {
+    if (!cutList.length) fragments.push([0, n, n]);
+    else {
+      for (let k = 0; k + 1 < cutList.length; k++) fragments.push([cutList[k], cutList[k + 1], cutList[k + 1] - cutList[k]]);
+      const first = cutList[0], last = cutList[cutList.length - 1];
+      fragments.push([last, first, n - last + first]);
+    }
+  } else {
+    const bounds = [0, ...cutList.filter((c) => c > 0 && c < n), n];
+    for (let k = 0; k + 1 < bounds.length; k++) fragments.push([bounds[k], bounds[k + 1], bounds[k + 1] - bounds[k]]);
+  }
+  sites.sort((a, b) => a.start - b.start || a.enzyme.localeCompare(b.enzyme));
+  return { sites, cuts: cutList, fragments };
+}
+
+/** One concrete sequence the enzyme cuts. Expanding every ambiguity would
+    explode for sites like CCANNNNNNNNNTGG, and one instance is all a
+    documented example needs. */
+function concreteSite(site) {
+  return [...site].map((c) => (IUPAC_SITE[c] || c)[0]).join("");
+}
+const IUPAC_SITE = { A: "A", C: "C", G: "G", T: "T", U: "T", R: "A", Y: "C", S: "C", W: "A",
+  K: "G", M: "A", B: "C", D: "A", H: "A", V: "A", N: "A" };
+
+/* --------------------------------------------------------------- registry */
+
+class Registry {
+  constructor() { this.entries = new Map(); }
+  get(name) { return this.entries.get(name); }
+  get size() { return this.entries.size; }
+  all() { return [...this.entries.values()]; }
+  categories() { return [...new Set(this.all().map((e) => e.category))].sort(); }
+  find({ category = null, alphabet = null, text = null } = {}) {
+    const t = text ? text.toLowerCase() : null;
+    return this.all().filter((e) =>
+      (!category || e.category === category) &&
+      (!alphabet || e.alphabet === alphabet) &&
+      (!t || e.name.toLowerCase().includes(t) || e.doc.toLowerCase().includes(t) ||
+        e.category.includes(t) || (e.ref || "").toLowerCase().includes(t)));
+  }
+}
+
+const PROTEIN_CATEGORIES = new Set(["protein", "targeting", "modification", "protease", "tag",
+  "domain", "binding-site", "catalytic", "degradation", "linker"]);
+const RNA_CATEGORIES = new Set(["rna", "rna-structure", "utr", "splicing-rna", "mirna",
+  "riboswitch", "trna", "recoding", "stability", "localisation", "ires", "small-rna", "viral"]);
+
+function defaultAlphabet(category) {
+  if (PROTEIN_CATEGORIES.has(category)) return "protein";
+  if (RNA_CATEGORIES.has(category)) return "rna";
+  return "dna";
+}
+
+/** Read one .mtf source file into the registry. */
+function loadLibrarySource(source, text, registry) {
+  const errors = [];
+  for (const form of parseAll(text)) {
+    if (!Array.isArray(form) || !(form[0] instanceof Sym)) continue;
+    const kindOfForm = form[0].name;
+    try {
+      if (kindOfForm === "defmotif") {
+        const name = nameOf(form[1]);
+        let rest = form.slice(2);
+        let doc = "";
+        if (rest.length > 1 && typeof rest[0] === "string") doc = rest.shift();
+        const { args, kw } = splitArgs(rest);
+        if (!args.length) throw new BiomotifError("no motif given");
+        const matcher = new Tagged(buildMotif(args[0], registry), name);
+        const category = kw.category ? nameOf(kw.category) : "misc";
+        registry.entries.set(name, {
+          name, matcher, source,
+          doc: doc.replace(/\s+/g, " ").trim(),
+          ref: kw.ref || "",
+          category,
+          alphabet: kw.alphabet ? nameOf(kw.alphabet) : defaultAlphabet(category),
+          example: kw.example || null,
+          scan: kw.scan !== false,
+          pattern: matcher.describe(),
+          meta: null,
+        });
+      } else if (kindOfForm === "defenzyme") {
+        const name = nameOf(form[1]);
+        const info = parseSite(form[2]);
+        const matcher = new Tagged(new Iupac(info.site), name);
+        registry.entries.set(name, {
+          name, matcher, source,
+          doc: `Recognition site ${form[2]}, ${overhang(info)}.`,
+          ref: "", category: "restriction", alphabet: "dna",
+          example: concreteSite(info.site),
+          scan: true, pattern: matcher.describe(), meta: info,
+        });
+      }
+    } catch (e) {
+      errors.push(`${source}: ${nameOf(form[1])}: ${e.message}`);
+    }
+  }
+  return errors;
+}
+
+/* --------------------------------------------------- sequence utilities */
+
+const BASES = "TCAG";
+const STANDARD = "FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG";
+const VERT_MITO = "FFLLSSSSYY**CCWWLLLLPPPPHHQQRRRRIIMMTTTTNNKKSS**VVVVAAAADDEEGGGG";
+const BACTERIAL = STANDARD;
+
+function buildCodonTable(aa) {
+  const table = {};
+  let i = 0;
+  for (const a of BASES) for (const b of BASES) for (const c of BASES) table[a + b + c] = aa[i++];
+  return table;
+}
+const CODON_TABLES = { 1: buildCodonTable(STANDARD), 2: buildCodonTable(VERT_MITO), 11: buildCodonTable(BACTERIAL) };
+const TABLE_NAMES = { 1: "standard", 2: "vertebrate mitochondrial", 11: "bacterial and plastid" };
+const START_CODONS = { 1: ["ATG"], 2: ["ATT", "ATC", "ATA", "ATG", "GTG"], 11: ["ATG", "GTG", "TTG"] };
+
+function ambiguousCodon(codon, table) {
+  let options = [""];
+  for (const c of codon) {
+    const bases = IUPAC_LOCAL[c];
+    if (!bases) return "X";
+    options = options.flatMap((o) => [...bases].map((b) => o + b));
+  }
+  const aas = new Set(options.map((o) => table[o]));
+  return aas.size === 1 ? [...aas][0] : "X";
+}
+const IUPAC_LOCAL = { A: "A", C: "C", G: "G", T: "T", U: "T", R: "AG", Y: "CT", S: "CG", W: "AT",
+  K: "GT", M: "AC", B: "CGT", D: "AGT", H: "ACT", V: "ACG", N: "ACGT" };
+
+function translate(seq, { table = 1, frame = 0, toStop = false, startAsMet = false } = {}) {
+  const tbl = CODON_TABLES[table] || CODON_TABLES[1];
+  const s = seq.toUpperCase().replace(/U/g, "T");
+  let out = "";
+  for (let i = frame; i + 3 <= s.length; i += 3) {
+    const codon = s.slice(i, i + 3);
+    let aa = tbl[codon] ?? ambiguousCodon(codon, tbl);
+    if (startAsMet && !out && (START_CODONS[table] || ["ATG"]).includes(codon)) aa = "M";
+    if (aa === "*" && toStop) break;
+    out += aa;
+  }
+  return out;
+}
+
+function gcContent(seq) {
+  const s = seq.toUpperCase();
+  let n = 0, gc = 0;
+  for (const c of s) {
+    if ("ACGTU".includes(c)) n++;
+    if ("GCS".includes(c)) gc++;
+  }
+  return n ? gc / n : 0;
+}
+
+function meltingTemp(seq) {
+  const s = seq.toUpperCase().replace(/U/g, "T");
+  const n = s.length;
+  if (!n) return 0;
+  let at = 0, gc = 0;
+  for (const c of s) { if ("AT".includes(c)) at++; else if ("GC".includes(c)) gc++; }
+  if (n < 14) return 2 * at + 4 * gc;
+  return 64.9 + (41 * (gc - 16.4)) / n;
+}
+
+function orfs(seq, { minLength = 90, table = 11, bothStrands = true } = {}) {
+  const tbl = CODON_TABLES[table] || CODON_TABLES[1];
+  const starts = START_CODONS[table] || ["ATG"];
+  const s = seq.toUpperCase().replace(/U/g, "T");
+  const n = s.length;
+  const out = [];
+  const strands = bothStrands ? [["+", s], ["-", revcomp(s)]] : [["+", s]];
+  for (const [strand, text] of strands) {
+    for (let frame = 0; frame < 3; frame++) {
+      let i = frame;
+      while (i + 3 <= n) {
+        if (starts.includes(text.slice(i, i + 3))) {
+          let j = i + 3;
+          while (j + 3 <= n && tbl[text.slice(j, j + 3)] !== "*") j += 3;
+          if (j + 3 <= n) {
+            const end = j + 3;
+            if (end - i >= minLength) {
+              const [fs, fe] = strand === "+" ? [i, end] : [n - end, n - i];
+              out.push({ start: fs, end: fe, strand, frame,
+                seq: text.slice(i, end),
+                protein: translate(text.slice(i, end), { table, toStop: true, startAsMet: true }) });
+            }
+            i = end;
+            continue;
+          }
+        }
+        i += 3;
+      }
+    }
+  }
+  out.sort((a, b) => a.start - b.start);
+  return out;
+}
+
+
+/* ==== app.js ==== */
+/* Biomotif workbench: library browser, motif editor, assistant, results. */
+
+const $ = (sel) => document.querySelector(sel);
+const el = (tag, cls, text) => {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.textContent = text;
+  return n;
+};
+
+const state = {
+  registry: new Registry(),
+  records: [],
+  active: 0,
+  motifSource: "",
+  matcher: null,
+  hits: [],
+  selectedEntry: null,
+  filterCategory: null,
+  filterText: "",
+  lastRunLabel: "",
+  sample: null,
+};
+
+/* ------------------------------------------------------------------ library */
+
+function loadLibrary() {
+  const problems = [];
+  for (const [name, text] of Object.entries(window.BIOMOTIF_LIBRARY)) {
+    problems.push(...loadLibrarySource(name, text, state.registry));
+  }
+  if (problems.length) console.warn("library problems:", problems);
+}
+
+function renderRail() {
+  const list = $("#entry-list");
+  list.textContent = "";
+  const alphabet = currentRecord() ? (currentRecord().type === "protein" ? "protein" : null) : null;
+  let entries = state.registry.find({ category: state.filterCategory, text: state.filterText });
+  // Show motifs that fit the loaded sequence's alphabet first: a protein motif
+  // is not wrong to look at while a plasmid is loaded, just not applicable.
+  if (alphabet === "protein") {
+    entries.sort((a, b) => (a.alphabet === "protein" ? 0 : 1) - (b.alphabet === "protein" ? 0 : 1));
+  } else if (currentRecord()) {
+    entries.sort((a, b) => (a.alphabet !== "protein" ? 0 : 1) - (b.alphabet !== "protein" ? 0 : 1));
+  }
+  $("#rail-count").textContent = `${entries.length} of ${state.registry.size}`;
+  const frag = document.createDocumentFragment();
+  for (const e of entries.slice(0, 400)) {
+    const b = el("button", "entry");
+    b.type = "button";
+    if (state.selectedEntry === e.name) b.setAttribute("aria-current", "true");
+    b.appendChild(el("div", "entry-name", e.name));
+    const meta = el("div", "entry-meta");
+    meta.appendChild(el("span", "entry-cat", `${e.category} · ${e.alphabet}`));
+    if (!e.scan) meta.appendChild(el("span", "tag-template", "template"));
+    b.appendChild(meta);
+    if (e.doc) b.appendChild(el("div", "entry-doc", e.doc));
+    b.addEventListener("click", () => useEntry(e));
+    frag.appendChild(b);
+  }
+  if (!entries.length) frag.appendChild(el("div", "empty", "No motif matches that search."));
+  else if (entries.length > 400) frag.appendChild(el("div", "empty", `${entries.length - 400} more — narrow the search.`));
+  list.appendChild(frag);
+}
+
+function renderCategories() {
+  const box = $("#category-chips");
+  box.textContent = "";
+  const all = el("button", "chip", "all");
+  all.type = "button";
+  all.setAttribute("aria-pressed", String(state.filterCategory === null));
+  all.addEventListener("click", () => { state.filterCategory = null; renderCategories(); renderRail(); });
+  box.appendChild(all);
+  const counts = new Map();
+  for (const e of state.registry.all()) counts.set(e.category, (counts.get(e.category) || 0) + 1);
+  for (const cat of [...counts.keys()].sort((a, b) => counts.get(b) - counts.get(a) || a.localeCompare(b))) {
+    const c = el("button", "chip", `${cat} ${counts.get(cat)}`);
+    c.type = "button";
+    c.setAttribute("aria-pressed", String(state.filterCategory === cat));
+    c.addEventListener("click", () => {
+      state.filterCategory = state.filterCategory === cat ? null : cat;
+      renderCategories(); renderRail();
+    });
+    box.appendChild(c);
+  }
+}
+
+function useEntry(entry) {
+  state.selectedEntry = entry.name;
+  setMotifSource(entry.pattern, entry.name);
+  showDoc(entry);
+  renderRail();
+  run();
+}
+
+function showDoc(entry) {
+  const card = $("#doc-card");
+  card.textContent = "";
+  if (!entry) { card.hidden = true; return; }
+  card.hidden = false;
+  card.appendChild(el("h3", null, entry.name));
+  if (entry.doc) card.appendChild(el("p", null, entry.doc));
+  const bits = [`${entry.category} · ${entry.alphabet}`];
+  if (entry.example) bits.push(`example ${entry.example}`);
+  if (entry.meta) bits.push(`cut ${entry.meta.cutTop}/${entry.meta.cutBottom}`);
+  if (!entry.scan) bits.push("template: matches almost anywhere, so Scan skips it");
+  bits.push(`defined in ${entry.source}`);
+  if (entry.ref) bits.push(entry.ref);
+  card.appendChild(el("div", "ref", bits.join(" — ")));
+}
+
+/* ----------------------------------------------------------------- motif */
+
+function setMotifSource(text, label = "") {
+  state.motifSource = text;
+  $("#motif-source").value = text;
+  state.lastRunLabel = label;
+  validate();
+}
+
+function validate() {
+  const status = $("#motif-status");
+  const src = $("#motif-source").value.trim();
+  state.motifSource = src;
+  if (!src) {
+    status.textContent = "";
+    state.matcher = null;
+    $("#run-btn").disabled = true;
+    return;
+  }
+  if (!E.balanced(src)) {
+    status.className = "motif-status bad";
+    status.textContent = "unbalanced parentheses";
+    state.matcher = null;
+    $("#run-btn").disabled = true;
+    return;
+  }
+  try {
+    const form = E.parse(src);
+    state.matcher = buildMotif(form, state.registry);
+    status.className = "motif-status ok";
+    status.textContent = "reads as " + state.matcher.describe();
+    $("#run-btn").disabled = false;
+  } catch (err) {
+    status.className = "motif-status bad";
+    status.textContent = err.message;
+    state.matcher = null;
+    $("#run-btn").disabled = true;
+  }
+}
+
+/* -------------------------------------------------------------- sequences */
+
+const currentRecord = () => state.records[state.active] || null;
+
+function loadSequences(text, type = null) {
+  const records = E.parseFasta(text, type);
+  if (!records.length) return false;
+  state.records = records;
+  state.active = 0;
+  renderRecords();
+  renderRail();
+  return true;
+}
+
+function renderRecords() {
+  const box = $("#record-list");
+  box.textContent = "";
+  state.records.forEach((r, i) => {
+    const b = el("button", "record-btn");
+    b.type = "button";
+    b.setAttribute("aria-pressed", String(i === state.active));
+    b.appendChild(el("b", null, r.name));
+    const unit = r.type === "protein" ? "aa" : "bp";
+    const extra = r.type === "protein" ? "" : ` · GC ${(gcContent(r.seq) * 100).toFixed(1)}%`;
+    b.appendChild(el("span", null, `${r.length.toLocaleString()} ${unit} · ${r.type}${extra}`));
+    b.addEventListener("click", () => { state.active = i; renderRecords(); renderRail(); run(); });
+    box.appendChild(b);
+  });
+  const rec = currentRecord();
+  $("#seq-stat").textContent = rec ? `${rec.length.toLocaleString()} ${rec.type === "protein" ? "aa" : "bp"}` : "—";
+  $("#seq-stat-label").textContent = rec ? rec.name : "no sequence";
+}
+
+/* ------------------------------------------------------------------- runs */
+
+function run() {
+  const rec = currentRecord();
+  if (!rec || !state.matcher) return;
+  let hits;
+  try {
+    hits = E.search(state.matcher, rec, { name: state.lastRunLabel || undefined });
+  } catch (err) {
+    renderResults([], err.message);
+    return;
+  }
+  state.hits = hits;
+  renderResults(hits);
+}
+
+function scanAll() {
+  const rec = currentRecord();
+  if (!rec) return;
+  const wantProtein = rec.type === "protein";
+  const out = [];
+  for (const e of state.registry.all()) {
+    if (!e.scan) continue;
+    if ((e.alphabet === "protein") !== wantProtein) continue;
+    if (e.category === "restriction") continue;
+    try { out.push(...E.search(e.matcher, rec)); } catch { /* a motif that cannot run here */ }
+  }
+  state.hits = E.collapse(out);
+  state.lastRunLabel = "";
+  renderResults(state.hits, null, `Scanned ${rec.name} with every applicable library motif. Templates and restriction sites are excluded; use the library list for those.`);
+}
+
+function runDigest() {
+  const rec = currentRecord();
+  if (!rec || rec.type === "protein") return;
+  const enzymes = state.registry.all().filter((e) => e.meta);
+  const circular = $("#circular").checked;
+  const counts = enzymes.map((e) => {
+    const n = E.search(e.matcher, rec).length;
+    return { entry: e, n };
+  }).filter((x) => x.n > 0);
+  const unique = counts.filter((x) => x.n === 1).map((x) => x.entry);
+  const chosen = unique.slice(0, 2);
+  if (chosen.length < 2) {
+    counts.sort((a, b) => a.n - b.n);
+    for (const c of counts) if (chosen.length < 2 && !chosen.includes(c.entry)) chosen.push(c.entry);
+  }
+  if (!chosen.length) { renderResults([], "No restriction site from the library cuts this sequence."); return; }
+  const d = digest(rec, chosen.map((e) => ({ name: e.name, info: e.meta })), { circular });
+  const hits = [];
+  for (const s of d.sites) {
+    hits.push(new E.Match(s.enzyme, s.start, s.end, s.strand, rec.seq.slice(s.start, s.end),
+      { cut: [s.cutTop, s.cutTop, String(s.cutTop)] }, rec, null, {}));
+  }
+  state.hits = hits;
+  state.lastRunLabel = "";
+  const sizes = d.fragments.map((f) => f[2]).sort((a, b) => b - a);
+  renderResults(hits, null,
+    `${chosen.map((e) => e.name).join(" + ")} on ${circular ? "circular" : "linear"} ${rec.name}: ` +
+    `${d.cuts.length} cut${d.cuts.length === 1 ? "" : "s"}, fragments ${sizes.join(", ")} bp. ` +
+    `Single cutters available: ${unique.length ? unique.slice(0, 14).map((e) => e.name).join(", ") : "none"}.`);
+}
+
+function runOrfs() {
+  const rec = currentRecord();
+  if (!rec || rec.type === "protein") return;
+  const found = orfs(rec.seq, { minLength: 150, table: 11 });
+  state.hits = found.map((o) => new E.Match("orf", o.start, o.end, o.strand,
+    rec.seq.slice(o.start, o.end), {}, rec, null,
+    { frame: o.frame, residues: o.protein.length, protein: o.protein.slice(0, 30) + (o.protein.length > 30 ? "…" : "") }));
+  state.lastRunLabel = "";
+  renderResults(state.hits, null, `Open reading frames of at least 50 codons, bacterial code (table 11), both strands.`);
+}
+
+/* ---------------------------------------------------------------- results */
+
+function renderResults(hits, error = null, note = null) {
+  const summary = $("#summary");
+  const body = $("#results-body");
+  summary.textContent = "";
+  body.textContent = "";
+  $("#results-note").textContent = note || "";
+  $("#results-note").hidden = !note;
+  $("#export-btn").disabled = !hits.length;
+
+  if (error) {
+    body.appendChild(el("div", "empty", error));
+    return;
+  }
+  const rec = currentRecord();
+  const fwd = hits.filter((h) => h.strand === "+").length;
+  const items = [
+    [`${hits.length}`, hits.length === 1 ? "match" : "matches"],
+    [`${fwd}`, "forward"],
+    [`${hits.length - fwd}`, "reverse"],
+  ];
+  if (rec && hits.length) {
+    const per = (hits.length / rec.length) * 1000;
+    items.push([per.toFixed(2), rec.type === "protein" ? "per 1000 aa" : "per kb"]);
+  }
+  for (const [n, label] of items) {
+    const s = el("div", "summary-item");
+    s.appendChild(el("b", null, n));
+    s.appendChild(document.createTextNode(" " + label));
+    summary.appendChild(s);
+  }
+
+  if (!hits.length) {
+    body.appendChild(el("div", "empty",
+      "Nothing found. Try a looser motif: wrap it in (fuzzy 1 …), widen a gap, or pick a shorter consensus."));
+    return;
+  }
+  body.appendChild(buildTrack(rec, hits));
+  body.appendChild(buildTable(hits));
+}
+
+const BASE_CLASS = { A: "A", C: "C", G: "G", T: "T", U: "T" };
+
+function buildTrack(rec, hits) {
+  const wrap = el("div", "panel");
+  const head = el("header");
+  head.appendChild(el("h2", null, "Sequence"));
+  const legend = el("span", "hint", "matched bases highlighted · A C G T coloured");
+  legend.classList.add("spacer");
+  head.appendChild(legend);
+  wrap.appendChild(head);
+
+  const bodyBox = el("div", "panel-body");
+  const pre = el("div", "track scroller");
+  const width = 60;
+  const covered = new Uint8Array(rec.length);
+  for (const h of hits) for (let i = h.start; i < h.end && i < rec.length; i++) covered[i] = 1;
+
+  const lines = [];
+  const interesting = [];
+  for (let start = 0; start < rec.length; start += width) {
+    let any = false;
+    for (let i = start; i < Math.min(start + width, rec.length); i++) if (covered[i]) { any = true; break; }
+    interesting.push(any);
+  }
+  const dense = rec.length > 6000;
+  let skipped = 0;
+  for (let block = 0, start = 0; start < rec.length; block++, start += width) {
+    if (dense && !interesting[block] && !(block > 0 && interesting[block - 1]) && !(interesting[block + 1])) {
+      skipped++;
+      continue;
+    }
+    if (skipped) {
+      lines.push(`<div class="skip">      ⋯ ${skipped * width} bases with no match ⋯</div>`);
+      skipped = 0;
+    }
+    const end = Math.min(start + width, rec.length);
+    let row = `<span class="gutter">${String(rec.offset + start + 1).padStart(8)} </span>`;
+    let open = false;
+    for (let i = start; i < end; i++) {
+      const c = rec.seq[i].toUpperCase();
+      if (covered[i] && !open) { row += "<mark>"; open = true; }
+      if (!covered[i] && open) { row += "</mark>"; open = false; }
+      const cls = BASE_CLASS[c];
+      row += cls ? `<span class="${cls}">${c}</span>` : c;
+    }
+    if (open) row += "</mark>";
+    lines.push(`<div>${row}</div>`);
+
+    // A label lane under the block, one row per non-overlapping set of hits.
+    const here = hits.filter((h) => h.start < end && h.end > start);
+    const lanes = [];
+    for (const h of here.sort((a, b) => a.start - b.start)) {
+      const a = Math.max(h.start - start, 0), b = Math.min(h.end - start, width);
+      const lane = lanes.find((L) => L.every(([la, lb]) => b <= la || lb <= a));
+      if (lane) lane.push([a, b, h]); else lanes.push([[a, b, h]]);
+    }
+    for (const lane of lanes.slice(0, 3)) {
+      const buf = Array(width).fill(" ");
+      for (const [a, b, h] of lane) {
+        const mark = h.strand === "-" ? "<" : ">";
+        for (let k = a; k < b; k++) buf[k] = mark;
+        const label = h.motif.slice(0, Math.max(0, b - a));
+        for (let k = 0; k < label.length; k++) buf[a + k] = label[k];
+      }
+      lines.push(`<div class="lane">         ${escapeHtml(buf.join("").replace(/\s+$/, ""))}</div>`);
+    }
+  }
+  if (skipped) lines.push(`<div class="skip">      ⋯ ${skipped * width} bases with no match ⋯</div>`);
+  pre.innerHTML = lines.join("");
+  bodyBox.appendChild(pre);
+  wrap.appendChild(bodyBox);
+  return wrap;
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function buildTable(hits) {
+  const wrap = el("div", "panel");
+  const head = el("header");
+  head.appendChild(el("h2", null, "Matches"));
+  wrap.appendChild(head);
+  const scroll = el("div", "scroller");
+  const t = el("table", "hits");
+  const thead = el("thead");
+  const hr = el("tr");
+  for (const h of ["Motif", "Start", "End", "Len", "Strand", "Sequence", "Detail"]) hr.appendChild(el("th", null, h));
+  thead.appendChild(hr);
+  t.appendChild(thead);
+  const tb = el("tbody");
+  for (const h of hits.slice(0, 500)) {
+    const tr = el("tr");
+    tr.appendChild(el("td", "name", h.motif));
+    tr.appendChild(el("td", "num", String(h.absStart + 1)));
+    tr.appendChild(el("td", "num", String(h.absEnd)));
+    tr.appendChild(el("td", "num", String(h.length)));
+    const st = el("td");
+    const badge = el("span", `strand ${h.strand === "+" ? "fwd" : "rev"}`, h.strand);
+    st.appendChild(badge);
+    tr.appendChild(st);
+    tr.appendChild(el("td", "mono", h.seq.length > 60 ? h.seq.slice(0, 28) + "…" + h.seq.slice(-28) : h.seq));
+    const detail = el("td", "binds");
+    const parts = [];
+    if (h.score !== null && h.score !== undefined) parts.push(["score", String(h.score)]);
+    for (const [k, v] of Object.entries(h.extra)) parts.push([k, String(v)]);
+    for (const [k, v] of Object.entries(h.bindings)) parts.push([k, v[2]]);
+    parts.forEach(([k, v], i) => {
+      if (i) detail.appendChild(document.createTextNode("  "));
+      detail.appendChild(el("b", null, k + "="));
+      detail.appendChild(document.createTextNode(v));
+    });
+    tr.appendChild(detail);
+    tb.appendChild(tr);
+  }
+  t.appendChild(tb);
+  scroll.appendChild(t);
+  wrap.appendChild(scroll);
+  if (hits.length > 500) {
+    const more = el("div", "panel-body");
+    more.appendChild(el("div", "panel-note", `Showing the first 500 of ${hits.length}. Export to see them all.`));
+    wrap.appendChild(more);
+  }
+  return wrap;
+}
+
+/* -------------------------------------------------------------- assistant */
+
+const GRAMMAR = `
+"GAATTC"                     a literal, matched on both strands; U and T are the same base
+(iupac "TATAWAWR")           a nucleotide consensus with IUPAC ambiguity codes
+(prosite "N-{P}-[ST]-{P}")   a protein pattern: x is any residue, [..] a choice, {..} an exclusion,
+                             (n) or (n,m) a repeat count, < anchors the N-terminus, > the C-terminus
+(seq A B C)                  the parts one after another
+(alt A B C)                  any one of them
+(gap 15 19)                  15 to 19 of any character
+(run "CT" 8 20)              a run of 8 to 20 characters from that set
+(repeat M 3 6)               M repeated 3 to 6 times; the max may be omitted for unbounded
+(opt M)                      M or nothing
+(any-of "AT") (none-of "P")  one character in, or not in, a set
+(named 'label M)             M, captured under that label and reported with the match
+(fuzzy 2 M)                  a FIXED-WIDTH M with up to 2 mismatches
+(edit 1 "GAATTC")            up to 1 substitution, insertion or deletion
+(hairpin (stem 5 10) (loop 3 8) :wobble #t)
+                             a stem-loop; the engine checks the stem really base-pairs
+(pwm-from-sites '("TATAAA" "TATAAT") :threshold 0.8)   a position weight matrix
+at-start  at-end             sequence boundaries
+`.trim();
+
+function assistantPrompt(request, rec) {
+  const kind = rec ? rec.type : "dna";
+  const names = state.registry.all().map((e) => e.name);
+  return `You write motifs in the Biomotif pattern language. Answer only with JSON.
+
+THE LANGUAGE
+${GRAMMAR}
+
+RULES
+- A motif is ONE s-expression. No variables, no lambdas, no arithmetic.
+- fuzzy needs a fixed width: (fuzzy 1 (iupac "TTGACA")) is fine, (fuzzy 1 (repeat "A" 1 5)) is not.
+- Use (named 'x ...) for parts the biologist will want reported separately.
+- Prefer (iupac ...) over a bare literal whenever the site is degenerate.
+- For protein patterns always use (prosite "..."), never iupac.
+- The sequence loaded now is ${kind}. Write a motif for that alphabet.
+- If an existing library motif already answers the request, return its name in "library"
+  and still give the equivalent expression in "motif".
+
+LIBRARY NAMES YOU MAY REFER TO
+${names.join(" ")}
+
+REQUEST
+${request}
+
+Reply with JSON only, no prose around it:
+{"motif": "<the s-expression>",
+ "name": "<a short kebab-case name>",
+ "explanation": "<two sentences: what it matches and why it is written that way>",
+ "caveats": "<one sentence on how often this would match by chance, or empty>",
+ "library": "<an existing library motif name, or empty>"}`;
+}
+
+async function ask() {
+  const box = $("#ask-input");
+  const request = box.value.trim();
+  if (!request || !state.sample) return;
+  const out = $("#assistant-out");
+  const btn = $("#ask-btn");
+  btn.disabled = true;
+  out.hidden = false;
+  out.textContent = "";
+  out.appendChild(el("h3", null, "Thinking…"));
+  try {
+    const data = await state.sample.json(assistantPrompt(request, currentRecord()), { modelTier: "default" });
+    out.textContent = "";
+    out.appendChild(el("h3", null, data.name || "Motif"));
+    if (data.explanation) out.appendChild(el("p", null, data.explanation));
+    if (data.caveats) out.appendChild(el("div", "warn-line", data.caveats));
+    if (data.library && state.registry.get(data.library)) {
+      const line = el("div", "hint");
+      line.appendChild(document.createTextNode("The library already has this: "));
+      const link = el("button", "btn btn-sm", data.library);
+      link.type = "button";
+      link.addEventListener("click", () => useEntry(state.registry.get(data.library)));
+      line.appendChild(link);
+      out.appendChild(line);
+    }
+    if (data.motif) {
+      setMotifSource(data.motif, data.name || "assistant");
+      state.selectedEntry = null;
+      showDoc(null);
+      renderRail();
+      if (state.matcher) run();
+    }
+  } catch (err) {
+    out.textContent = "";
+    out.appendChild(el("h3", null, "Could not write that motif"));
+    const codes = {
+      not_granted: "You declined to let this page use Claude. Reload to be asked again, or write the motif yourself.",
+      rate_limited: "Too many requests just now. Wait a moment and try again.",
+      cancelled: "Stopped.",
+    };
+    out.appendChild(el("p", null, codes[err.code] || err.message || "Something went wrong. Try rephrasing the request."));
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/* ----------------------------------------------------------------- export */
+
+function hitsToTsv() {
+  const rows = [["sequence", "motif", "start", "end", "length", "strand", "match", "detail"].join("\t")];
+  for (const h of state.hits) {
+    const detail = [
+      ...(h.score != null ? [`score=${h.score}`] : []),
+      ...Object.entries(h.extra).map(([k, v]) => `${k}=${v}`),
+      ...Object.entries(h.bindings).map(([k, v]) => `${k}=${v[2]}`),
+    ].join(";");
+    rows.push([h.record ? h.record.name : "", h.motif, h.absStart + 1, h.absEnd, h.length, h.strand, h.seq, detail].join("\t"));
+  }
+  return rows.join("\n") + "\n";
+}
+
+/* ------------------------------------------------------------------- boot */
+
+const DEMO_LABELS = {
+  plasmid: "pSYN1 plasmid",
+  operon: "bacterial operon",
+  gene: "spliced gene",
+  utr3: "3' UTRs",
+  proteins: "proteins",
+};
+
+function wire() {
+  $("#library-search").addEventListener("input", (e) => {
+    state.filterText = e.target.value.trim();
+    renderRail();
+  });
+  $("#motif-source").addEventListener("input", () => { state.selectedEntry = null; validate(); });
+  $("#run-btn").addEventListener("click", run);
+  $("#scan-btn").addEventListener("click", scanAll);
+  $("#digest-btn").addEventListener("click", runDigest);
+  $("#orf-btn").addEventListener("click", runOrfs);
+  $("#ask-btn").addEventListener("click", ask);
+  $("#ask-input").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) ask();
+  });
+  $("#seq-load").addEventListener("click", () => {
+    const text = $("#seq-input").value.trim();
+    if (!text) return;
+    if (loadSequences(text)) { $("#seq-input").value = ""; run(); }
+  });
+  $("#seq-file").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (loadSequences(await file.text())) run();
+    e.target.value = "";
+  });
+  for (const btn of document.querySelectorAll("[data-demo]")) {
+    btn.addEventListener("click", () => {
+      const key = btn.dataset.demo;
+      loadSequences(window.BIOMOTIF_DATA[key], key === "proteins" ? "protein" : null);
+      run();
+    });
+  }
+  $("#export-btn").addEventListener("click", async () => {
+    const downloads = await window.claude?.use?.("downloads");
+    const name = `biomotif-${(currentRecord()?.name || "hits").replace(/\W+/g, "-")}.tsv`;
+    if (downloads) {
+      try { await downloads.save({ filename: name, data: hitsToTsv() }); return; } catch { /* fall through */ }
+    }
+    await navigator.clipboard?.writeText(hitsToTsv());
+    $("#results-note").hidden = false;
+    $("#results-note").textContent = "Results copied to the clipboard as tab-separated text.";
+  });
+}
+
+async function initAssistant() {
+  const composer = $("#composer");
+  try {
+    const sample = await window.claude?.use?.("sample");
+    if (!sample) { composer.hidden = true; return; }
+    state.sample = sample;
+    composer.hidden = false;
+  } catch {
+    composer.hidden = true;
+  }
+}
+
+function boot() {
+  loadLibrary();
+  $("#lib-stat").textContent = String(state.registry.size);
+  $("#cat-stat").textContent = String(state.registry.categories().length);
+  renderCategories();
+  wire();
+  // Open in a working state: a plasmid loaded and a real promoter already found.
+  loadSequences(window.BIOMOTIF_DATA.operon);
+  const entry = state.registry.get("sigma70-promoter");
+  state.selectedEntry = entry.name;
+  setMotifSource(entry.pattern, entry.name);
+  showDoc(entry);
+  renderRail();
+  run();
+  initAssistant();
+}
+
+boot();
+</script>

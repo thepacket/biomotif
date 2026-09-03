@@ -199,3 +199,35 @@ data/            synthetic sequences with known answers
 tools/           regenerate the data and the library index
 docs/LIBRARY.md  the full catalogue, generated
 ```
+
+## The web app
+
+`web/biomotif.html` is the whole tool in one file: no install, no Python, no
+server. It carries the same 487-motif library, parsed from the same `.mtf`
+files at load, and adds an assistant that writes motifs from a plain-English
+description.
+
+```bash
+python tools/build_web.py     # rebuilds web/biomotif.html from web/src/ and biomotif/lib/
+open web/biomotif.html
+```
+
+The browser engine is a separate implementation of the same semantics, not a
+port of the interpreter: a motif is built directly from its s-expression, so
+there are no environments, lambdas or macros to carry. `tools/build_web.py`
+inlines `web/src/{engine,library,app}.js`, the stylesheet and the library into
+a single page.
+
+Both engines are held to the same answers. Every one of the 487 motifs is run
+against the same sequences in Python and in JavaScript and must return the
+same hits, in the same order, with the same spans.
+
+| 1 Mb of random DNA | Python | JavaScript |
+|---|---|---|
+| Literal `GAATTC` | 7.8 Mb/s | 10.3 Mb/s |
+| IUPAC `TATAWAWR` | 5.2 Mb/s | 10.0 Mb/s |
+| Sigma-70 promoter | 1.6 Mb/s | 8.1 Mb/s |
+| Hairpin, stem 5 to 10 | 0.03 Mb/s | 0.2 Mb/s |
+
+Fast enough for plasmids, genes, promoter sets and bacterial genomes. Not fast
+enough for a vertebrate genome, in either language.
