@@ -40,7 +40,7 @@ def bundle_modules() -> str:
     bundle rebuilds that alias from engine.js's own export list."""
     parts = []
     engine_names = []
-    for name in ("engine.js", "library.js", "app.js"):
+    for name in ("engine.js", "library.js", "databases.js", "app.js"):
         text = read(SRC, name)
         if name == "engine.js":
             engine_names = EXPORTED.findall(text)
@@ -82,9 +82,12 @@ def build_single(css: str, js: str) -> str:
 def build_dist(css: str, js: str, out_dir: str) -> str:
     """index.html plus fingerprinted assets, so nginx can cache them forever
     and the page can run under script-src 'self'."""
-    if os.path.isdir(out_dir):
-        shutil.rmtree(out_dir)
+    # Empty the directory rather than replace it: removing and recreating it
+    # pulls the working directory out from under anything already serving it.
     os.makedirs(out_dir, exist_ok=True)
+    for stale in os.listdir(out_dir):
+        path = os.path.join(out_dir, stale)
+        shutil.rmtree(path) if os.path.isdir(path) else os.remove(path)
     css_name = f"biomotif.{digest(css)}.css"
     js_name = f"biomotif.{digest(js)}.js"
     with open(os.path.join(out_dir, css_name), "w", encoding="utf-8") as f:

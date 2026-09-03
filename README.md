@@ -238,6 +238,48 @@ same hits, in the same order, with the same spans.
 Fast enough for plasmids, genes, promoter sets and bacterial genomes. Not fast
 enough for a vertebrate genome, in either language.
 
+### Fetching sequences
+
+The page retrieves sequences directly from the public databases, with no server
+in between.
+
+| Source | Reached by |
+|---|---|
+| NCBI Nucleotide | accession (`NM_000518`, `NC_000011`) or free-text search, with NCBI field syntax |
+| Ensembl | gene symbol (`HBB`), stable ID (`ENSG…`, `ENST…`), or a region (`11:5225464-5229395`) |
+| ENA | accession |
+| UniProt | accession or search, for protein |
+
+Ensembl is the one that matters most for motif work, because it can return a
+gene **with its upstream sequence**. Fetching the canonical HBB transcript with
+200 bases of upstream and searching it recovers the textbook human beta-globin
+promoter:
+
+| Element | Motif | Position |
+|---|---|---|
+| CACCC box, the KLF1 site | `(iupac "CCACACCC")` | −93 |
+| CCAAT box | `(iupac "CCAAT")` | −76 |
+| TATA box | `(fuzzy 1 (iupac "TATAWAWR"))` | −32, reading `CATAAAAG` |
+
+The strict Bucher consensus `TATAWAWR` finds nothing there. The real HBB TATA
+box is a natural variant with a C in the first position, which is the same
+lesson [08-pwm.mtf](examples/08-pwm.mtf) teaches on synthetic data, here on a
+real promoter pulled live.
+
+RNAcentral is absent for a specific reason: it sends no
+`Access-Control-Allow-Origin` header, so a browser cannot call it and there is
+no server here to proxy through. Every other endpoint was checked before being
+added.
+
+**What the page sends, and what it does not.** A request goes out only when you
+press Fetch or Search, and carries only what is in that box: an accession, a
+gene symbol, a region, a search term. A sequence you paste or open from a file
+is never sent anywhere — matching runs entirely in the page, and `connect-src`
+lists those four databases and not `'self'`, so the page cannot post it back to
+its own origin either. That said, `connect-src` restricts where a request may
+go, not what it may contain; the guarantee is the short host list together with
+the code, not the policy by itself.
+
 Writing a motif from a plain-English description needs Claude. That works in
 the hosted Artifact, which reaches it through the viewer's own account; a
 self-hosted copy says so and offers the library and the reference instead.
@@ -285,13 +327,12 @@ The machine sleeps when idle (`auto_stop_machines = 'suspend'` with
 first request after an idle period pays about a second of wake-up. Set
 `min_machines_running = 1` if that matters.
 
-**A sequence cannot leave the browser.** `connect-src` is `'none'` in
-[deploy/security-headers.conf](deploy/security-headers.conf), so the page is
-not permitted to open a network connection at all: sequences are read from a
-local file or pasted in, and every search runs in the page. The only third
-party is Google Fonts, allowed for the stylesheet and the font files and
-nothing else. Every face has a real fallback stack, so blocking those costs
-typography alone.
+`connect-src` in [deploy/security-headers.conf](deploy/security-headers.conf)
+lists the four sequence databases and nothing else — not even `'self'`. Google
+Fonts is the only other third party, allowed for the stylesheet and the font
+files alone; every face has a real fallback stack, so blocking those costs
+typography and nothing more. See [Fetching sequences](#fetching-sequences)
+above for what leaves the page and what does not.
 
 To check the image locally before deploying:
 

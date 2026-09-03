@@ -104,6 +104,39 @@ def test_css_hides_elements_marked_hidden():
     assert re.search(r"\[hidden\]\s*\{\s*display:\s*none\s*!important", css)
 
 
+def test_databases_module_is_bundled(dist):
+    js = next(p for p in dist.iterdir() if p.suffix == ".js").read_text()
+    for host in ("eutils.ncbi.nlm.nih.gov", "rest.ensembl.org",
+                 "www.ebi.ac.uk", "rest.uniprot.org"):
+        assert host in js, host
+
+
+def test_ncbi_requests_identify_themselves():
+    """NCBI asks that automated clients send a tool name."""
+    src = (SRC / "databases.js").read_text()
+    assert 'TOOL = "tool=biomotif"' in src
+    # A URL may be built across several concatenated lines, so check the whole
+    # statement rather than one template literal.
+    for stmt in re.findall(r"\$\{NCBI\}/.*?;", src, re.S):
+        assert "${TOOL}" in stmt, stmt
+
+
+def test_retrieval_has_a_size_ceiling():
+    """A whole chromosome would be held in memory and searched with matchers
+    far too slow for it, so the fetch is refused with an explanation."""
+    src = (SRC / "databases.js").read_text()
+    assert "MAX_BASES" in src
+    assert "Fetch a region instead" in src
+
+
+def test_rnacentral_is_documented_as_unreachable():
+    """It has no CORS headers, so it cannot be called from a page with no
+    server behind it. Leaving that unsaid invites someone to re-add it."""
+    src = (SRC / "databases.js").read_text()
+    assert "RNAcentral" in src
+    assert "Access-Control-Allow-Origin" in src
+
+
 def test_deployment_files_are_present():
     for path in ("Dockerfile", "fly.toml", "deploy/nginx.conf", "deploy/security-headers.conf",
                  ".dockerignore"):
@@ -117,14 +150,40 @@ def test_nginx_serves_health_and_the_page():
     assert "gzip on" in conf
 
 
-def test_csp_forbids_inline_script_and_network():
+def csp() -> str:
     headers = (ROOT / "deploy" / "security-headers.conf").read_text()
-    csp = re.search(r'Content-Security-Policy "([^"]+)"', headers).group(1)
-    assert "script-src 'self'" in csp
-    assert "'unsafe-inline'" not in csp.split("style-src")[0], "no unsafe-inline for scripts"
-    assert "'unsafe-eval'" not in csp
-    assert "connect-src 'none'" in csp, "the page must not be able to send a sequence anywhere"
-    assert "frame-ancestors 'none'" in csp
+    return re.search(r'Content-Security-Policy "([^"]+)"', headers).group(1)
+
+
+def test_csp_forbids_inline_script():
+    policy = csp()
+    assert "script-src 'self'" in policy
+    assert "'unsafe-inline'" not in policy.split("style-src")[0], "no unsafe-inline for scripts"
+    assert "'unsafe-eval'" not in policy
+    assert "frame-ancestors 'none'" in policy
+
+
+def test_csp_connect_src_lists_exactly_the_databases():
+    """The page may reach the four sequence databases and nothing else — not
+    even its own origin, so a loaded sequence cannot be posted back."""
+    from_csp = re.search(r"connect-src ([^;]+);", csp()).group(1).split()
+    assert sorted(from_csp) == sorted([
+        "https://eutils.ncbi.nlm.nih.gov",
+        "https://rest.ensembl.org",
+        "https://www.ebi.ac.uk",
+        "https://rest.uniprot.org",
+    ])
+    assert "'self'" not in from_csp
+    assert "*" not in from_csp
+
+
+def test_every_fetched_host_is_allowed_by_the_csp():
+    """A host used by databases.js but missing from connect-src fails silently
+    in production while working in development, where no policy applies."""
+    src = (SRC / "databases.js").read_text()
+    used = set(re.findall(r'"(https://[a-z0-9.-]+)"', src))
+    allowed = set(re.search(r"connect-src ([^;]+);", csp()).group(1).split())
+    assert used <= allowed, f"not in connect-src: {sorted(used - allowed)}"
 
 
 def test_fly_config_matches_the_dockerfile_port():

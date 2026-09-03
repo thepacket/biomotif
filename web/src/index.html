@@ -33,10 +33,53 @@
     <section class="panel">
       <header>
         <h2>Sequence</h2>
-        <span class="hint spacer">paste FASTA or a bare sequence, load a file, or start from an example</span>
+        <span class="hint spacer">fetch from a database, paste FASTA, or open a file</span>
       </header>
       <div class="panel-body">
+        <div class="fetch-row">
+          <input id="fetch-query" class="field" type="text" autocomplete="off" spellcheck="false"
+                 placeholder="Accession, gene symbol or region — NM_000518, HBB, 11:5225464-5229395">
+          <select id="fetch-source" class="field" aria-label="Database">
+            <option value="auto">Detect</option>
+            <option value="ncbi">NCBI Nucleotide</option>
+            <option value="ensembl">Ensembl</option>
+            <option value="ena">ENA</option>
+            <option value="uniprot">UniProt</option>
+          </select>
+          <button class="btn btn-primary" id="fetch-btn" type="button">Fetch</button>
+          <button class="btn" id="search-btn" type="button">Search by name</button>
+        </div>
+        <div class="fetch-opts">
+          <label>Upstream
+            <input id="fetch-upstream" class="field" type="number" min="0" max="100000" step="100" value="0">
+            bp</label>
+          <label>Species
+            <input id="fetch-species" class="field" type="text" list="species-list" value="homo_sapiens"></label>
+          <datalist id="species-list">
+            <option value="homo_sapiens"></option><option value="mus_musculus"></option>
+            <option value="rattus_norvegicus"></option><option value="danio_rerio"></option>
+            <option value="drosophila_melanogaster"></option><option value="caenorhabditis_elegans"></option>
+            <option value="saccharomyces_cerevisiae"></option><option value="arabidopsis_thaliana"></option>
+            <option value="escherichia_coli_str_k_12_substr_mg1655"></option>
+          </datalist>
+          <span class="hint">Upstream and species apply to Ensembl gene and region lookups.
+            Search accepts NCBI field syntax, so <code>HBB[gene] AND human[orgn]</code> beats a bare name.</span>
+        </div>
+        <div class="fetch-status" id="fetch-status" hidden></div>
+        <div class="fetch-results" id="fetch-results" hidden></div>
+
         <div class="seq-controls">
+          <span class="hint">Try</span>
+          <button class="btn btn-sm" type="button" data-fetch="ENST00000335295" data-upstream="200"
+                  data-title="The human beta-globin promoter, 200 bp upstream of the canonical transcript">HBB promoter</button>
+          <button class="btn btn-sm" type="button" data-fetch="NM_000518" data-source="ncbi"
+                  data-title="The HBB mRNA from RefSeq">HBB mRNA</button>
+          <button class="btn btn-sm" type="button" data-fetch="11:5225464-5229395" data-source="ensembl"
+                  data-title="The HBB locus by coordinates">HBB locus</button>
+        </div>
+
+        <div class="seq-controls">
+          <span class="hint">Or start from an example</span>
           <button class="btn btn-sm" type="button" data-demo="operon">Bacterial operon</button>
           <button class="btn btn-sm" type="button" data-demo="plasmid">pSYN1 plasmid</button>
           <button class="btn btn-sm" type="button" data-demo="gene">Spliced gene</button>

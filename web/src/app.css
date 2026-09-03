@@ -196,9 +196,42 @@ textarea.field { resize: vertical; font-family: var(--mono); font-size: 12.5px; 
   text-transform: uppercase; letter-spacing: .05em;
 }
 
+/* ------------------------------------------------------------ retrieval */
+
+.fetch-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.fetch-row #fetch-query { flex: 1 1 300px; min-width: 200px; }
+.fetch-row select { flex: 0 0 auto; width: auto; }
+.fetch-opts {
+  display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+  margin-top: 8px; font-size: 12px; color: var(--muted);
+}
+.fetch-opts label { display: flex; align-items: center; gap: 5px; }
+.fetch-opts input[type="number"] { width: 82px; }
+.fetch-opts input[type="text"] { width: 190px; }
+.fetch-status {
+  margin-top: 10px; padding: 7px 11px; border-radius: 5px; font-size: 12.5px;
+  background: var(--surface-2); border: 1px solid var(--line);
+}
+.fetch-status.busy { border-color: var(--accent); }
+.fetch-status.bad { border-color: var(--crit); color: var(--crit); }
+.fetch-status.good { border-color: var(--good); }
+.fetch-results {
+  margin-top: 10px; border: 1px solid var(--line); border-radius: 5px;
+  max-height: 260px; overflow-y: auto;
+}
+.hit-row {
+  display: block; width: 100%; text-align: left; padding: 7px 11px;
+  background: none; border: 0; border-bottom: 1px solid var(--line); cursor: pointer;
+}
+.hit-row:last-child { border-bottom: 0; }
+.hit-row:hover { background: var(--surface-2); }
+.hit-row b { font-family: var(--mono); font-size: 12.5px; font-weight: 500; }
+.hit-row span { display: block; font-family: var(--serif); font-size: 12px; color: var(--muted); }
+.hit-row em { font-style: normal; color: var(--ink-soft); font-family: var(--sans); font-size: 11px; }
+
 /* --------------------------------------------------------------- sequence */
 
-.seq-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+.seq-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 12px 0 10px; }
 .record-list { display: flex; flex-wrap: wrap; gap: 6px; }
 .record-btn {
   display: flex; flex-direction: column; align-items: flex-start; gap: 1px;

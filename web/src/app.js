@@ -4,6 +4,7 @@ import * as E from "./engine.js";
 import {
   Registry, loadLibrarySource, buildMotif, digest, gcContent, meltingTemp, orfs, translate,
 } from "./library.js";
+import { SOURCES, detectSource, fetchSequence, searchDatabase } from "./databases.js";
 
 const $ = (sel) => document.querySelector(sel);
 const el = (tag, cls, text) => {
@@ -25,6 +26,7 @@ const state = {
   filterText: "",
   lastRunLabel: "",
   sample: null,
+  fetching: null,     // AbortController for the request in flight
 };
 
 /* ------------------------------------------------------------------ library */
@@ -194,6 +196,111 @@ function renderRecords() {
   const rec = currentRecord();
   $("#seq-stat").textContent = rec ? `${rec.length.toLocaleString()} ${rec.type === "protein" ? "aa" : "bp"}` : "—";
   $("#seq-stat-label").textContent = rec ? rec.name : "no sequence";
+}
+
+/* -------------------------------------------------------------- retrieval */
+
+function fetchStatus(text, kind = "busy") {
+  const box = $("#fetch-status");
+  box.hidden = !text;
+  box.className = `fetch-status ${kind}`;
+  box.textContent = text;
+}
+
+function fetchBusy(busy) {
+  $("#fetch-btn").disabled = busy;
+  $("#search-btn").disabled = busy;
+}
+
+/** One request at a time: a second one cancels the first rather than racing it. */
+function beginRequest() {
+  state.fetching?.abort();
+  state.fetching = new AbortController();
+  fetchBusy(true);
+  return state.fetching.signal;
+}
+
+function describeError(err) {
+  if (err.name === "AbortError") return null;
+  return err.message || "Something went wrong reaching the database.";
+}
+
+async function doFetch(query, { source, upstream, species, title } = {}) {
+  const q = (query ?? $("#fetch-query").value).trim();
+  if (!q) { fetchStatus("Enter an accession, a gene symbol or a region.", "bad"); return; }
+  const chosen = source ?? $("#fetch-source").value;
+  const up = upstream ?? (Number($("#fetch-upstream").value) || 0);
+  const sp = species ?? ($("#fetch-species").value.trim() || "homo_sapiens");
+  const signal = beginRequest();
+  const where = chosen === "auto" ? (detectSource(q) ? SOURCES[detectSource(q)].label : "a database") : SOURCES[chosen].label;
+  fetchStatus(`Fetching ${q} from ${where}…`);
+  $("#fetch-results").hidden = true;
+  try {
+    const { records, info, source: used } = await fetchSequence(q, { source: chosen, upstream: up, species: sp, signal });
+    state.records = records;
+    state.active = 0;
+    renderRecords();
+    renderRail();
+    const bases = records.reduce((n, r) => n + r.seq.length, 0);
+    const bits = [`${SOURCES[used].label}: ${records.length} record${records.length === 1 ? "" : "s"}, ${bases.toLocaleString()} ${records[0].type === "protein" ? "residues" : "bases"}`];
+    if (up > 0 && used === "ensembl") bits.push(`the first ${up.toLocaleString()} bases are upstream, so position ${up + 1} is the start`);
+    if (info?.display_name) bits.push(`${info.display_name} on ${info.seq_region_name}:${info.start}-${info.end} strand ${info.strand > 0 ? "+" : "−"} (${info.assembly_name})`);
+    if (title) bits.push(title);
+    fetchStatus(bits.join(" · "), "good");
+    run();
+  } catch (err) {
+    const msg = describeError(err);
+    if (msg) fetchStatus(msg, "bad");
+  } finally {
+    fetchBusy(false);
+  }
+}
+
+async function doSearch() {
+  const term = $("#fetch-query").value.trim();
+  if (!term) { fetchStatus("Type a name to search for, such as \"hemoglobin beta human\".", "bad"); return; }
+  const picked = $("#fetch-source").value;
+  const source = picked === "uniprot" ? "uniprot" : "ncbi";
+  const signal = beginRequest();
+  fetchStatus(`Searching ${SOURCES[source].label} for “${term}”…`);
+  $("#fetch-results").hidden = true;
+  try {
+    const results = await searchDatabase(term, { source, signal });
+    if (!results.length) {
+      fetchStatus(`${SOURCES[source].label} has nothing matching “${term}”.`, "bad");
+      return;
+    }
+    fetchStatus(`${results.length} result${results.length === 1 ? "" : "s"} from ${SOURCES[source].label}. Pick one to load it.`, "good");
+    renderSearchResults(results);
+  } catch (err) {
+    const msg = describeError(err);
+    if (msg) fetchStatus(msg, "bad");
+  } finally {
+    fetchBusy(false);
+  }
+}
+
+function renderSearchResults(results) {
+  const box = $("#fetch-results");
+  box.textContent = "";
+  box.hidden = false;
+  for (const r of results) {
+    const b = el("button", "hit-row");
+    b.type = "button";
+    const head = el("b", null, r.label);
+    b.appendChild(head);
+    const unit = r.moltype === "protein" ? "aa" : "bp";
+    const meta = [r.length ? `${r.length.toLocaleString()} ${unit}` : null, r.organism, r.moltype]
+      .filter(Boolean).join(" · ");
+    if (meta) b.appendChild(el("em", null, "  " + meta));
+    if (r.description) b.appendChild(el("span", null, r.description));
+    b.addEventListener("click", () => {
+      $("#fetch-query").value = r.id;
+      $("#fetch-results").hidden = true;
+      doFetch(r.id, { source: r.source, upstream: 0 });
+    });
+    box.appendChild(b);
+  }
 }
 
 /* ------------------------------------------------------------------- runs */
@@ -569,7 +676,13 @@ function wire() {
     state.filterText = e.target.value.trim();
     renderRail();
   });
-  $("#motif-source").addEventListener("input", () => { state.selectedEntry = null; validate(); });
+  $("#motif-source").addEventListener("input", () => {
+    // An edited motif is no longer the library entry it started from, so it
+    // must not keep that entry's name on the results.
+    state.selectedEntry = null;
+    state.lastRunLabel = "";
+    validate();
+  });
   $("#run-btn").addEventListener("click", run);
   $("#scan-btn").addEventListener("click", scanAll);
   $("#digest-btn").addEventListener("click", runDigest);
@@ -589,10 +702,26 @@ function wire() {
     if (loadSequences(await file.text())) run();
     e.target.value = "";
   });
+  $("#fetch-btn").addEventListener("click", () => doFetch());
+  $("#search-btn").addEventListener("click", doSearch);
+  $("#fetch-query").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); doFetch(); }
+  });
+  for (const btn of document.querySelectorAll("[data-fetch]")) {
+    btn.addEventListener("click", () => {
+      $("#fetch-query").value = btn.dataset.fetch;
+      const up = Number(btn.dataset.upstream) || 0;
+      $("#fetch-upstream").value = String(up);
+      if (btn.dataset.source) $("#fetch-source").value = btn.dataset.source;
+      doFetch(btn.dataset.fetch, { source: btn.dataset.source, upstream: up, title: btn.dataset.title });
+    });
+  }
   for (const btn of document.querySelectorAll("[data-demo]")) {
     btn.addEventListener("click", () => {
       const key = btn.dataset.demo;
+      state.fetching?.abort();
       loadSequences(window.BIOMOTIF_DATA[key], key === "proteins" ? "protein" : null);
+      fetchStatus("");
       run();
     });
   }
