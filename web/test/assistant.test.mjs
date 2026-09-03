@@ -116,3 +116,46 @@ test("the assistant module reaches the bundle", async () => {
   assert.ok(MODULES.indexOf("assistant.js") < MODULES.indexOf("app.js"),
     "app.js uses it, so it must be concatenated first");
 });
+
+/* ------------------------------------------------------------- examples */
+
+test("there are at least fifty example requests, none repeated", async () => {
+  const { PROMPT_GROUPS, PROMPT_COUNT } = await import("../src/prompts.js");
+  const all = PROMPT_GROUPS.flatMap((g) => g.prompts);
+  assert.ok(all.length >= 50, `only ${all.length} examples`);
+  assert.equal(PROMPT_COUNT, all.length);
+  assert.equal(new Set(all).size, all.length, "an example is repeated");
+});
+
+test("every example group is well formed and names its alphabet", async () => {
+  const { PROMPT_GROUPS } = await import("../src/prompts.js");
+  for (const g of PROMPT_GROUPS) {
+    assert.ok(g.group && g.group === g.group.trim(), JSON.stringify(g.group));
+    assert.ok(["dna", "rna", "protein"].includes(g.alphabet), `${g.group}: ${g.alphabet}`);
+    assert.ok(g.prompts.length >= 5, `${g.group} has too few to be worth a heading`);
+    for (const p of g.prompts) {
+      assert.ok(p.length > 20 && p.length < 120, `${p.length} chars: ${p}`);
+      assert.ok(p[0] === p[0].toUpperCase(), `should read as a sentence: ${p}`);
+      assert.ok(!p.endsWith("."), `no full stop, they are requests: ${p}`);
+    }
+  }
+});
+
+test("the examples cover every alphabet and reach the whole language", async () => {
+  const { PROMPT_GROUPS } = await import("../src/prompts.js");
+  const alphabets = new Set(PROMPT_GROUPS.map((g) => g.alphabet));
+  assert.deepEqual([...alphabets].sort(), ["dna", "protein", "rna"]);
+  const text = PROMPT_GROUPS.flatMap((g) => g.prompts).join(" ").toLowerCase();
+  // Each of these is a distinct capability; an example set that never asks for
+  // one of them is not exercising the language.
+  for (const capability of ["mismatch", "hairpin", "wobble", "upstream", "pam",
+                            "c-terminus", "spacer", "repeat", "capturing", "pyrimidine"]) {
+    assert.ok(text.includes(capability), `no example asks for anything involving "${capability}"`);
+  }
+});
+
+test("the examples module reaches the bundle", async () => {
+  const { MODULES } = await import("../../tools/build.mjs");
+  assert.ok(MODULES.includes("prompts.js"));
+  assert.ok(MODULES.indexOf("prompts.js") < MODULES.indexOf("app.js"));
+});

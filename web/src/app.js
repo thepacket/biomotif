@@ -9,6 +9,7 @@ import {
   DEFAULT_MODEL, SUGGESTED_MODELS, fetchModels, getApiKey, getModel, resolveProvider,
   setApiKey, setModel,
 } from "./assistant.js";
+import { PROMPT_COUNT, PROMPT_GROUPS } from "./prompts.js";
 
 const $ = (sel) => document.querySelector(sel);
 const el = (tag, cls, text) => {
@@ -201,6 +202,7 @@ function renderRecords() {
   const rec = currentRecord();
   $("#seq-stat").textContent = rec ? `${rec.length.toLocaleString()} ${rec.type === "protein" ? "aa" : "bp"}` : "—";
   $("#seq-stat-label").textContent = rec ? rec.name : "no sequence";
+  renderExamples();
 }
 
 /* -------------------------------------------------------------- retrieval */
@@ -756,6 +758,44 @@ function wire() {
   });
 }
 
+function renderExamples() {
+  const box = $("#examples");
+  box.textContent = "";
+  $("#prompt-count").textContent = `Example requests (${PROMPT_COUNT})`;
+  const kind = currentRecord()?.type ?? "dna";
+  // Put the groups that fit the loaded sequence first; the rest still show,
+  // because picking an example is often how you decide what to load next.
+  const fits = (g) => (g.alphabet === "protein") === (kind === "protein");
+  const groups = [...PROMPT_GROUPS].sort((a, b) => Number(fits(b)) - Number(fits(a)));
+  for (const g of groups) {
+    const section = el("div", "example-group");
+    const h = el("h4", null, g.group + " ");
+    if (!fits(g)) h.appendChild(el("em", null, `· ${g.alphabet}`));
+    section.appendChild(h);
+    const list = el("ul");
+    for (const prompt of g.prompts) {
+      const li = el("li");
+      const b = el("button", null, prompt);
+      b.type = "button";
+      b.addEventListener("click", () => {
+        $("#ask-input").value = prompt;
+        $("#prompt-examples").open = false;
+        if (state.provider?.needsKey && !getApiKey()) {
+          // The request is ready; it just has nowhere to go yet.
+          $("#assistant-settings").open = true;
+          $("#or-key").focus();
+        } else {
+          $("#ask-input").focus();
+        }
+      });
+      li.appendChild(b);
+      list.appendChild(li);
+    }
+    section.appendChild(list);
+    box.appendChild(section);
+  }
+}
+
 function assistantReady() {
   const ready = state.provider && (!state.provider.needsKey || !!getApiKey());
   $("#composer").hidden = !ready;
@@ -794,6 +834,7 @@ function boot() {
   $("#lib-stat").textContent = String(state.registry.size);
   $("#cat-stat").textContent = String(state.registry.categories().length);
   renderCategories();
+  renderExamples();
   wire();
   // Open in a working state: a plasmid loaded and a real promoter already found.
   loadSequences(window.BIOMOTIF_DATA.operon);
