@@ -5,6 +5,10 @@ import {
   Registry, loadLibrarySource, buildMotif, digest, gcContent, meltingTemp, orfs, translate,
 } from "./library.js";
 import { SOURCES, detectSource, fetchSequence, searchDatabase } from "./databases.js";
+import {
+  DEFAULT_MODEL, SUGGESTED_MODELS, fetchModels, getApiKey, getModel, resolveProvider,
+  setApiKey, setModel,
+} from "./assistant.js";
 
 const $ = (sel) => document.querySelector(sel);
 const el = (tag, cls, text) => {
@@ -25,7 +29,8 @@ const state = {
   filterCategory: null,
   filterText: "",
   lastRunLabel: "",
-  sample: null,
+  provider: null,     // the assistant, once one is available
+  asking: null,       // AbortController for the request in flight
   fetching: null,     // AbortController for the request in flight
 };
 
@@ -601,17 +606,24 @@ Reply with JSON only, no prose around it:
 }
 
 async function ask() {
-  const box = $("#ask-input");
-  const request = box.value.trim();
-  if (!request || !state.sample) return;
+  const request = $("#ask-input").value.trim();
+  if (!request || !state.provider) return;
+  if (state.provider.needsKey && !getApiKey()) {
+    $("#assistant-settings").open = true;
+    $("#or-key").focus();
+    return;
+  }
   const out = $("#assistant-out");
   const btn = $("#ask-btn");
+  state.asking?.abort();
+  state.asking = new AbortController();
   btn.disabled = true;
   out.hidden = false;
   out.textContent = "";
   out.appendChild(el("h3", null, "Thinking…"));
   try {
-    const data = await state.sample.json(assistantPrompt(request, currentRecord()), { modelTier: "default" });
+    const { data, meta } = await state.provider.ask(assistantPrompt(request, currentRecord()),
+      { signal: state.asking.signal });
     out.textContent = "";
     out.appendChild(el("h3", null, data.name || "Motif"));
     if (data.explanation) out.appendChild(el("p", null, data.explanation));
@@ -625,6 +637,12 @@ async function ask() {
       line.appendChild(link);
       out.appendChild(line);
     }
+    if (meta.promptTokens || meta.completionTokens) {
+      const cost = meta.cost != null ? `  ·  $${meta.cost.toFixed(4)}` : "";
+      out.appendChild(el("div", "cost",
+        `${meta.model}  ·  ${meta.promptTokens.toLocaleString()} in  ·  ` +
+        `${meta.completionTokens.toLocaleString()} out${cost}`));
+    }
     if (data.motif) {
       setMotifSource(data.motif, data.name || "assistant");
       state.selectedEntry = null;
@@ -633,14 +651,15 @@ async function ask() {
       if (state.matcher) run();
     }
   } catch (err) {
+    if (err.name === "AbortError") { out.hidden = true; return; }
     out.textContent = "";
     out.appendChild(el("h3", null, "Could not write that motif"));
     const codes = {
       not_granted: "You declined to let this page use Claude. Reload to be asked again, or write the motif yourself.",
       rate_limited: "Too many requests just now. Wait a moment and try again.",
-      cancelled: "Stopped.",
     };
-    out.appendChild(el("p", null, codes[err.code] || err.message || "Something went wrong. Try rephrasing the request."));
+    out.appendChild(el("p", null, codes[err.code] || err.message ||
+      "Something went wrong. Try rephrasing the request."));
   } finally {
     btn.disabled = false;
   }
@@ -737,22 +756,37 @@ function wire() {
   });
 }
 
+function assistantReady() {
+  const ready = state.provider && (!state.provider.needsKey || !!getApiKey());
+  $("#composer").hidden = !ready;
+  $("#assistant-note").hidden = ready;
+  $("#ask-btn").textContent = ready ? "Write it" : "Add a key";
+}
+
 async function initAssistant() {
-  const composer = $("#composer");
-  const note = $("#assistant-note");
-  try {
-    const sample = await window.claude?.use?.("sample");
-    if (sample) {
-      state.sample = sample;
-      composer.hidden = false;
-      note.hidden = true;
-      return;
-    }
-  } catch { /* declined or unavailable; fall through to the note */ }
-  // The assistant needs Claude, which this copy of the page cannot reach.
-  // Say so plainly: everything else on the page works without it.
-  composer.hidden = true;
-  note.hidden = false;
+  state.provider = await resolveProvider();
+  const settings = $("#assistant-settings");
+  // The settings only exist to hold a key, so the artifact never shows them.
+  settings.hidden = !state.provider?.needsKey;
+  if (state.provider?.needsKey) {
+    $("#or-key").value = getApiKey();
+    $("#or-model").value = getModel();
+    const fillModels = (ids) => {
+      const list = $("#or-models");
+      list.textContent = "";
+      for (const id of ids) {
+        const option = el("option");
+        option.value = id;
+        list.appendChild(option);
+      }
+    };
+    fillModels(SUGGESTED_MODELS);
+    $("#or-key").addEventListener("input", (e) => { setApiKey(e.target.value); assistantReady(); });
+    $("#or-model").addEventListener("input", (e) => setModel(e.target.value || DEFAULT_MODEL));
+    // The full catalogue is a nicety, so it loads quietly and late.
+    fetchModels().then((ids) => { if (ids.length) fillModels(ids); });
+  }
+  assistantReady();
 }
 
 function boot() {

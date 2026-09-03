@@ -110,11 +110,29 @@
           <button class="btn btn-primary" id="ask-btn" type="button">Write it</button>
         </div>
         <p class="hint" id="assistant-note" hidden>
-          Writing motifs from a plain-English description needs Claude, which this copy of
-          the page cannot reach. Everything else works here: browse the library on the left,
-          or write the expression yourself using the reference below.
+          Writing motifs from a description needs a model. Open Assistant settings below and
+          paste an <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">OpenRouter key</a>,
+          or browse the library on the left and write the expression yourself.
         </p>
         <div class="assistant-out" id="assistant-out" hidden></div>
+
+        <details class="help" id="assistant-settings" hidden>
+          <summary>Assistant settings</summary>
+          <div class="settings">
+            <label>OpenRouter key
+              <input id="or-key" class="field" type="password" autocomplete="off" spellcheck="false"
+                     placeholder="sk-or-v1-…"></label>
+            <label>Model
+              <input id="or-model" class="field" type="text" autocomplete="off" spellcheck="false"
+                     list="or-models"></label>
+            <datalist id="or-models"></datalist>
+            <p class="hint">
+              The key is kept in this tab only, in <code>sessionStorage</code>, and is sent
+              nowhere but <code>openrouter.ai</code>. Closing the tab forgets it. There is no
+              server here to send it to, and it is never written into a link.
+            </p>
+          </div>
+        </details>
 
         <textarea id="motif-source" class="field" rows="3" spellcheck="false" autocomplete="off"></textarea>
         <div class="motif-row">

@@ -255,6 +255,14 @@ textarea.field { resize: vertical; font-family: var(--mono); font-size: 12.5px; 
 .assistant-out h3 { margin: 0 0 4px; font-size: 12px; font-weight: 600; }
 .assistant-out p { margin: 0 0 6px; font-family: var(--serif); color: var(--ink-soft); }
 .assistant-out .warn-line { color: var(--warn); font-family: var(--sans); font-size: 12px; }
+.assistant-out .cost {
+  margin-top: 6px; font-family: var(--mono); font-size: 11px; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.settings { display: flex; flex-direction: column; gap: 8px; max-width: 60ch; }
+.settings label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--muted); }
+.settings .hint { max-width: 62ch; }
 
 .motif-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
 .motif-status { font-size: 12px; font-family: var(--mono); }
