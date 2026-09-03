@@ -28,3 +28,7 @@ jobs:
         run: |
           python tools/make_index.py
           git diff --exit-code -- docs/
+      - name: Web build is current
+        run: |
+          python tools/build_web.py
+          git diff --exit-code -- web/biomotif.html

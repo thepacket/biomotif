@@ -214,9 +214,13 @@ open web/biomotif.html
 
 The browser engine is a separate implementation of the same semantics, not a
 port of the interpreter: a motif is built directly from its s-expression, so
-there are no environments, lambdas or macros to carry. `tools/build_web.py`
-inlines `web/src/{engine,library,app}.js`, the stylesheet and the library into
-a single page.
+there are no environments, lambdas or macros to carry.
+
+`tools/build_web.py` produces two builds from the same source. With no
+arguments it writes `web/biomotif.html`, one self-contained file. With
+`--dist` it writes `index.html` beside a fingerprinted stylesheet and bundle,
+which is what the deployment serves — the split exists so the deployed page
+needs no `unsafe-inline` in its content security policy.
 
 Both engines are held to the same answers. Every one of the 487 motifs is run
 against the same sequences in Python and in JavaScript and must return the
@@ -231,3 +235,63 @@ same hits, in the same order, with the same spans.
 
 Fast enough for plasmids, genes, promoter sets and bacterial genomes. Not fast
 enough for a vertebrate genome, in either language.
+
+Writing a motif from a plain-English description needs Claude. That works in
+the hosted Artifact, which reaches it through the viewer's own account; a
+self-hosted copy says so and offers the library and the reference instead.
+Nothing else on the page depends on it.
+
+## Deploying
+
+The repo carries a [fly.io](https://fly.io) configuration. There is no server
+component, so a deployment is a static build served by nginx: no secrets, no
+environment variables, no volumes, no database. The whole tool, including the
+487-motif library, is built into the image.
+
+Install [flyctl](https://fly.io/docs/flyctl/install/) and sign in:
+
+```bash
+fly auth login
+```
+
+Claim the app name — this reserves it and starts nothing, so it costs nothing:
+
+```bash
+fly apps create biomotif
+```
+
+If the name is taken it fails immediately; pick another and change `app` in
+[fly.toml](fly.toml) to match. Then, from the repo root:
+
+```bash
+fly deploy
+```
+
+That builds the Dockerfile on Fly's remote builder — Docker does not need to be
+running locally — and starts one machine. Every later deploy is the same
+command. The app is then at `https://<app>.fly.dev`.
+
+The machine sleeps when idle (`auto_stop_machines = 'suspend'` with
+`min_machines_running = 0`), so an unvisited deployment costs nothing and the
+first request after an idle period pays about a second of wake-up. Set
+`min_machines_running = 1` if that matters.
+
+**A sequence cannot leave the browser.** `connect-src` is `'none'` in
+[deploy/security-headers.conf](deploy/security-headers.conf), so the page is
+not permitted to open a network connection at all: sequences are read from a
+local file or pasted in, and every search runs in the page. The only third
+party is Google Fonts, allowed for the stylesheet and the font files and
+nothing else. Every face has a real fallback stack, so blocking those costs
+typography alone.
+
+To check the image locally before deploying:
+
+```bash
+docker build -t biomotif . && docker run --rm -p 8080:80 biomotif
+```
+
+Or serve the build directly, which needs no Docker:
+
+```bash
+python tools/build_web.py --dist web/dist && python -m http.server -d web/dist 8080
+```

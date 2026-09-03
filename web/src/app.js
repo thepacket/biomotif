@@ -143,7 +143,15 @@ function validate() {
   }
   try {
     const form = E.parse(src);
-    state.matcher = buildMotif(form, state.registry);
+    const matcher = buildMotif(form, state.registry);
+    // Some errors only surface when a motif is used — fuzzy, for one, checks
+    // that its inner motif has a fixed width the first time it matches. Try one
+    // step against a stub so the status line is honest before anything is run.
+    const rec = currentRecord();
+    const kind = rec ? rec.type : "dna";
+    const stub = kind === "protein" ? "MKWVTFISLLLLNGSAYSRG" : "ACGTACGTACGTACGTACGT";
+    matcher.matchAt({ seq: stub, kind, nuc: kind !== "protein" }, 0, {}).next();
+    state.matcher = matcher;
     status.className = "motif-status ok";
     status.textContent = "reads as " + state.matcher.describe();
     $("#run-btn").disabled = false;
@@ -602,14 +610,20 @@ function wire() {
 
 async function initAssistant() {
   const composer = $("#composer");
+  const note = $("#assistant-note");
   try {
     const sample = await window.claude?.use?.("sample");
-    if (!sample) { composer.hidden = true; return; }
-    state.sample = sample;
-    composer.hidden = false;
-  } catch {
-    composer.hidden = true;
-  }
+    if (sample) {
+      state.sample = sample;
+      composer.hidden = false;
+      note.hidden = true;
+      return;
+    }
+  } catch { /* declined or unavailable; fall through to the note */ }
+  // The assistant needs Claude, which this copy of the page cannot reach.
+  // Say so plainly: everything else on the page works without it.
+  composer.hidden = true;
+  note.hidden = false;
 }
 
 function boot() {

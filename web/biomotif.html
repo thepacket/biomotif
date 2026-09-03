@@ -68,6 +68,10 @@
 
 * { box-sizing: border-box; }
 
+/* A class that sets `display` outranks the user agent's [hidden] rule, so the
+   hidden assistant composer would otherwise show through. */
+[hidden] { display: none !important; }
+
 body {
   margin: 0;
   background: var(--ground);
@@ -360,6 +364,11 @@ details.help > div { padding-top: 8px; }
                  placeholder="Describe a motif in plain English — a Shine-Dalgarno 6 to 10 bases before a start codon">
           <button class="btn btn-primary" id="ask-btn" type="button">Write it</button>
         </div>
+        <p class="hint" id="assistant-note" hidden>
+          Writing motifs from a plain-English description needs Claude, which this copy of
+          the page cannot reach. Everything else works here: browse the library on the left,
+          or write the expression yourself using the reference below.
+        </p>
         <div class="assistant-out" id="assistant-out" hidden></div>
 
         <textarea id="motif-source" class="field" rows="3" spellcheck="false" autocomplete="off"></textarea>
@@ -1678,7 +1687,15 @@ function validate() {
   }
   try {
     const form = E.parse(src);
-    state.matcher = buildMotif(form, state.registry);
+    const matcher = buildMotif(form, state.registry);
+    // Some errors only surface when a motif is used — fuzzy, for one, checks
+    // that its inner motif has a fixed width the first time it matches. Try one
+    // step against a stub so the status line is honest before anything is run.
+    const rec = currentRecord();
+    const kind = rec ? rec.type : "dna";
+    const stub = kind === "protein" ? "MKWVTFISLLLLNGSAYSRG" : "ACGTACGTACGTACGTACGT";
+    matcher.matchAt({ seq: stub, kind, nuc: kind !== "protein" }, 0, {}).next();
+    state.matcher = matcher;
     status.className = "motif-status ok";
     status.textContent = "reads as " + state.matcher.describe();
     $("#run-btn").disabled = false;
@@ -2137,14 +2154,20 @@ function wire() {
 
 async function initAssistant() {
   const composer = $("#composer");
+  const note = $("#assistant-note");
   try {
     const sample = await window.claude?.use?.("sample");
-    if (!sample) { composer.hidden = true; return; }
-    state.sample = sample;
-    composer.hidden = false;
-  } catch {
-    composer.hidden = true;
-  }
+    if (sample) {
+      state.sample = sample;
+      composer.hidden = false;
+      note.hidden = true;
+      return;
+    }
+  } catch { /* declined or unavailable; fall through to the note */ }
+  // The assistant needs Claude, which this copy of the page cannot reach.
+  // Say so plainly: everything else on the page works without it.
+  composer.hidden = true;
+  note.hidden = false;
 }
 
 function boot() {
