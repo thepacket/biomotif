@@ -231,3 +231,22 @@ test("ORFs are found on both strands", () => {
   const reverse = orfs("TTTTT" + revcomp(cds) + "GGGGG", { minLength: 60 });
   assert.ok(reverse.some((o) => o.strand === "-"));
 });
+
+test("every library motif reports a sane span", () => {
+  for (const e of registry.all()) {
+    const [lo, hi] = e.matcher.span();
+    assert.ok(Number.isFinite(lo) && lo >= 0, `${e.name}: ${lo}`);
+    assert.ok(hi >= lo, `${e.name}: ${lo}..${hi}`);
+  }
+});
+
+test("a library pattern round-trips unchanged, so the editor never echoes itself", () => {
+  /* The status line only shows the canonical form when it differs from what was
+     typed. Clicking a library entry puts its canonical pattern in the editor,
+     so if these ever stopped round-tripping the line would echo the source. */
+  const tidy = (t) => t.replace(/\s+/g, " ").trim();
+  const drift = registry.all()
+    .filter((e) => tidy(buildMotif(parse(e.pattern), registry).describe()) !== tidy(e.pattern))
+    .map((e) => e.name);
+  assert.deepEqual(drift, []);
+});

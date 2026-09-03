@@ -177,6 +177,9 @@ export class Matcher {
   * matchAt() {}
   describe() { return "#<matcher>"; }
   firstSet() { return null; }
+  /** How many characters a match can span, as [min, max]; max may be Infinity.
+      This describes a motif for the reader; the matcher never consults it. */
+  span() { return [0, Infinity]; }
 }
 
 export class Literal extends Matcher {
@@ -193,6 +196,7 @@ export class Literal extends Matcher {
     if (ctx.seq.startsWith(p, i)) yield [i + p.length, binds];
   }
   firstSet(ctx) { const p = this.pattern(ctx); return p ? new Set([p[0]]) : null; }
+  span() { return [this.text.length, this.text.length]; }
   describe() { return q(this.text); }
 }
 
@@ -213,6 +217,7 @@ export class Iupac extends Matcher {
     yield [i + n, binds];
   }
   firstSet() { return this.sets.length ? new Set(this.sets[0]) : null; }
+  span() { return [this.sets.length, this.sets.length]; }
   describe() { return `(iupac ${q(this.text)})`; }
 }
 
@@ -227,6 +232,7 @@ export class AnyOf extends Matcher {
   accepts(ctx, c) { return this.set(ctx).has(c); }
   * matchAt(ctx, i, binds) { if (i < ctx.seq.length && this.set(ctx).has(ctx.seq[i])) yield [i + 1, binds]; }
   firstSet(ctx) { return new Set(this.set(ctx)); }
+  span() { return [1, 1]; }
   describe() { return `(any-of ${q(this.chars)})`; }
 }
 
@@ -240,12 +246,14 @@ export class NoneOf extends Matcher {
   set(ctx) { return ctx.nuc ? this.nuc : this.prot; }
   accepts(ctx, c) { return !this.set(ctx).has(c); }
   * matchAt(ctx, i, binds) { if (i < ctx.seq.length && !this.set(ctx).has(ctx.seq[i])) yield [i + 1, binds]; }
+  span() { return [1, 1]; }
   describe() { return `(none-of ${q(this.chars)})`; }
 }
 
 export class AnyChar extends Matcher {
   accepts() { return true; }
   * matchAt(ctx, i, binds) { if (i < ctx.seq.length) yield [i + 1, binds]; }
+  span() { return [1, 1]; }
   describe() { return "any"; }
 }
 
@@ -265,6 +273,12 @@ export class Seq extends Matcher {
     }
   }
   firstSet(ctx) { return this.parts.length ? this.parts[0].firstSet(ctx) : null; }
+  span() {
+    return this.parts.reduce(([lo, hi], p) => {
+      const [a, b] = p.span();
+      return [lo + a, hi + b];
+    }, [0, 0]);
+  }
   describe() { return "(seq " + this.parts.map((p) => p.describe()).join(" ") + ")"; }
 }
 
@@ -279,6 +293,10 @@ export class Alt extends Matcher {
       for (const c of fs) out.add(c);
     }
     return out;
+  }
+  span() {
+    const w = this.parts.map((p) => p.span());
+    return [Math.min(...w.map((x) => x[0])), Math.max(...w.map((x) => x[1]))];
   }
   describe() { return "(alt " + this.parts.map((p) => p.describe()).join(" ") + ")"; }
 }
@@ -322,6 +340,10 @@ export class Repeat extends Matcher {
     }
   }
   firstSet(ctx) { return this.min > 0 ? this.inner.firstSet(ctx) : null; }
+  span() {
+    const [a, b] = this.inner.span();
+    return [a * this.min, this.max === null ? Infinity : b * this.max];
+  }
   describe() {
     const mx = this.max === null ? "" : ` ${this.max}`;
     return `(repeat ${this.inner.describe()} ${this.min}${mx})`;
@@ -341,6 +363,7 @@ export class CharRun extends Matcher {
     for (let k = count; k >= this.min; k--) yield [i + k, binds];
   }
   firstSet(ctx) { return this.min > 0 ? this.cls.firstSet(ctx) : null; }
+  span() { return [this.min, this.max === null ? Infinity : this.max]; }
   describe() {
     if (this.label) return this.label;
     const mx = this.max === null ? "" : ` ${this.max}`;
@@ -356,6 +379,7 @@ export class Named extends Matcher {
     }
   }
   firstSet(ctx) { return this.inner.firstSet(ctx); }
+  span() { return this.inner.span(); }
   describe() { return `(named '${this.label} ${this.inner.describe()})`; }
 }
 
@@ -403,6 +427,7 @@ export class Fuzzy extends Matcher {
     }
     yield [i + n, { ...binds, $mismatches: (binds.$mismatches || 0) + errors }];
   }
+  span() { return this.inner.span(); }
   describe() { return `(fuzzy ${this.k} ${this.inner.describe()})`; }
 }
 
@@ -430,6 +455,7 @@ export class Edit extends Matcher {
       yield [i + c, { ...binds, $edits: (binds.$edits || 0) + d }];
     }
   }
+  span() { const n = this.lit.text.length; return [Math.max(0, n - this.k), n + this.k]; }
   describe() { return `(edit ${this.k} ${q(this.lit.text)})`; }
 }
 
@@ -464,6 +490,10 @@ export class Hairpin extends Matcher {
         }
       }
     }
+  }
+  span() {
+    const [a, b] = this.loop.span();
+    return [2 * this.stemMin + a, 2 * this.stemMax + b];
   }
   describe() {
     const extra = (this.wobble ? " :wobble #t" : "") + (this.mismatches ? ` :mismatches ${this.mismatches}` : "");
@@ -535,15 +565,18 @@ export class Pwm extends Matcher {
       yield [i + this.width, { ...binds, $score: Math.round(sc * 1000) / 1000, $relative: Math.round(rel * 1000) / 1000 }];
     }
   }
+  span() { return [this.width, this.width]; }
   describe() { return `(pwm ${this.consensus()} :width ${this.width} :threshold ${this.threshold})`; }
 }
 
 export class AtStart extends Matcher {
   * matchAt(ctx, i, binds) { if (i === 0) yield [i, binds]; }
+  span() { return [0, 0]; }
   describe() { return "at-start"; }
 }
 export class AtEnd extends Matcher {
   * matchAt(ctx, i, binds) { if (i === ctx.seq.length) yield [i, binds]; }
+  span() { return [0, 0]; }
   describe() { return "at-end"; }
 }
 
@@ -562,6 +595,7 @@ export class Tagged extends Matcher {
   constructor(inner, name) { super(); this.inner = coerce(inner); this.name = name; }
   matchAt(ctx, i, binds) { return this.inner.matchAt(ctx, i, binds); }
   firstSet(ctx) { return this.inner.firstSet(ctx); }
+  span() { return this.inner.span(); }
   describe() { return this.inner.describe(); }
 }
 

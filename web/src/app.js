@@ -132,6 +132,27 @@ function setMotifSource(text, label = "") {
   validate();
 }
 
+/** What the motif will do, said in terms the source does not already say.
+
+    The canonical form is only worth showing when it differs from what was
+    typed — an alias like `tata-box` or `(opt m)` expands, but anything already
+    canonical, which includes every library pattern, would just be echoed back. */
+function summarise(matcher, source, kind) {
+  const bits = [];
+  const canonical = matcher.describe();
+  const tidy = (t) => t.replace(/\s+/g, " ").trim();
+  if (tidy(canonical) !== tidy(source)) bits.push("reads as " + canonical);
+
+  const [lo, hi] = matcher.span();
+  const unit = kind === "protein" ? "residues" : "bases";
+  if (hi === Infinity) bits.push(`matches ${lo} ${unit} or more`);
+  else if (lo === hi) bits.push(`matches ${lo} ${unit}`);
+  else bits.push(`matches ${lo} to ${hi} ${unit}`);
+
+  bits.push(kind === "protein" ? "one strand" : "both strands");
+  return bits.join("  ·  ");
+}
+
 function validate() {
   const status = $("#motif-status");
   const src = $("#motif-source").value.trim();
@@ -161,7 +182,7 @@ function validate() {
     matcher.matchAt({ seq: stub, kind, nuc: kind !== "protein" }, 0, {}).next();
     state.matcher = matcher;
     status.className = "motif-status ok";
-    status.textContent = "reads as " + state.matcher.describe();
+    status.textContent = summarise(matcher, src, kind);
     $("#run-btn").disabled = false;
   } catch (err) {
     status.className = "motif-status bad";

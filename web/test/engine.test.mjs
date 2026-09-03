@@ -314,3 +314,51 @@ test("protein records are searched on one strand only", () => {
   assert.equal(hits.length, 1);
   assert.equal(hits[0].strand, "+");
 });
+
+/* ------------------------------------------------------------------ span */
+
+test("span reports how many characters a match can cover", () => {
+  assert.deepEqual(new Literal("GAATTC").span(), [6, 6]);
+  assert.deepEqual(new Iupac("TATAWAWR").span(), [8, 8]);
+  assert.deepEqual(new AnyOf("AT").span(), [1, 1]);
+  assert.deepEqual(new CharRun(new AnyChar(), 15, 19).span(), [15, 19]);
+  assert.deepEqual(new AtStart().span(), [0, 0]);
+});
+
+test("span adds across a sequence and spreads across alternatives", () => {
+  assert.deepEqual(new Seq(["ATG", new CharRun(new AnyChar(), 3, 5), "TAG"]).span(), [9, 11]);
+  assert.deepEqual(new Alt(["AAA", "GGGGGG"]).span(), [3, 6]);
+  assert.deepEqual(new Seq([new AtStart(), "ATG"]).span(), [3, 3]);
+});
+
+test("an unbounded repeat has no upper span", () => {
+  assert.deepEqual(new Repeat(new Literal("CAG"), 3, 6).span(), [9, 18]);
+  assert.deepEqual(new Repeat(new Literal("A"), 4, null).span(), [4, Infinity]);
+});
+
+test("span accounts for edits, stems and captures", () => {
+  assert.deepEqual(new Edit(2, "GAATTC").span(), [4, 8]);
+  assert.deepEqual(new Hairpin(5, 10, new CharRun(new AnyChar(), 3, 8)).span(), [13, 28]);
+  assert.deepEqual(new Named("x", new Literal("ATG")).span(), [3, 3]);
+  assert.deepEqual(new Fuzzy(1, new Iupac("TTGACA")).span(), [6, 6]);
+});
+
+test("a weight matrix spans its own width, despite the property of that name", () => {
+  const m = Pwm.fromSites(["TATAAA", "TATAAT"]);
+  assert.equal(m.width, 6, "the numeric property still reads as before");
+  assert.deepEqual(m.span(), [6, 6]);
+});
+
+test("every span is a sane range", () => {
+  const cases = [new Literal("A"), new Iupac("N"), new AnyOf("AT"), new NoneOf("P"),
+                 new AnyChar(), new AtStart(), new AtEnd(),
+                 new Seq(["A", new AnyChar()]), new Alt(["A", "TT"]),
+                 new Repeat(new Literal("A"), 1, 3), new CharRun(new AnyChar(), 0, 5),
+                 new Named("n", "A"), new Fuzzy(1, new Literal("AAAA")),
+                 new Edit(1, "AAAA"), new Hairpin(3, 4, new CharRun(new AnyChar(), 2, 2))];
+  for (const m of cases) {
+    const [lo, hi] = m.span();
+    assert.ok(Number.isFinite(lo) && lo >= 0, m.describe());
+    assert.ok(hi >= lo, m.describe());
+  }
+});
