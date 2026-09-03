@@ -1,0 +1,17 @@
+{
+  "name": "biomotif",
+  "version": "0.2.0",
+  "private": true,
+  "description": "A workbench for DNA, RNA and protein sequence patterns, with a library of 487 documented motifs.",
+  "homepage": "https://biomotif.fly.dev",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "dist": "node tools/build.mjs --dist web/dist",
+    "test": "node --test web/test/*.test.mjs",
+    "data": "node tools/make-data.mjs",
+    "index": "node tools/make-index.mjs",
+    "serve": "node tools/serve.mjs"
+  }
+}

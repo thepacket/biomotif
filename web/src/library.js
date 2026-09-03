@@ -92,8 +92,13 @@ export function buildMotif(form, registry = null) {
       }
       return M(args[0]);
     case "hairpin": {
+      // Check the shape before recursing, so a wrong first argument is named
+      // for what it is rather than reported as "not a motif".
+      const head0 = Array.isArray(args[0]) ? args[0][0] : null;
+      if (!(head0 instanceof Sym) || head0.name !== "stem") {
+        throw new BiomotifError("hairpin: the first argument must be (stem min max)");
+      }
       const stem = buildMotif(args[0], registry);
-      if (!stem || !stem.stem) throw new BiomotifError("hairpin: the first argument must be (stem min max)");
       const loop = typeof args[1] === "number"
         ? new CharRun(new AnyChar(), args[1], args[2] ?? args[1])
         : M(args[1]);

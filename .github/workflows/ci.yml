@@ -10,25 +10,23 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        node-version: ["20", "22", "24"]
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-node@v6
         with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install
-        run: pip install -e '.[dev]'
+          node-version: ${{ matrix.node-version }}
       - name: Test
-        run: python -m pytest -q
-      - name: Data is reproducible
+        run: npm test
+      - name: Build
+        run: npm run dist
+      - name: The committed page is current
+        run: git diff --exit-code -- web/biomotif.html
+      - name: The example data is reproducible
         run: |
-          python tools/make_data.py
+          npm run data
           git diff --exit-code -- data/
-      - name: Library index is current
+      - name: The library index is current
         run: |
-          python tools/make_index.py
+          npm run index
           git diff --exit-code -- docs/
-      - name: Web build is current
-        run: |
-          python tools/build_web.py
-          git diff --exit-code -- web/biomotif.html
