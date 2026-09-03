@@ -1,0 +1,56 @@
+;;; prelude.mtf -- macros and helpers defined in the language itself.
+;;; Loaded into every interpreter before user code.
+
+(defmacro ->> (x . forms)
+  "Thread-last: (->> x (f a) (g b)) => (g b (f a x))."
+  (if (null? forms)
+      x
+      (let ((f (car forms)))
+        `(->> ,(if (list? f) (append f (list x)) (list f x)) ,@(cdr forms)))))
+
+(defmacro -> (x . forms)
+  "Thread-first: (-> x (f a) (g b)) => (g (f x a) b)."
+  (if (null? forms)
+      x
+      (let ((f (car forms)))
+        `(-> ,(if (list? f) (cons (car f) (cons x (cdr f))) (list f x)) ,@(cdr forms)))))
+
+(defmacro unless-nil (x default)
+  `(let ((v ,x)) (if (nil? v) ,default v)))
+
+(defmacro dolist (spec . body)
+  "(dolist (x list) body...) -- iterate for effect."
+  `(for-each (lambda (,(car spec)) ,@body) ,(cadr spec)))
+
+(defmacro dotimes (spec . body)
+  "(dotimes (i n) body...) -- run body n times with i from 0."
+  `(for-each (lambda (,(car spec)) ,@body) (range ,(cadr spec))))
+
+(defmacro inc! (var . amount)
+  `(set! ,var (+ ,var ,(if (null? amount) 1 (car amount)))))
+
+(defmacro push! (item var)
+  `(set! ,var (cons ,item ,var)))
+
+(defmacro assert (test . msg)
+  `(unless ,test
+     (error ,(if (null? msg) (string-append "assertion failed: " (write-string ',test)) (car msg)))))
+
+(define (comment . args) "A do-nothing procedure, handy as a heading in scripts." nil)
+
+(define (println-all xs) "Print each item of a list on its own line." (for-each println xs))
+
+(define (pad-right s n) (string-pad-right (->string s) n))
+(define (pad-left s n) (string-pad-left (->string s) n))
+
+(define (percent x) "Format a fraction as a percentage string." (format "~,1f%" (* 100 x)))
+
+(define (heading text)
+  "Print a text heading with an underline."
+  (println "")
+  (println text)
+  (println (string-repeat "-" (string-length text))))
+
+(define (table-row . cells)
+  "Print cells separated by two spaces, each padded to 12."
+  (println (string-join (map (lambda (c) (pad-right c 12)) cells) "")))

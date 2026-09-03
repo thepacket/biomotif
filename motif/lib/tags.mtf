@@ -1,0 +1,320 @@
+;;; tags.mtf -- the sequences of molecular biology practice: affinity tags,
+;;; linkers, promoters and terminators for in vitro transcription,
+;;; recombinase sites, CRISPR components, cloning standards and adapters.
+
+;; ------------------------------------------------------- protein tags
+
+(defmotif his-tag
+  "Polyhistidine tag. Six histidines is the usual length; eight or ten bind
+   nickel resin more tightly at the cost of more background."
+  (prosite "H(6,10)")
+  :category 'tag :alphabet 'protein :example "HHHHHH")
+
+(defmotif flag-tag
+  "FLAG tag DYKDDDDK. Hydrophilic, usually surface-exposed, and removable
+   by enterokinase, which cleaves after the final lysine."
+  (literal "DYKDDDDK")
+  :category 'tag :alphabet 'protein :example "DYKDDDDK")
+
+(defmotif flag-tag-3x
+  "3xFLAG tag, three tandem epitopes for higher sensitivity."
+  (literal "DYKDHDGDYKDHDIDYKDDDDK")
+  :category 'tag :alphabet 'protein)
+
+(defmotif ha-tag
+  "HA tag from influenza hemagglutinin, one of the most used epitope tags."
+  (literal "YPYDVPDYA")
+  :category 'tag :alphabet 'protein :example "YPYDVPDYA")
+
+(defmotif myc-tag
+  "c-Myc epitope tag, recognised by the 9E10 antibody."
+  (literal "EQKLISEEDL")
+  :category 'tag :alphabet 'protein :example "EQKLISEEDL")
+
+(defmotif v5-tag
+  "V5 tag from the simian virus 5 P and V proteins."
+  (literal "GKPIPNPLLGLDST")
+  :category 'tag :alphabet 'protein)
+
+(defmotif strep-tag-ii
+  "Strep-tag II, which binds Strep-Tactin and elutes gently with desthiobiotin."
+  (literal "WSHPQFEK")
+  :category 'tag :alphabet 'protein :example "WSHPQFEK")
+
+(defmotif twin-strep-tag
+  "Twin-Strep-tag: two Strep-tag II copies on a flexible linker, for
+   markedly tighter binding."
+  (seq "WSHPQFEK" (gap 8 16) "WSHPQFEK")
+  :category 'tag :alphabet 'protein)
+
+(defmotif s-tag
+  "S-tag, the S-peptide of ribonuclease A, which binds S-protein."
+  (literal "KETAAAKFERQHMDS")
+  :category 'tag :alphabet 'protein)
+
+(defmotif avi-tag
+  "AviTag (biotin acceptor peptide). BirA biotinylates the central lysine,
+   giving a single defined biotin per molecule."
+  (literal "GLNDIFEAQKIEWHE")
+  :category 'tag :alphabet 'protein :example "GLNDIFEAQKIEWHE")
+
+(defmotif alfa-tag
+  "ALFA-tag, a short helical epitope with a nanobody binder,
+   useful in super-resolution microscopy."
+  (literal "SRLEEELRRRLTE")
+  :category 'tag :alphabet 'protein)
+
+(defmotif spot-tag
+  "Spot-tag, another short nanobody-bound epitope."
+  (literal "PDRVRAVSHWSS")
+  :category 'tag :alphabet 'protein)
+
+(defmotif calmodulin-binding-peptide
+  "Calmodulin binding peptide, the second tag of the original TAP tag."
+  (literal "KRRWKKNFIAVSAANRFKKISSSGAL")
+  :category 'tag :alphabet 'protein)
+
+(defmotif gs-linker
+  "Flexible glycine-serine linker (GGGGS)n, the default spacer between
+   fused domains."
+  (repeat (literal "GGGGS") 1 6)
+  :category 'linker :alphabet 'protein :example "GGGGSGGGGS"
+  :scan #f)
+
+(defmotif rigid-linker-eaaak
+  "Rigid alpha-helical linker (EAAAK)n, used when two domains must be
+   held apart rather than allowed to touch."
+  (repeat (literal "EAAAK") 1 6)
+  :category 'linker :alphabet 'protein
+  :scan #f)
+
+;; ------------------------------------------- promoters for in vitro work
+
+(defmotif t7-promoter
+  "T7 RNA polymerase class III promoter. Transcription starts at the G
+   immediately after it."
+  (literal "TAATACGACTCACTATAG")
+  :category 'vector :alphabet 'dna :example "TAATACGACTCACTATAG")
+
+(defmotif sp6-promoter
+  "SP6 RNA polymerase promoter."
+  (literal "ATTTAGGTGACACTATAG")
+  :category 'vector :alphabet 'dna :example "ATTTAGGTGACACTATAG")
+
+(defmotif t3-promoter
+  "T3 RNA polymerase promoter."
+  (literal "AATTAACCCTCACTAAAG")
+  :category 'vector :alphabet 'dna :example "AATTAACCCTCACTAAAG")
+
+(defmotif u6-promoter-end
+  "3' end of the human U6 promoter, where a polymerase III transcript such
+   as a guide RNA begins."
+  (literal "CTTGTGGAAAGGACGAAACACCG")
+  :category 'vector :alphabet 'dna)
+
+(defmotif pelb-signal
+  "pelB leader peptide, which directs a recombinant protein to the
+   E. coli periplasm."
+  (literal "MKYLLPTAAAGLLLLAAQPAMA")
+  :category 'vector :alphabet 'protein)
+
+;; ----------------------------------------------------- recombinase sites
+
+(defmotif loxp
+  "loxP site: two 13 bp inverted repeats around an 8 bp asymmetric spacer.
+   Cre recombines two of them, and the spacer's asymmetry sets the outcome,
+   excision or inversion."
+  (literal "ATAACTTCGTATAATGTATGCTATACGAAGTTAT")
+  :category 'recombination :alphabet 'dna :example "ATAACTTCGTATAATGTATGCTATACGAAGTTAT"
+  :ref "Hoess et al. 1982, PNAS 79:3398")
+
+(defmotif loxp-arm
+  "The 13 bp inverted repeat arm of a loxP site, which also finds the
+   lox2272 and loxN variants."
+  (literal "ATAACTTCGTATA")
+  :category 'recombination :alphabet 'dna)
+
+(defmotif lox2272
+  "lox2272, a spacer variant that recombines with itself but not with loxP.
+   Used in Brainbow and other multi-colour lineage systems."
+  (literal "ATAACTTCGTATAAAGTATCCTATACGAAGTTAT")
+  :category 'recombination :alphabet 'dna)
+
+(defmotif frt
+  "FRT site, recognised by Flp recombinase from the yeast 2 micron plasmid."
+  (literal "GAAGTTCCTATTCTCTAGAAAGTATAGGAACTTC")
+  :category 'recombination :alphabet 'dna)
+
+(defmotif attb1-gateway
+  "Gateway attB1 site, used in BP and LR recombination cloning."
+  (literal "ACAAGTTTGTACAAAAAAGCAGGCT")
+  :category 'cloning :alphabet 'dna)
+
+(defmotif attb2-gateway
+  "Gateway attB2 site."
+  (literal "ACCCAGCTTTCTTGTACAAAGTGGT")
+  :category 'cloning :alphabet 'dna)
+
+(defmotif attb-phic31
+  "attB site of phage phiC31 integrase, which recombines irreversibly
+   with attP and is used for site-specific genomic integration."
+  (literal "GGCTTGTCGACGACGGCGGTCTCCGTCGTCAGGATCAT")
+  :category 'recombination :alphabet 'dna)
+
+;; ---------------------------------------------------------- CRISPR
+
+(defmotif pam-spcas9
+  "NGG protospacer adjacent motif of Streptococcus pyogenes Cas9.
+   Without a PAM the target is not cut, whatever the guide."
+  (iupac "NGG")
+  :category 'crispr :alphabet 'dna :example "AGG"
+  :ref "Jinek et al. 2012, Science 337:816"
+  :scan #f)
+
+(defmotif pam-spcas9-relaxed
+  "The NAG PAM that SpCas9 cuts weakly, a common source of off-target activity."
+  (iupac "NAG")
+  :category 'crispr :alphabet 'dna
+  :scan #f)
+
+(defmotif pam-sacas9
+  "NNGRRT PAM of Staphylococcus aureus Cas9, small enough to package
+   with its guide in a single AAV."
+  (iupac "NNGRRT")
+  :category 'crispr :alphabet 'dna
+  :scan #f)
+
+(defmotif pam-cas12a
+  "TTTV PAM of Cas12a (Cpf1). It sits 5' of the protospacer, the opposite
+   side from Cas9, and Cas12a leaves staggered ends."
+  (iupac "TTTV")
+  :category 'crispr :alphabet 'dna :example "TTTA"
+  :scan #f)
+
+(defmotif spacer-with-pam
+  "A complete SpCas9 target: a 20 base protospacer followed by an NGG PAM.
+   The cut falls 3 bases into the protospacer from the PAM."
+  (seq (named 'protospacer (gap 20 20)) (named 'pam (iupac "NGG")))
+  :category 'crispr :alphabet 'dna
+  :scan #f)
+
+(defmotif spacer-gn19-pam
+  "An SpCas9 target starting with G, which U6-driven guides need for
+   efficient polymerase III initiation."
+  (seq "G" (named 'protospacer (gap 19 19)) (named 'pam (iupac "NGG")))
+  :category 'crispr :alphabet 'dna
+  :scan #f)
+
+(defmotif sgrna-scaffold
+  "The Streptococcus pyogenes single guide RNA scaffold that follows the
+   20 base spacer."
+  (literal "GTTTTAGAGCTAGAAATAGCAAGTTAAAATAAGGCTAGTCCGTTATCAACTTGAAAAAGTGGCACCGAGTCGGTGC")
+  :category 'crispr :alphabet 'dna)
+
+;; ----------------------------------------------------- cloning standards
+
+(defmotif biobrick-prefix
+  "BioBrick RFC 10 prefix, carrying EcoRI, NotI and XbaI sites."
+  (literal "GAATTCGCGGCCGCTTCTAGAG")
+  :category 'cloning :alphabet 'dna)
+
+(defmotif biobrick-suffix
+  "BioBrick RFC 10 suffix, carrying SpeI, NotI and PstI sites."
+  (literal "TACTAGTAGCGGCCGCTGCAG")
+  :category 'cloning :alphabet 'dna)
+
+(defmotif golden-gate-bsai
+  "A Golden Gate cassette: BsaI, one spacer base and the four base fusion
+   overhang it exposes. The overhang, not the enzyme site, joins the parts."
+  (seq "GGTCTC" (gap 1 1) (named 'overhang (gap 4 4)))
+  :category 'cloning :alphabet 'dna
+  :scan #f)
+
+(defmotif golden-gate-bsmbi
+  "A Golden Gate cassette using BsmBI (Esp3I), the second enzyme in
+   MoClo and Loop assembly hierarchies."
+  (seq "CGTCTC" (gap 1 1) (named 'overhang (gap 4 4)))
+  :category 'cloning :alphabet 'dna
+  :scan #f)
+
+(defmotif his-tag-dna
+  "DNA encoding a six-histidine tag, as most vectors spell it."
+  (alt "CACCACCACCACCACCAC" "CATCACCATCACCATCAC" "CATCATCATCATCATCAT")
+  :category 'tag :alphabet 'dna
+  :scan #f)
+
+(defmotif m13-forward-primer
+  "M13 forward (-20) primer site, present in nearly every cloning vector."
+  (literal "GTAAAACGACGGCCAGT")
+  :category 'vector :alphabet 'dna)
+
+(defmotif m13-reverse-primer
+  "M13 reverse primer site."
+  (literal "CAGGAAACAGCTATGAC")
+  :category 'vector :alphabet 'dna)
+
+(defmotif sv40-polya
+  "SV40 late polyadenylation signal region, the terminator of most
+   mammalian expression cassettes."
+  (fuzzy 2 (literal "AATAAAGCAATAGCATCACAAATTTCACAAATAAAGCA"))
+  :category 'vector :alphabet 'dna)
+
+(defmotif bgh-polya
+  "Bovine growth hormone polyadenylation signal, used in pcDNA vectors."
+  (fuzzy 2 (literal "CTGTGCCTTCTAGTTGCCAGCCATCTGTTGT"))
+  :category 'vector :alphabet 'dna)
+
+;; ---------------------------------------------------- sequencing adapters
+
+(defmotif illumina-p5
+  "Illumina P5 adapter, which anneals to the flow cell lawn."
+  (literal "AATGATACGGCGACCACCGAGATCTACAC")
+  :category 'adapter :alphabet 'dna)
+
+(defmotif illumina-p7
+  "Illumina P7 adapter."
+  (literal "CAAGCAGAAGACGGCATACGAGAT")
+  :category 'adapter :alphabet 'dna)
+
+(defmotif illumina-read1-primer
+  "Illumina Read 1 sequencing primer site. Finding it inside a read means
+   adapter read-through from a short insert."
+  (literal "ACACTCTTTCCCTACACGACGCTCTTCCGATCT")
+  :category 'adapter :alphabet 'dna)
+
+(defmotif illumina-read2-primer
+  "Illumina Read 2 sequencing primer site."
+  (literal "GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCT")
+  :category 'adapter :alphabet 'dna)
+
+(defmotif truseq-adapter-read-through
+  "The first 13 bases of the TruSeq adapter, the part that actually shows up
+   at the 3' end of reads from short inserts."
+  (literal "AGATCGGAAGAGC")
+  :category 'adapter :alphabet 'dna :example "AGATCGGAAGAGC")
+
+(defmotif nextera-mosaic-end
+  "Nextera mosaic end, the Tn5 transposase recognition sequence carried
+   by tagmentation adapters."
+  (literal "AGATGTGTATAAGAGACAG")
+  :category 'adapter :alphabet 'dna)
+
+(defmotif poly-a-primer
+  "Oligo-dT priming site: a run of adenosines long enough to capture
+   with oligo-dT beads."
+  (run "A" 15)
+  :category 'adapter :alphabet 'dna
+  :scan #f)
+
+(defmotif umi-8
+  "An eight base unique molecular identifier, written as an N-run.
+   Matches anywhere, so use it as a template for building read structures,
+   not as a search pattern."
+  (iupac "NNNNNNNN")
+  :category 'adapter :alphabet 'dna
+  :scan #f)
+
+(defmotif tso-10x
+  "Template switch oligo tail used in 10x Genomics and Smart-seq chemistries."
+  (literal "AAGCAGTGGTATCAACGCAGAGTACATGGG")
+  :category 'adapter :alphabet 'dna)

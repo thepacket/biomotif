@@ -1,0 +1,302 @@
+;;; plant.mtf -- cis-regulatory elements from plant promoters, plus a few
+;;; plant-specific structural landmarks. Most of these come from the
+;;; PLACE and PlantCARE catalogues of experimentally mapped elements.
+;;; Reference: Higo et al. 1999, Nucleic Acids Res 27:297 (PLACE);
+;;;            Lescot et al. 2002, Nucleic Acids Res 30:325 (PlantCARE).
+
+;; --------------------------------------------------------------- promoters
+
+(defmotif camv-35s-tata
+  "TATA box of the cauliflower mosaic virus 35S promoter, the constitutive
+   promoter behind most plant transgenes."
+  (literal "TATATAA")
+  :category 'promoter :alphabet 'dna :example "TATATAA")
+
+(defmotif as1-element
+  "activation sequence-1 of the 35S promoter: two TGACG motifs four bases
+   apart. Responds to salicylic acid and auxin through TGA factors."
+  (seq "TGACG" (gap 4 4) "TGACG")
+  :category 'promoter :alphabet 'dna :example "TGACGtataTGACG"
+  :ref "Lam et al. 1989, PNAS 86:7890")
+
+(defmotif plant-kozak
+  "Plant translation initiation context. Plants prefer A at -3 and A at +4,
+   unlike the G that vertebrates prefer at +4."
+  (iupac "AAMAATGGC")
+  :category 'translation :alphabet 'dna :example "AACAATGGC"
+  :scan #f)
+
+(defmotif tata-box-plant
+  "Plant TATA box. Sits closer to the start site than in animals, typically
+   at -25 to -30."
+  (iupac "TATAWAW")
+  :category 'promoter :alphabet 'dna
+  :scan #f)
+
+(defmotif ccaat-box-plant
+  "CCAAT box bound by plant NF-Y (HAP) complexes."
+  (literal "CCAAT")
+  :category 'promoter :alphabet 'dna
+  :scan #f)
+
+;; ------------------------------------------------------ hormone responses
+
+(defmotif abre
+  "Abscisic acid responsive element. The ACGT core with a G at -2 is bound by
+   bZIP AREB/ABF factors; two copies are needed for a working ABA response."
+  (iupac "YACGTGGC")
+  :category 'hormone :alphabet 'dna :example "CACGTGGC"
+  :ref "Guiltinan et al. 1990, Science 250:267")
+
+(defmotif abre-core
+  "The minimal ABA response element core ACGTG."
+  (literal "ACGTG")
+  :category 'hormone :alphabet 'dna
+  :scan #f)
+
+(defmotif auxre
+  "Auxin response element, bound by ARF factors. TGTCTC is the classic form;
+   the TGTC core is the part that matters."
+  (literal "TGTCTC")
+  :category 'hormone :alphabet 'dna :example "TGTCTC"
+  :ref "Ulmasov et al. 1997, Plant Cell 9:1963")
+
+(defmotif auxre-core
+  "The minimal auxin response element core TGTCNN, present in DR5 reporters."
+  (iupac "TGTCNN")
+  :category 'hormone :alphabet 'dna
+  :scan #f)
+
+(defmotif gare
+  "Gibberellin response element (GARE), bound by GAMYB in cereal aleurone."
+  (iupac "TAACARA")
+  :category 'hormone :alphabet 'dna :example "TAACAAA")
+
+(defmotif gcc-box
+  "GCC box, the ethylene response element bound by ERF/AP2 factors.
+   Central to pathogen-induced PR gene expression."
+  (literal "GCCGCC")
+  :category 'hormone :alphabet 'dna :example "AGCCGCC"
+  :ref "Ohme-Takagi & Shinshi 1995, Plant Cell 7:173")
+
+(defmotif erelee4
+  "Ethylene responsive element from the tomato E4 gene."
+  (iupac "AWTTCAAA")
+  :category 'hormone :alphabet 'dna)
+
+(defmotif tgacg-motif
+  "TGACG motif, responsive to methyl jasmonate and salicylic acid,
+   bound by TGA bZIP factors."
+  (literal "TGACG")
+  :category 'hormone :alphabet 'dna :example "TGACG"
+  :scan #f)
+
+(defmotif cgtca-motif
+  "CGTCA motif, the reverse orientation of the TGACG jasmonate element."
+  (literal "CGTCA")
+  :category 'hormone :alphabet 'dna
+  :scan #f)
+
+(defmotif p-box
+  "P-box, a gibberellin responsive element of cereal seed promoters."
+  (literal "CCTTTTG")
+  :category 'hormone :alphabet 'dna)
+
+(defmotif tatc-box
+  "TATC box, a gibberellin responsive element."
+  (literal "TATCCCA")
+  :category 'hormone :alphabet 'dna)
+
+;; --------------------------------------------------------- abiotic stress
+
+(defmotif dre-crt
+  "Dehydration responsive element / C-repeat. Bound by CBF/DREB1 in cold and
+   DREB2 in drought. The CCGAC core is the required part."
+  (iupac "RCCGAC")
+  :category 'stress :alphabet 'dna :example "ACCGAC"
+  :ref "Yamaguchi-Shinozaki & Shinozaki 1994, Plant Cell 6:251")
+
+(defmotif crt-core
+  "The bare C-repeat / DRE core CCGAC."
+  (literal "CCGAC")
+  :category 'stress :alphabet 'dna
+  :scan #f)
+
+(defmotif ltre
+  "Low temperature responsive element."
+  (literal "CCGAAA")
+  :category 'stress :alphabet 'dna)
+
+(defmotif hse-plant
+  "Plant heat shock element, inverted nGAAn repeats bound by plant HSFs."
+  (iupac "AGAANNTTCT")
+  :category 'stress :alphabet 'dna :example "AGAACGTTCT")
+
+(defmotif mbs
+  "MYB binding site involved in drought inducibility."
+  (iupac "CAACTG")
+  :category 'stress :alphabet 'dna
+  :scan #f)
+
+(defmotif myb-core
+  "MYB recognition core, the general binding site of R2R3-MYB factors."
+  (iupac "CNGTTR")
+  :category 'tfbs :alphabet 'dna :example "CAGTTA"
+  :scan #f)
+
+(defmotif myc-core
+  "MYC recognition element (a plant E-box), bound by bHLH factors in
+   ABA and jasmonate signalling."
+  (iupac "CANNTG")
+  :category 'tfbs :alphabet 'dna
+  :scan #f)
+
+(defmotif w-box
+  "W-box, bound by WRKY transcription factors. The invariant TTGAC core
+   drives most plant defence gene expression."
+  (iupac "TTGACY")
+  :category 'defence :alphabet 'dna :example "TTGACC"
+  :ref "Eulgem et al. 2000, Trends Plant Sci 5:199"
+  :scan #f)
+
+(defmotif w-box-cluster
+  "Two W-boxes within 60 bases, the arrangement typical of strongly
+   pathogen-inducible promoters."
+  (seq (named 'w1 (iupac "TTGACY")) (gap 5 60) (named 'w2 (iupac "TTGACY")))
+  :category 'defence :alphabet 'dna)
+
+(defmotif tc-rich-repeat
+  "TC-rich repeat involved in defence and stress responsiveness."
+  (literal "ATTTTCTTCA")
+  :category 'defence :alphabet 'dna)
+
+;; ------------------------------------------------------------------- light
+
+(defmotif g-box
+  "G-box CACGTG, the most widespread plant light-responsive element.
+   Bound by bZIP factors such as HY5 and by bHLH factors such as PIFs."
+  (literal "CACGTG")
+  :category 'light :alphabet 'dna :example "CACGTG"
+  :ref "Giuliano et al. 1988, PNAS 85:7089")
+
+(defmotif g-box-extended
+  "The extended G-box context CCACGTGG."
+  (literal "CCACGTGG")
+  :category 'light :alphabet 'dna)
+
+(defmotif gt1-motif
+  "GT1 motif, a light-responsive element of the rbcS and other photosynthesis genes."
+  (iupac "GRWAAW")
+  :category 'light :alphabet 'dna
+  :scan #f)
+
+(defmotif i-box
+  "I-box, a conserved light-responsive element upstream of many
+   photosynthesis-associated nuclear genes."
+  (literal "GATAAG")
+  :category 'light :alphabet 'dna :example "GATAAG")
+
+(defmotif box-4
+  "Box 4, part of a conserved module in light-responsive plant promoters."
+  (literal "ATTAAT")
+  :category 'light :alphabet 'dna
+  :scan #f)
+
+(defmotif gata-motif-plant
+  "GATA motif, a light-responsive element bound by plant GATA factors."
+  (iupac "WGATAR")
+  :category 'light :alphabet 'dna
+  :scan #f)
+
+(defmotif sp1-plant
+  "Light-responsive GC-rich element found in monocot promoters."
+  (literal "GGGCGG")
+  :category 'light :alphabet 'dna
+  :scan #f)
+
+(defmotif evening-element
+  "Evening element, the circadian clock output motif bound by CCA1 and LHY.
+   Confers evening-phased expression."
+  (literal "AAAATATCT")
+  :category 'circadian :alphabet 'dna :example "AAAATATCT"
+  :ref "Harmer et al. 2000, Science 290:2110")
+
+(defmotif ca1-binding-site
+  "CCA1 binding site, the morning element of the plant circadian clock."
+  (literal "AAAAATCT")
+  :category 'circadian :alphabet 'dna)
+
+;; -------------------------------------------------- tissue and development
+
+(defmotif ry-element
+  "RY element (Sph box), the seed-specific element bound by B3 domain factors
+   such as ABI3 and FUS3."
+  (literal "CATGCA")
+  :category 'seed :alphabet 'dna :example "CATGCATG"
+  :scan #f)
+
+(defmotif prolamin-box
+  "Prolamin box (endosperm box), driving cereal seed storage protein genes."
+  (literal "TGTAAAG")
+  :category 'seed :alphabet 'dna
+  :scan #f)
+
+(defmotif skn-1-motif
+  "Skn-1 motif, required for endosperm expression."
+  (literal "GTCAT")
+  :category 'seed :alphabet 'dna
+  :scan #f)
+
+(defmotif pollen-lat52
+  "POLLEN1LELAT52, a pollen-specific element from the tomato LAT52 promoter."
+  (literal "AGAAA")
+  :category 'pollen :alphabet 'dna
+  :scan #f)
+
+(defmotif cat-box
+  "CAT box, associated with meristem expression."
+  (literal "GCCACT")
+  :category 'meristem :alphabet 'dna
+  :scan #f)
+
+(defmotif circadian-cab
+  "Conserved element of chlorophyll a/b binding protein promoters."
+  (literal "CAANNNNATC")
+  :category 'circadian :alphabet 'dna
+  :scan #f)
+
+;; ---------------------------------------------------------- plant genomes
+
+(defmotif plant-poly-a-signal
+  "Plant near-upstream element. Plants use AATAAA less strictly than
+   animals; the surrounding region is simply A-rich."
+  (alt "AATAAA" "AATAAT" "AATGAA")
+  :category 'polyadenylation :alphabet 'dna
+  :scan #f)
+
+(defmotif plant-intron-donor
+  "Plant 5' splice site. Plant introns are markedly U-rich, and that
+   composition matters more than the consensus itself."
+  (iupac "AGGTAAGT")
+  :category 'splicing :alphabet 'dna)
+
+(defmotif plant-telomere
+  "Arabidopsis-type telomere repeat TTTAGGG."
+  (literal "TTTAGGG")
+  :category 'telomere :alphabet 'dna)
+
+(defmotif plant-centromere-178
+  "Conserved segment of the 178 bp Arabidopsis centromeric repeat."
+  (fuzzy 3 (literal "AGTATAAGAACTTAAACCGCAACCGATCTTAAAAGCCTAAGTAGTG"))
+  :category 'centromere :alphabet 'dna)
+
+(defmotif chloroplast-promoter
+  "Plastid-encoded polymerase promoter. Chloroplasts kept the bacterial
+   -35/-10 arrangement from their cyanobacterial ancestor."
+  (seq (fuzzy 1 (iupac "TTGACA")) (gap 15 19) (fuzzy 1 (iupac "TATAAT")))
+  :category 'organelle :alphabet 'dna)
+
+(defmotif rbcs-conserved
+  "Conserved element upstream of rbcS genes encoding the Rubisco small subunit."
+  (fuzzy 1 (literal "CCACGTGGCC"))
+  :category 'light :alphabet 'dna)

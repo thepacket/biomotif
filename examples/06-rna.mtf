@@ -1,0 +1,121 @@
+;;; 06-rna.mtf -- RNA elements in 3' UTRs: structure, stability and
+;;; modification. Run with:  motif run examples/06-rna.mtf
+
+(use-library 'rna 'eukaryote)
+
+(define utrs (read-fasta "data/utr3.fa"))
+(heading (string-append (->string (length utrs)) " untranslated regions"))
+(dolist (u utrs)
+  (println "  " (pad-right (record-name u) 14) (pad-left (record-length u) 5) " nt   GC "
+           (percent (gc u))))
+
+;; --------------------------------------------------------- stability
+
+(heading "AU-rich elements")
+
+;; The bare pentamer AUUUA is common by chance in an AU-rich sequence.
+;; What predicts instability is overlapping copies in a U-rich context.
+(dolist (u utrs)
+  (define single (count-matches au-rich-element u :strand '+))
+  (define clustered (collapse (find-all are-class-ii u :strand '+)))
+  (println "  " (pad-right (record-name u) 14)
+           (pad-left single 4) " AUUUA pentamers, "
+           (length clustered) " class II clusters"))
+
+(println "")
+(dolist (m (mapcat (lambda (u) (collapse (find-all are-class-ii u :strand '+))) utrs))
+  (println "    " (match-record-name m) " at " (match-start m) ": " (match-seq m)))
+
+;; ------------------------------------------------------ iron regulation
+
+(heading "Iron responsive elements")
+
+;; An IRE is a hairpin with a CAGUGH loop. Sequence alone is not enough;
+;; the stem has to actually pair, and the engine checks that.
+(dolist (u utrs)
+  (define loops (find-all ire-loop u :strand '+))
+  (define full (collapse (find-all iron-responsive-element u :strand '+)))
+  (println "  " (pad-right (record-name u) 14)
+           (pad-left (length loops) 4) " CAGUGH loops, "
+           (length full) " of them inside a real hairpin"))
+
+(println "")
+(dolist (m (mapcat (lambda (u) (collapse (find-all iron-responsive-element u :strand '+))) utrs))
+  (println "    " (match-record-name m) " at " (match-start m))
+  (println "      5' stem " (binding m 'stem5))
+  (println "      loop    " (binding m 'loop))
+  (println "      3' stem " (binding m 'stem3))
+  (println "      the two stems are reverse complements: "
+           (equal? (revcomp (binding m 'stem5)) (binding m 'stem3))))
+
+;; ------------------------------------------------------ histone messages
+
+(heading "Histone 3' stem-loop")
+
+;; Replication-dependent histone mRNAs end in this stem-loop instead of
+;; carrying a poly(A) tail.
+(dolist (u utrs)
+  (define hits (find-all histone-stem-loop u :strand '+))
+  (unless (null? hits)
+    (println "  " (record-name u) " carries one:")
+    (show-matches hits)
+    (println "    and its poly(A) signal count is "
+             (count-matches poly-a-signal-rna u :strand '+)
+             ", which is what you expect for a histone gene.")))
+
+;; ------------------------------------------------------ microRNA targets
+
+(heading "microRNA target sites")
+
+(define seeds
+  (list (list 'let-7 mirna-seed-let7)
+        (list 'miR-21 mirna-seed-mir21)
+        (list 'miR-155 mirna-seed-mir155)))
+
+(dolist (u utrs)
+  (define found
+    (filter (lambda (s) (contains? (second s) u :strand '+)) seeds))
+  (println "  " (pad-right (record-name u) 14)
+           (if (null? found) "no sites"
+               (string-join (map (lambda (s) (->string (first s))) found) ", "))))
+
+;; --------------------------------------------------------- modification
+
+(heading "N6-methyladenosine sites")
+
+;; DRACH is loose enough to hit often; GGACU is the instance that is
+;; methylated most.
+(dolist (u utrs)
+  (println "  " (pad-right (record-name u) 14)
+           (pad-left (count-matches m6a-drach u :strand '+) 4) " DRACH   "
+           (count-matches m6a-ggact u :strand '+) " GGACU"))
+
+;; ----------------------------------------------------- folding by hand
+
+(heading "Finding structure without a library motif")
+
+;; Motifs are values, so you can build a family of them in a loop and see
+;; how the count falls as you demand a longer stem.
+(define utr (first utrs))
+(println "  hairpins in " (record-name utr) " by minimum stem length:")
+(dolist (n '(4 6 8 10 12))
+  (define hp (hairpin (stem n 20) (loop 3 10) :wobble #t))
+  (println "    stem >= " (pad-left n 2) ":  "
+           (pad-left (length (collapse (find-all hp utr :strand '+))) 4) " hairpins"))
+
+(println "")
+(println "  The longest hairpin in each UTR:")
+(dolist (u utrs)
+  (define hp (find-all (hairpin (stem 5 25) (loop 3 12) :wobble #t) u :strand '+))
+  (if (null? hp)
+      (println "  " (pad-right (record-name u) 14) " none")
+      (let ((best (max-by match-length hp)))
+        (println "  " (pad-right (record-name u) 14)
+                 (pad-left (match-length best) 4) " nt at " (match-start best)
+                 "   stem " (binding best 'stem5) " / " (binding best 'stem3)))))
+
+;; --------------------------------------------------- everything at once
+
+(heading "Full RNA scan of the first UTR")
+
+(show-matches (collapse (scan (first utrs) :alphabet 'rna)))

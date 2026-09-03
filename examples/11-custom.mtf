@@ -1,0 +1,169 @@
+;;; 11-custom.mtf -- writing your own motifs, combinators and macros.
+;;; This is the part a regular expression cannot do: motifs are ordinary
+;;; values, so you can compute them.
+;;; Run with:  motif run examples/11-custom.mtf
+
+(use-library 'restriction)
+
+;; --------------------------------------------- 1. motifs from parameters
+
+(heading "Motif generators")
+
+;; A function that returns a motif is a motif family.
+(define (tandem-repeat unit copies)
+  "A microsatellite of `unit` repeated at least `copies` times."
+  (repeat (literal unit) copies))
+
+(define (spaced-pair left right lo hi)
+  "Two elements a variable distance apart, with both captured."
+  (seq (named 'left left) (gap lo hi) (named 'right right)))
+
+(define seq1 "GGCAGCAGCAGCAGCAGTTGGATCCAAATTTGGGCCCGAATTC")
+
+(show-matches (find-all (tandem-repeat "CAG" 4) seq1 :strand '+))
+(show-matches (find-all (spaced-pair "GGATCC" "GAATTC" 5 25) seq1 :strand '+))
+
+;; ------------------------------------------- 2. building from a table
+
+(heading "Motifs computed from data")
+
+;; The genetic code is a table, so a protein motif can be turned into every
+;; DNA sequence that could encode it. This is what degenerate primer design
+;; does, and it is trivial when the code is data.
+
+(define code (codon-table))
+
+(define (codons-for aa)
+  "Every codon encoding this residue. X means any residue, so every codon."
+  (if (equal? aa "X")
+      (all-codons)
+      (filter (lambda (c) (equal? (table-get code c) aa)) (all-codons))))
+
+(define (back-translate peptide)
+  "All DNA motifs that could encode this peptide, as one alt of codon sets."
+  (apply seq (map (lambda (aa) (alt (codons-for aa))) (string->list peptide))))
+
+(define hexxh (back-translate "HEXXH"))
+(println "  the zinc metalloprotease motif HExxH, back-translated:")
+(println "  " (describe-motif (back-translate "HEH")))
+(println "")
+
+(define dna "TTTCATGAGCTGGGACATGGGTTT")
+(println "  searching " dna " for anything encoding H-E-x-x-H:")
+(show-matches (find-all (back-translate "HEXXH") dna :strand '+))
+(println "  translated: " (translate "CATGAGCTGGGACAT"))
+
+;; -------------------------------------------- 3. a degenerate primer
+
+(heading "Degenerate primers")
+
+;; Same idea, but collapsed into IUPAC codes, which is how you would order it.
+(define (degenerate-primer peptide)
+  (string-join
+    (map (lambda (aa)
+           (define cs (codons-for aa))
+           (string-join
+             (map (lambda (pos) (iupac-code (unique (map (lambda (c) (string-ref c pos)) cs))))
+                  '(0 1 2))
+             ""))
+         (string->list peptide))
+    ""))
+
+(dolist (pep '("HEXXH" "GDSGGP" "WCGPC" "MEW"))
+  (println "  " (pad-right pep 10) (degenerate-primer pep)))
+
+(println "")
+(println "  A degenerate primer is one string; the alt-of-codons motif above is")
+(println "  the same information without collapsing distinct codons together.")
+
+;; ------------------------------------------- 4. a custom matcher
+
+(heading "Matching on a computed property")
+
+;; `custom` takes a predicate over the candidate substring. Use it when the
+;; thing you want is a property, not a pattern.
+
+(define gc-rich-island
+  (custom 20 40 (lambda (s) (> (gc s) 0.72))))
+
+(define island-seq (string-append (random-dna 60 :seed 3 :gc 0.35)
+                                  (random-dna 30 :seed 4 :gc 0.85)
+                                  (random-dna 60 :seed 5 :gc 0.35)))
+(show-matches (collapse (find-all gc-rich-island island-seq :strand '+)))
+
+;; The same trick finds primers rather than motifs.
+(define good-primer
+  (custom 18 24 (lambda (s) (and (> (tm s) 58) (< (tm s) 63)
+                                 (> (gc s) 0.45) (< (gc s) 0.60)
+                                 (string-suffix? "G" s)))))
+
+(println "")
+(println "  primer candidates in the GC-rich island:")
+(dolist (m (take (collapse (find-all good-primer island-seq :strand '+)) 5))
+  (println "    " (match-seq m) "   Tm " (format "~,1f" (tm (match-seq m)))
+           "   GC " (percent (gc (match-seq m)))))
+
+;; ------------------------------------------- 5. macros over motifs
+
+(heading "Macros: new syntax for motifs")
+
+;; A macro rewrites its arguments before they are evaluated, so you can
+;; invent notation. Here is one for "any of these, separated by a gap".
+
+(defmacro any-spaced (lo hi . parts)
+  "(any-spaced 5 20 a b c) matches any two of a, b, c that distance apart."
+  `(alt ,@(mapcat (lambda (x)
+                    (map (lambda (y) `(seq ,x (gap ,lo ,hi) ,y))
+                         (filter (lambda (z) (not (equal? z x))) parts)))
+                  parts)))
+
+(println "  expansion of (any-spaced 2 6 \"AA\" \"TT\"):")
+(println "  " (macroexpand-1 '(any-spaced 2 6 "AA" "TT")))
+(println "")
+(show-matches (find-all (any-spaced 2 6 "AA" "TT") "GGAAGCGTTGG" :strand '+))
+
+;; ---------------------------------------- 6. registering your own motifs
+
+(heading "Adding to the library")
+
+;; defmotif registers a motif so that describe, library and scan know it.
+
+(defmotif my-lab-cassette
+  "The barcode cassette our lab puts on every construct: a BsaI site,
+   a four base overhang, an eight base sample barcode and a second BsaI site."
+  (seq "GGTCTC" (gap 1 1)
+       (named 'overhang (gap 4 4))
+       (named 'barcode (gap 8 8))
+       (revcomp-motif "GGTCTC"))
+  :category 'lab :alphabet 'dna
+  :ref "internal, plate map 2026-03")
+
+(describe 'my-lab-cassette)
+(println "")
+
+(define construct (string-append (random-dna 40 :seed 9)
+                                 "GGTCTCA" "ACGT" "TTCCAAGG" "GAGACC"
+                                 (random-dna 40 :seed 10)))
+(dolist (m (find-all my-lab-cassette construct :strand '+))
+  (println "  overhang " (binding m 'overhang) "   barcode " (binding m 'barcode)))
+
+(println "")
+(println "  the library now has " (library-count) " motifs, including "
+         (library :category 'lab))
+
+;; --------------------------------------- 7. composing library motifs
+
+(heading "Combining library motifs into a new one")
+
+;; Library motifs are values too, so a new motif can be built from them.
+(defmotif cloning-ready-insert
+  "An insert flanked by EcoRI and HindIII, with nothing in between that
+   either enzyme would cut."
+  (seq (library-motif 'EcoRI)
+       (custom 50 400 (lambda (s) (and (not (contains? (library-motif 'EcoRI) s))
+                                       (not (contains? (library-motif 'HindIII) s)))))
+       (library-motif 'HindIII))
+  :category 'lab :alphabet 'dna)
+
+(define candidate (string-append "GAATTC" (random-dna 120 :seed 12) "AAGCTT"))
+(show-matches (find-all cloning-ready-insert candidate :strand '+))

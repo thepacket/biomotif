@@ -1,0 +1,95 @@
+;;; 02-operon.mtf -- annotate a bacterial operon from end to end.
+;;; Finds the promoter, the ribosome binding sites, the open reading frames
+;;; and the terminator, then draws them on the sequence.
+;;; Run with:  motif run examples/02-operon.mtf
+
+(use-library 'prokaryote)
+
+(define operon (first (read-fasta "data/operon.fa")))
+
+(heading (string-append "Operon " (record-name operon)
+                        " (" (->string (record-length operon)) " bp, GC "
+                        (percent (gc operon)) ")"))
+
+;; ---------------------------------------------------------------- promoter
+
+(heading "Promoter")
+
+;; The library motif allows one mismatch in each box and a 15 to 19 base spacer,
+;; which is what real sigma-70 promoters look like.
+(define promoters (find-all sigma70-promoter operon :strand '+))
+(show-matches promoters)
+
+(dolist (p promoters)
+  (println "  spacer length: " (string-length (binding p 'spacer)) " bases")
+  (println "  -35 box: " (binding p 'box35) "   -10 box: " (binding p 'box10))
+  (println "  total mismatches from consensus: " (match-extra p 'mismatches)))
+
+;; ------------------------------------------------------- ribosome binding
+
+(heading "Ribosome binding sites")
+
+(define rbs (find-all ribosome-binding-site operon :strand '+))
+(show-matches rbs)
+
+(println "")
+(println "  spacing between Shine-Dalgarno and start codon:")
+(dolist (r rbs)
+  (println "    at " (match-start r) ": " (string-length (binding r 'spacer))
+           " bases, start codon " (binding r 'start)))
+
+;; ------------------------------------------------------------------- genes
+
+(heading "Open reading frames")
+
+;; orfs uses translation table 11, the bacterial and plastid code, so that
+;; GTG and TTG count as starts.
+(define genes (orfs operon :min-length 150 :table 11 :strand '+))
+
+(for-each
+  (lambda (g)
+    (println "  " (pad-left (match-start g) 6) "-" (pad-right (match-end g) 6)
+             "  " (pad-left (/ (match-length g) 3) 4) " codons"
+             "  starts " (substring (match-seq g) 0 3)
+             "  " (substring (orf-protein g) 0 (min 30 (string-length (orf-protein g)))) "..."))
+  genes)
+
+(println "")
+(println "  Does a Shine-Dalgarno sit just before each start codon? A 'no' here")
+(println "  usually means the ORF finder took an upstream GTG or TTG start, and")
+(println "  the real start is the next in-frame codon with an RBS in front of it.")
+(dolist (g genes)
+  (define upstream (filter (lambda (r) (and (<= (match-end r) (+ (match-start g) 3))
+                                            (> (match-end r) (- (match-start g) 20))))
+                           rbs))
+  (println "    gene at " (pad-left (match-start g) 5) ": "
+           (if (null? upstream)
+               "no RBS at this start"
+               (string-append "RBS ending at " (->string (match-end (first upstream)))))))
+
+;; -------------------------------------------------------------- terminator
+
+(heading "Transcription terminator")
+
+(define terms (find-all rho-independent-terminator operon :strand '+))
+(show-matches terms)
+
+(dolist (t terms)
+  (println "  stem: " (binding t 'stem5) " / " (binding t 'stem3)
+           "   loop: " (binding t 'loop)
+           "   U-tail: " (string-length (binding t 'utail)) " bases"))
+
+;; ------------------------------------------------------------------- track
+
+(heading "Everything on one track")
+
+(define everything (append (take promoters 1)
+                           rbs
+                           (map (lambda (g) g) genes)
+                           (take terms 1)))
+
+;; Show only the first 240 bases so the track fits on a screen.
+(show-track (sub-record operon 100 340) 
+            (filter (lambda (m) (and (>= (match-start m) 100) (< (match-start m) 340)))
+                    everything)
+            :width 60)

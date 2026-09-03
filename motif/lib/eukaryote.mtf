@@ -1,0 +1,423 @@
+;;; eukaryote.mtf -- core promoter elements, transcription factor binding sites,
+;;; splicing signals and chromosome landmarks for animals and fungi.
+
+;; --------------------------------------------------------- core promoter
+
+(defmotif tata-box
+  "TATA box, about 30 bases upstream of the start site in the third of human
+   promoters that have one. Bound by TBP, which bends the DNA by 80 degrees."
+  (iupac "TATAWAWR")
+  :category 'core-promoter :alphabet 'dna :example "TATAAAAG"
+  :ref "Bucher 1990, J Mol Biol 212:563")
+
+(defmotif tata-box-strict
+  "The narrow TATA consensus TATAAA, without the degenerate flanks."
+  (literal "TATAAA")
+  :category 'core-promoter :alphabet 'dna :example "TATAAA")
+
+(defmotif initiator
+  "Initiator element (Inr). The A is the transcription start site itself.
+   Human consensus is pyrimidine-pyrimidine-A-N-T/A-pyrimidine-pyrimidine."
+  (iupac "YYANWYY")
+  :category 'core-promoter :alphabet 'dna :example "TCAGTCT"
+  :ref "Smale & Baltimore 1989, Cell 57:103"
+  :scan #f)
+
+(defmotif dpe
+  "Downstream promoter element, 28 to 32 bases past the start site.
+   Works with the Inr in TATA-less promoters, especially in Drosophila."
+  (iupac "RGWYVT")
+  :category 'core-promoter :alphabet 'dna :example "AGACGT"
+  :ref "Burke & Kadonaga 1996, Genes Dev 10:711"
+  :scan #f)
+
+(defmotif bre-upstream
+  "TFIIB recognition element upstream of the TATA box; sets promoter direction."
+  (iupac "SSRCGCC")
+  :category 'core-promoter :alphabet 'dna :example "GGACGCC"
+  :scan #f)
+
+(defmotif bre-downstream
+  "TFIIB recognition element downstream of the TATA box."
+  (iupac "RTDKKKK")
+  :category 'core-promoter :alphabet 'dna
+  :scan #f)
+
+(defmotif mte
+  "Motif ten element, downstream of the start site; acts with the Inr
+   independently of the TATA box."
+  (iupac "CSARCSSAACGS")
+  :category 'core-promoter :alphabet 'dna
+  :scan #f)
+
+(defmotif caat-box
+  "CCAAT box, typically 60 to 100 bases upstream, bound by NF-Y or C/EBP."
+  (literal "CCAAT")
+  :category 'core-promoter :alphabet 'dna :example "CCAAT"
+  :scan #f)
+
+(defmotif gc-box
+  "GC box, the Sp1 binding site of housekeeping promoters. Often present
+   in several copies in CpG island promoters."
+  (iupac "KRGGCKRRK")
+  :category 'core-promoter :alphabet 'dna :example "GGGGCGGGG"
+  :scan #f)
+
+(defmotif tct-motif
+  "TCT motif, the polypyrimidine initiator of ribosomal protein genes,
+   which replaces the ordinary Inr in that class of promoters."
+  (iupac "YYCTTTYY")
+  :category 'core-promoter :alphabet 'dna
+  :scan #f)
+
+(defmotif tata-inr-promoter
+  "A canonical TATA-plus-Inr core promoter: TATA box, 18 to 30 bases,
+   then the initiator around the start site."
+  (seq (named 'tata (iupac "TATAWAWR")) (named 'spacer (gap 18 30)) (named 'inr (iupac "YYANWYY")))
+  :category 'core-promoter :alphabet 'dna)
+
+;; ------------------------------------------------------------ translation
+
+(defmotif kozak
+  "Kozak sequence. The purine at -3 and the G at +4 matter most; a strong
+   Kozak has both, an adequate one has just the -3 purine."
+  (iupac "GCCRCCATGG")
+  :category 'translation :alphabet 'dna :example "GCCACCATGG"
+  :ref "Kozak 1987, Nucleic Acids Res 15:8125")
+
+(defmotif kozak-core
+  "The minimal Kozak context: a purine three bases before ATG and a G after it."
+  (seq (any-of "AG") (gap 2 2) "ATG" "G")
+  :category 'translation :alphabet 'dna :example "ACCATGG"
+  :scan #f)
+
+(defmotif poly-a-signal
+  "Canonical polyadenylation signal AATAAA, 10 to 30 bases upstream of the
+   cleavage site. About 70% of human genes use it, another 15% use ATTAAA."
+  (literal "AATAAA")
+  :category 'polyadenylation :alphabet 'dna :example "AATAAA"
+  :ref "Proudfoot 2011, Genes Dev 25:1770")
+
+(defmotif poly-a-signal-variant
+  "The two main polyadenylation signals together, AATAAA and ATTAAA."
+  (alt "AATAAA" "ATTAAA")
+  :category 'polyadenylation :alphabet 'dna)
+
+(defmotif poly-a-site
+  "A complete poly(A) site: the AATAAA hexamer, a spacer and the GU-rich
+   downstream element that CstF binds."
+  (seq (named 'hexamer (alt "AATAAA" "ATTAAA"))
+       (named 'spacer (gap 10 30))
+       (named 'dse (iupac "YGTGTTYY")))
+  :category 'polyadenylation :alphabet 'dna)
+
+;; ---------------------------------------------------------------- splicing
+
+(defmotif splice-donor
+  "5' splice site (donor). The GT at the start of the intron is nearly
+   invariant; the flanking bases pair with U1 snRNA."
+  (seq (named 'exon (iupac "MAG")) (named 'intron (iupac "GTRAGT")))
+  :category 'splicing :alphabet 'dna :example "CAGGTAAGT"
+  :ref "Shapiro & Senapathy 1987, Nucleic Acids Res 15:7155")
+
+(defmotif splice-acceptor
+  "3' splice site (acceptor): a polypyrimidine tract, then NCAG at the
+   intron end. The AG is nearly invariant."
+  (seq (named 'ppt (run "CT" 8 20)) (any-of "ACGT") (named 'ag "AG"))
+  :category 'splicing :alphabet 'dna :example "TTTTTTTTTTCAG")
+
+(defmotif branch-point
+  "Intron branch point. The bulged A attacks the 5' splice site to form the
+   lariat. Human branch points are loose; yeast uses a rigid TACTAAC."
+  (iupac "YTNAY")
+  :category 'splicing :alphabet 'dna :example "CTGAC"
+  :scan #f)
+
+(defmotif branch-point-yeast
+  "The invariant yeast branch point TACTAAC."
+  (literal "TACTAAC")
+  :category 'splicing :alphabet 'dna :example "TACTAAC"
+  :scan #f)
+
+(defmotif polypyrimidine-tract
+  "Polypyrimidine tract upstream of the 3' splice site, bound by U2AF65.
+   Its length and purity predict splicing efficiency."
+  (run "CT" 10 25)
+  :category 'splicing :alphabet 'dna
+  :scan #f)
+
+(defmotif gt-ag-intron
+  "A whole U2-type intron: GT at the donor, a branch point, a polypyrimidine
+   tract and AG at the acceptor. Over 99% of human introns are GT-AG."
+  (seq "GT" (gap 20 2000) (iupac "YTNAY") (run "CT" 5 25) (gap 0 5) "AG")
+  :category 'splicing :alphabet 'dna
+  :scan #f)
+
+(defmotif gc-ag-intron
+  "The minor GC-AG intron class, about 0.7% of human introns."
+  (seq "GC" (gap 20 2000) (run "CT" 5 25) (gap 0 5) "AG")
+  :category 'splicing :alphabet 'dna
+  :scan #f)
+
+(defmotif u12-donor
+  "U12-type (minor spliceosome) 5' splice site. These introns are rare
+   but conserved and often rate-limiting for their host gene."
+  (iupac "RTATCCTT")
+  :category 'splicing :alphabet 'dna)
+
+(defmotif exonic-splicing-enhancer
+  "A purine-rich exonic splicing enhancer of the type bound by SR proteins."
+  (iupac "GARGAR")
+  :category 'splicing :alphabet 'dna :example "GAAGAA"
+  :scan #f)
+
+;; ---------------------------------------------- transcription factor sites
+
+(defmotif e-box
+  "E-box CANNTG, bound by basic helix-loop-helix factors. Which bHLH binds
+   depends on the two central bases."
+  (iupac "CANNTG")
+  :category 'tfbs :alphabet 'dna :example "CACGTG"
+  :scan #f)
+
+(defmotif e-box-myc
+  "The CACGTG E-box preferred by Myc/Max and USF."
+  (literal "CACGTG")
+  :category 'tfbs :alphabet 'dna :example "CACGTG")
+
+(defmotif e-box-myod
+  "The CAGCTG E-box preferred by MyoD and other myogenic factors."
+  (literal "CAGCTG")
+  :category 'tfbs :alphabet 'dna
+  :scan #f)
+
+(defmotif cre
+  "cAMP response element, bound by CREB as a dimer. A perfect palindrome."
+  (literal "TGACGTCA")
+  :category 'tfbs :alphabet 'dna :example "TGACGTCA"
+  :ref "Montminy et al. 1986, PNAS 83:6682")
+
+(defmotif ap1-site
+  "AP-1 site (TRE), bound by Fos/Jun heterodimers. One base shorter than the CRE."
+  (literal "TGACTCA")
+  :category 'tfbs :alphabet 'dna :example "TGACTCA")
+
+(defmotif nfkb-site
+  "NF-kappaB binding site (kappaB element)."
+  (iupac "GGGRNNYYCC")
+  :category 'tfbs :alphabet 'dna :example "GGGACTTTCC"
+  :ref "Kunsch et al. 1992, Mol Cell Biol 12:4412")
+
+(defmotif p53-response-element
+  "p53 response element: two decameric half-sites, separated by up to 13 bases."
+  (seq (named 'half1 (iupac "RRRCWWGYYY")) (gap 0 13) (named 'half2 (iupac "RRRCWWGYYY")))
+  :category 'tfbs :alphabet 'dna :example "GGGCATGTCCGGGCAAGTCC"
+  :ref "el-Deiry et al. 1992, Nat Genet 1:45")
+
+(defmotif gata-site
+  "GATA factor binding site. The GATA core is invariant; the flanking
+   W and R set which family member binds."
+  (iupac "WGATAR")
+  :category 'tfbs :alphabet 'dna :example "AGATAA"
+  :scan #f)
+
+(defmotif sp1-site
+  "Sp1 binding site, the GC box in its full form."
+  (iupac "GGGGCGGGGC")
+  :category 'tfbs :alphabet 'dna)
+
+(defmotif heat-shock-element
+  "Heat shock element: inverted nGAAn repeats bound by HSF trimers.
+   Three units make a functional site."
+  (seq (iupac "NGAAN") (iupac "NTTCN") (iupac "NGAAN"))
+  :category 'tfbs :alphabet 'dna :example "TGAACGTTCTAGAAC"
+  :ref "Amin et al. 1988, Mol Cell Biol 8:3761")
+
+(defmotif estrogen-response-element
+  "Estrogen response element: two AGGTCA half-sites as an inverted repeat
+   with a three-base spacer."
+  (seq "GGTCA" (gap 3 3) "TGACC")
+  :category 'nuclear-receptor :alphabet 'dna :example "GGTCAnnnTGACC")
+
+(defmotif glucocorticoid-response-element
+  "Glucocorticoid response element, also used by the androgen, mineralocorticoid
+   and progesterone receptors."
+  (seq (iupac "GGWACA") (gap 3 3) (iupac "TGTWCY"))
+  :category 'nuclear-receptor :alphabet 'dna :example "GGTACAnnnTGTTCT")
+
+(defmotif nuclear-receptor-half-site
+  "The AGGTCA half-site read by most nuclear receptors. Spacing and orientation
+   of two half-sites decide which receptor binds."
+  (literal "AGGTCA")
+  :category 'nuclear-receptor :alphabet 'dna :example "AGGTCA"
+  :scan #f)
+
+(defmotif direct-repeat-5
+  "DR5: two AGGTCA half-sites in direct repeat with five spacer bases,
+   the retinoic acid receptor element."
+  (seq "AGGTCA" (gap 5 5) "AGGTCA")
+  :category 'nuclear-receptor :alphabet 'dna)
+
+(defmotif gas-element
+  "Gamma-activated sequence, bound by STAT dimers after cytokine signalling."
+  (seq "TTC" (gap 3 3) "GAA")
+  :category 'tfbs :alphabet 'dna :example "TTCnnnGAA"
+  :scan #f)
+
+(defmotif isre
+  "Interferon-stimulated response element, bound by the ISGF3 complex."
+  (iupac "AGTTTCNNTTTC")
+  :category 'tfbs :alphabet 'dna)
+
+(defmotif octamer
+  "Octamer motif ATGCAAAT, bound by POU factors Oct-1 and Oct-2."
+  (literal "ATGCAAAT")
+  :category 'tfbs :alphabet 'dna :example "ATGCAAAT"
+  :scan #f)
+
+(defmotif ets-site
+  "ETS family binding site built on the invariant GGA(A/T) core."
+  (iupac "MGGAAGT")
+  :category 'tfbs :alphabet 'dna :example "AGGAAGT"
+  :scan #f)
+
+(defmotif runx-site
+  "RUNX (CBF) binding site."
+  (iupac "TGYGGT")
+  :category 'tfbs :alphabet 'dna
+  :scan #f)
+
+(defmotif carg-box
+  "CArG box, the serum response element bound by SRF."
+  (iupac "CCWWWWWWGG")
+  :category 'tfbs :alphabet 'dna :example "CCATATTAGG"
+  :scan #f)
+
+(defmotif mef2-site
+  "MEF2 binding site, an AT-rich relative of the CArG box."
+  (iupac "YTAWWWWTAR")
+  :category 'tfbs :alphabet 'dna
+  :scan #f)
+
+(defmotif hif-response-element
+  "Hypoxia response element. The RCGTG core is bound by HIF-1alpha/ARNT."
+  (iupac "RCGTG")
+  :category 'tfbs :alphabet 'dna :example "ACGTG"
+  :scan #f)
+
+(defmotif antioxidant-response-element
+  "Antioxidant response element, bound by NRF2/sMAF under oxidative stress."
+  (iupac "TGACNNNGC")
+  :category 'tfbs :alphabet 'dna
+  :scan #f)
+
+(defmotif hnf1-site
+  "HNF1 binding site, an inverted palindrome driving liver-specific genes."
+  (iupac "GTTAATNATTAAC")
+  :category 'tfbs :alphabet 'dna)
+
+(defmotif ctcf-core
+  "CTCF core motif. CTCF anchors chromatin loops and its orientation decides
+   which loops form."
+  (iupac "CCRCNAGGNGGCRG")
+  :category 'insulator :alphabet 'dna
+  :ref "Kim et al. 2007, Cell 128:1231")
+
+(defmotif gal4-uas
+  "GAL4 upstream activating sequence: CGG triplets 11 bases apart, the
+   binding site of the yeast GAL4 zinc cluster."
+  (seq "CGG" (gap 11 11) "CCG")
+  :category 'tfbs :alphabet 'dna :example "CGGnnnnnnnnnnnCCG"
+  :scan #f)
+
+(defmotif rap1-site
+  "Rap1 binding site in yeast, found at telomeres, the silent mating loci
+   and ribosomal protein promoters."
+  (iupac "RMACCCANNCAYY")
+  :category 'tfbs :alphabet 'dna
+  :scan #f)
+
+;; ------------------------------------------------------ chromosome features
+
+(defmotif telomere-repeat-vertebrate
+  "Vertebrate telomere repeat TTAGGG, added by telomerase."
+  (literal "TTAGGG")
+  :category 'telomere :alphabet 'dna :example "TTAGGG")
+
+(defmotif telomere-repeat-plant
+  "Plant telomere repeat TTTAGGG (Arabidopsis type)."
+  (literal "TTTAGGG")
+  :category 'telomere :alphabet 'dna)
+
+(defmotif telomere-repeat-worm
+  "Caenorhabditis elegans telomere repeat TTAGGC."
+  (literal "TTAGGC")
+  :category 'telomere :alphabet 'dna)
+
+(defmotif telomere-tract
+  "A telomeric tract: at least three consecutive vertebrate repeats."
+  (repeat (literal "TTAGGG") 3)
+  :category 'telomere :alphabet 'dna
+  :scan #f)
+
+(defmotif ars-consensus
+  "Autonomously replicating sequence consensus, the 11 bp core of a
+   budding yeast replication origin."
+  (iupac "WTTTAYRTTTW")
+  :category 'replication :alphabet 'dna :example "ATTTATGTTTA"
+  :ref "Broach et al. 1983, Cold Spring Harb Symp 47:1165"
+  :scan #f)
+
+(defmotif rss-heptamer
+  "Recombination signal sequence heptamer, the RAG1/RAG2 cut site in V(D)J
+   recombination."
+  (literal "CACAGTG")
+  :category 'recombination :alphabet 'dna :example "CACAGTG"
+  :scan #f)
+
+(defmotif rss-12
+  "A 12-RSS: heptamer, 12-base spacer, nonamer. Recombines only with a 23-RSS,
+   which is the 12/23 rule."
+  (seq (named 'heptamer "CACAGTG") (named 'spacer (gap 12 12)) (named 'nonamer (iupac "ACAAAAACC")))
+  :category 'recombination :alphabet 'dna
+  :scan #f)
+
+(defmotif rss-23
+  "A 23-RSS: heptamer, 23-base spacer, nonamer."
+  (seq (named 'heptamer "CACAGTG") (named 'spacer (gap 23 23)) (named 'nonamer (iupac "ACAAAAACC")))
+  :category 'recombination :alphabet 'dna
+  :scan #f)
+
+(defmotif g-quadruplex
+  "G-quadruplex forming sequence: four G-tracts separated by short loops.
+   Common at telomeres, promoters and replication origins."
+  (seq (run "G" 3 6) (gap 1 7) (run "G" 3 6) (gap 1 7) (run "G" 3 6) (gap 1 7) (run "G" 3 6))
+  :category 'structure :alphabet 'dna :example "GGGTTAGGGTTAGGGTTAGGG"
+  :ref "Huppert & Balasubramanian 2005, Nucleic Acids Res 33:2908")
+
+(defmotif z-dna-prone
+  "Alternating purine-pyrimidine tract that can flip to left-handed Z-DNA
+   under negative supercoiling."
+  (repeat (iupac "CG") 6)
+  :category 'structure :alphabet 'dna
+  :scan #f)
+
+(defmotif microsatellite-ca
+  "CA dinucleotide microsatellite, the classic polymorphic marker."
+  (repeat (literal "CA") 8)
+  :category 'repeat :alphabet 'dna
+  :scan #f)
+
+(defmotif trinucleotide-cag
+  "CAG trinucleotide repeat. Expansion past about 36 copies causes
+   Huntington disease and several spinocerebellar ataxias."
+  (repeat (literal "CAG") 10)
+  :category 'repeat :alphabet 'dna
+  :ref "MacDonald et al. 1993, Cell 72:971"
+  :scan #f)
+
+(defmotif alu-box-a
+  "The A box of the internal RNA polymerase III promoter carried by Alu elements."
+  (iupac "TGGCTCACGCC")
+  :category 'repeat :alphabet 'dna
+  :scan #f)

@@ -1,0 +1,524 @@
+;;; protein.mtf -- protein sequence motifs: post-translational modification
+;;; sites, targeting signals, structural motifs, catalytic signatures and
+;;; protease cleavage sites.
+;;;
+;;; Most are written in PROSITE syntax, where x is any residue, [ABC] is a
+;;; choice, {AB} is an exclusion, and (n,m) is a repeat count. Short patterns
+;;; like these match by chance in large proteomes; treat every hit as a
+;;; candidate to be checked against structure and context.
+;;; Reference: Sigrist et al. 2013, Nucleic Acids Res 41:D344 (PROSITE).
+
+;; ---------------------------------------------- post-translational sites
+
+(defmotif n-glycosylation
+  "N-linked glycosylation sequon N-X-S/T, where X is not proline.
+   The proline exclusion is the reason the third position matters."
+  (prosite "N-{P}-[ST]-{P}")
+  :category 'modification :alphabet 'protein :example "NGSA"
+  :ref "PROSITE PS00001")
+
+(defmotif casein-kinase-2
+  "Casein kinase II phosphorylation site: S or T followed by an acidic
+   residue two positions later."
+  (prosite "[ST]-x(2)-[DE]")
+  :category 'modification :alphabet 'protein :example "SLTE"
+  :ref "PROSITE PS00006"
+  :scan #f)
+
+(defmotif protein-kinase-c
+  "Protein kinase C phosphorylation site."
+  (prosite "[ST]-x-[RK]")
+  :category 'modification :alphabet 'protein :example "SPR"
+  :ref "PROSITE PS00005"
+  :scan #f)
+
+(defmotif pka-site
+  "cAMP- and cGMP-dependent protein kinase phosphorylation site.
+   Two basic residues precede the phosphoacceptor."
+  (prosite "[RK](2)-x-[ST]")
+  :category 'modification :alphabet 'protein :example "RRAS"
+  :ref "PROSITE PS00004"
+  :scan #f)
+
+(defmotif tyrosine-kinase-site
+  "Tyrosine kinase phosphorylation site: acidic residues upstream of the
+   target tyrosine."
+  (prosite "[RK]-x(2,3)-[DE]-x(2,3)-Y")
+  :category 'modification :alphabet 'protein :example "KAADGGY"
+  :ref "PROSITE PS00007"
+  :scan #f)
+
+(defmotif n-myristoylation
+  "N-terminal myristoylation site. The glycine becomes the N-terminus after
+   the initiator methionine is removed, and the myristate anchors the
+   protein to a membrane."
+  (prosite "G-{EDRKHPFYW}-x(2)-[STAGCN]-{P}")
+  :category 'modification :alphabet 'protein :example "GQSLSK"
+  :ref "PROSITE PS00008")
+
+(defmotif amidation
+  "C-terminal amidation site. The glycine donates its nitrogen to the
+   preceding residue and is lost."
+  (prosite "x-G-[RK]-[RK]")
+  :category 'modification :alphabet 'protein
+  :ref "PROSITE PS00009"
+  :scan #f)
+
+(defmotif prenylation-caax
+  "CAAX box. The cysteine is farnesylated or geranylgeranylated and the
+   last three residues are then clipped off."
+  (prosite "C-[AVLIM](2)-x>")
+  :category 'modification :alphabet 'protein :example "CVLS"
+  :scan #f)
+
+(defmotif farnesylation
+  "CAAX box with an X that directs farnesylation rather than
+   geranylgeranylation."
+  (prosite "C-[AVLIM](2)-[SMQA]>")
+  :category 'modification :alphabet 'protein :example "CVLS"
+  :scan #f)
+
+(defmotif geranylgeranylation
+  "C-terminal CC or CXC motif recognised by Rab geranylgeranyl transferase."
+  (prosite "C-x(0,1)-C>")
+  :category 'modification :alphabet 'protein
+  :scan #f)
+
+(defmotif gag-attachment
+  "Glycosaminoglycan attachment site, where a xylose links a heparan or
+   chondroitin sulfate chain to a serine."
+  (prosite "S-G-x-G")
+  :category 'modification :alphabet 'protein
+  :ref "PROSITE PS00002"
+  :scan #f)
+
+(defmotif sumoylation
+  "SUMO consensus psi-K-x-[DE], where psi is a large hydrophobic residue."
+  (prosite "[ILVFM]-K-x-[DE]")
+  :category 'modification :alphabet 'protein :example "VKTE"
+  :scan #f)
+
+(defmotif palmitoylation-cc
+  "A cysteine pair of the kind commonly S-palmitoylated near a membrane anchor."
+  (prosite "C-C")
+  :category 'modification :alphabet 'protein
+  :scan #f)
+
+;; ------------------------------------------------------ targeting signals
+
+(defmotif nls-monopartite
+  "Classical monopartite nuclear localisation signal, the SV40 large T type.
+   Bound by importin alpha."
+  (prosite "K-[KR]-x-[KR]")
+  :category 'targeting :alphabet 'protein :example "KKKR"
+  :ref "Kalderon et al. 1984, Cell 39:499"
+  :scan #f)
+
+(defmotif nls-bipartite
+  "Bipartite nuclear localisation signal: two basic clusters separated by a
+   10 to 12 residue linker, as in nucleoplasmin."
+  (prosite "[KR](2)-x(10,12)-[KR](3,5)")
+  :category 'targeting :alphabet 'protein
+  :ref "Robbins et al. 1991, Cell 64:615")
+
+(defmotif nes-leucine-rich
+  "Leucine-rich nuclear export signal recognised by CRM1/exportin-1,
+   the target of leptomycin B."
+  (prosite "L-x(2,3)-[LIVFM]-x(2,3)-L-x-[LI]")
+  :category 'targeting :alphabet 'protein :example "LQKLTLDLTL"
+  :scan #f)
+
+(defmotif er-retention-kdel
+  "KDEL, the C-terminal signal that retrieves soluble proteins from the
+   Golgi back to the endoplasmic reticulum."
+  (prosite "K-D-E-L>")
+  :category 'targeting :alphabet 'protein :example "KDEL")
+
+(defmotif er-retention-hdel
+  "HDEL, the yeast and plant version of the ER retrieval signal."
+  (prosite "H-D-E-L>")
+  :category 'targeting :alphabet 'protein :example "HDEL"
+  :scan #f)
+
+(defmotif er-membrane-kkxx
+  "Dilysine ER retrieval motif on the cytosolic tail of a membrane protein."
+  (prosite "K-K-x(2)>")
+  :category 'targeting :alphabet 'protein :example "KKAA"
+  :scan #f)
+
+(defmotif peroxisome-pts1
+  "Peroxisomal targeting signal type 1: an SKL-like tripeptide at the very
+   C-terminus, read by PEX5."
+  (prosite "[SAC]-[KRH]-[LM]>")
+  :category 'targeting :alphabet 'protein :example "SKL")
+
+(defmotif peroxisome-pts2
+  "Peroxisomal targeting signal type 2, an N-terminal nonapeptide read by PEX7."
+  (prosite "[RK]-[LVI]-x(5)-[HQ]-[LA]")
+  :category 'targeting :alphabet 'protein
+  :scan #f)
+
+(defmotif vacuole-npir
+  "NPIR-type vacuolar sorting determinant of plant and yeast proteins."
+  (prosite "N-P-[IL]-R")
+  :category 'targeting :alphabet 'protein
+  :scan #f)
+
+(defmotif mitochondrial-cleavage
+  "R-2 motif at the cleavage site of a mitochondrial presequence, cut by
+   the matrix processing peptidase."
+  (prosite "R-x-[FLIY]-[ST]")
+  :category 'targeting :alphabet 'protein
+  :scan #f)
+
+(defmotif signal-peptide-h-region
+  "Hydrophobic core of a secretory signal peptide followed by the small
+   residues of an A-x-A signal peptidase site."
+  (seq at-start (gap 1 12) (run "AVLIFMWC" 7 20) (prosite "A-x-A"))
+  :category 'targeting :alphabet 'protein
+  :ref "von Heijne 1990, J Membr Biol 115:195")
+
+(defmotif twin-arginine-signal
+  "Twin-arginine translocation signal, which exports already folded proteins
+   across the bacterial inner membrane."
+  (prosite "[ST]-R-R-x-F-L-K")
+  :category 'targeting :alphabet 'protein :example "SRRSFLK"
+  :scan #f)
+
+;; --------------------------------------------------- nucleotide binding
+
+(defmotif p-loop
+  "P-loop, the Walker A motif that cradles the phosphates of bound ATP or GTP.
+   The most common nucleotide binding element in all of biology."
+  (prosite "[AG]-x(4)-G-K-[ST]")
+  :category 'domain :alphabet 'protein :example "GPSSSGKT"
+  :ref "Walker et al. 1982, EMBO J 1:945")
+
+(defmotif walker-b
+  "Walker B motif, four hydrophobic residues ending in an aspartate that
+   coordinates the catalytic magnesium."
+  (prosite "[ILVFM](4)-[DE]")
+  :category 'domain :alphabet 'protein :example "LLLLD"
+  :scan #f)
+
+(defmotif rossmann-fold
+  "Glycine-rich dinucleotide binding fingerprint of the Rossmann fold,
+   which binds NAD or FAD."
+  (prosite "G-x-G-x(2)-G")
+  :category 'domain :alphabet 'protein :example "GAGVVG"
+  :scan #f)
+
+(defmotif ras-g1
+  "G1 box of the small GTPase family, the P-loop in its Ras form."
+  (prosite "G-x(4)-G-K-[ST]")
+  :category 'domain :alphabet 'protein)
+
+(defmotif ras-g3
+  "G3 box (switch II) of small GTPases, the DxxG motif that senses the
+   gamma phosphate."
+  (prosite "D-x(2)-G")
+  :category 'domain :alphabet 'protein
+  :scan #f)
+
+;; ------------------------------------------------- structural and binding
+
+(defmotif ef-hand
+  "EF-hand calcium binding loop. The aspartate at position 1 and the
+   glutamate at position 12 grip the calcium ion."
+  (prosite "D-x-[DNS]-{ILVFYW}-[DENSTG]-[DNQGHRK]-{GP}-[LIVMC]-[DENQSTAGC]-x(2)-[DE]-[LIVMFYW]")
+  :category 'domain :alphabet 'protein
+  :ref "PROSITE PS00018")
+
+(defmotif zinc-finger-c2h2
+  "Classical C2H2 zinc finger. Two cysteines and two histidines hold a zinc
+   ion; three or more fingers in tandem read a DNA sequence."
+  (prosite "C-x(2,4)-C-x(3)-[LIVMFYWC]-x(8)-H-x(3,5)-H")
+  :category 'domain :alphabet 'protein
+  :ref "PROSITE PS00028")
+
+(defmotif zinc-finger-ring
+  "RING finger of E3 ubiquitin ligases, a cross-brace of eight
+   zinc-coordinating residues."
+  (prosite "C-x(2)-C-x(9,39)-C-x(1,3)-H-x(2,3)-C-x(2)-C-x(4,48)-C-x(2)-C")
+  :category 'domain :alphabet 'protein)
+
+(defmotif leucine-zipper
+  "Leucine zipper: leucines every seventh residue over four heptads,
+   the dimerisation element of bZIP transcription factors."
+  (prosite "L-x(6)-L-x(6)-L-x(6)-L")
+  :category 'domain :alphabet 'protein
+  :ref "Landschulz et al. 1988, Science 240:1759")
+
+(defmotif bzip-basic-region
+  "Basic region of a bZIP factor, immediately upstream of the zipper,
+   with the invariant N-x(7)-R spacing that contacts DNA."
+  (prosite "N-x(7)-R-x(2)-[LIVM]")
+  :category 'domain :alphabet 'protein
+  :scan #f)
+
+(defmotif rrm-rnp1
+  "RNP1 submotif of the RNA recognition motif, the aromatic-rich octamer
+   that stacks against the bases."
+  (prosite "[RK]-G-[FY]-[GA]-[FY]-[ILV]-x-[FY]")
+  :category 'domain :alphabet 'protein
+  :ref "PROSITE PS50102")
+
+(defmotif rrm-rnp2
+  "RNP2 submotif of the RNA recognition motif."
+  (prosite "[ILV]-[FY]-[ILV]-x-N-L")
+  :category 'domain :alphabet 'protein
+  :scan #f)
+
+(defmotif rgd-motif
+  "RGD cell attachment sequence, the integrin binding tripeptide of
+   fibronectin and many other matrix proteins."
+  (prosite "R-G-D")
+  :category 'binding-site :alphabet 'protein :example "RGD"
+  :ref "Pierschbacher & Ruoslahti 1984, Nature 309:30"
+  :scan #f)
+
+(defmotif ldl-receptor-class-b
+  "YWTD repeat signature of the LDL receptor class B propeller."
+  (prosite "Y-W-[ST]-D")
+  :category 'domain :alphabet 'protein
+  :scan #f)
+
+(defmotif wd40-signature
+  "The GH dipeptide and terminal WD of a WD40 repeat, which builds a
+   seven-bladed beta propeller."
+  (prosite "G-H-x(23,41)-W-D")
+  :category 'domain :alphabet 'protein
+  :scan #f)
+
+(defmotif pdz-binding-c-terminal
+  "Class I PDZ-binding motif at the extreme C-terminus, which docks a
+   protein into a scaffold such as PSD-95."
+  (prosite "[ST]-x-[VIL]>")
+  :category 'binding-site :alphabet 'protein :example "TKV"
+  :scan #f)
+
+(defmotif sh3-binding-pxxp
+  "PxxP core of an SH3 binding site, a left-handed polyproline II helix."
+  (prosite "P-x(2)-P")
+  :category 'binding-site :alphabet 'protein :example "PPLP"
+  :scan #f)
+
+(defmotif sh2-binding
+  "Phosphotyrosine motif of an SH2 binding site."
+  (prosite "Y-x(2)-[ILVM]")
+  :category 'binding-site :alphabet 'protein
+  :scan #f)
+
+(defmotif fourteen-three-three-mode1
+  "Mode 1 binding motif for 14-3-3 proteins, recognised once the central
+   serine is phosphorylated."
+  (prosite "R-S-x-S-x-P")
+  :category 'binding-site :alphabet 'protein
+  :scan #f)
+
+(defmotif d-box
+  "Destruction box, the signal that marks mitotic cyclins for the
+   anaphase promoting complex."
+  (prosite "R-x(2)-L-x(4)-N")
+  :category 'degradation :alphabet 'protein :example "RAALGVIQN"
+  :scan #f)
+
+(defmotif ken-box
+  "KEN box, the second APC/C degradation signal, read by Cdh1."
+  (prosite "K-E-N")
+  :category 'degradation :alphabet 'protein :example "KEN"
+  :scan #f)
+
+(defmotif pest-region
+  "A proline, glutamate, serine and threonine rich stretch flanked by basic
+   residues, associated with rapid proteasomal turnover."
+  (seq (any-of "KRH") (run "PESTDNQGAV" 12 40) (any-of "KRH"))
+  :category 'degradation :alphabet 'protein
+  :ref "Rogers et al. 1986, Science 234:364")
+
+;; ------------------------------------------------- catalytic signatures
+
+(defmotif zinc-metalloprotease
+  "HExxH zinc binding motif of the metzincin and gluzincin metalloproteases.
+   Two histidines and a downstream glutamate hold the catalytic zinc."
+  (prosite "H-E-x(2)-H")
+  :category 'catalytic :alphabet 'protein :example "HELGH"
+  :ref "PROSITE PS00142")
+
+(defmotif serine-protease-catalytic
+  "GDSGGP signature around the catalytic serine of the chymotrypsin family."
+  (prosite "G-D-S-G-G-P")
+  :category 'catalytic :alphabet 'protein :example "GDSGGP")
+
+(defmotif serine-protease-histidine
+  "The histidine of the chymotrypsin family catalytic triad in its
+   conserved context."
+  (prosite "[LIVM]-[ST]-A-[STAG]-H-C")
+  :category 'catalytic :alphabet 'protein
+  :ref "PROSITE PS00134"
+  :scan #f)
+
+(defmotif aspartyl-protease
+  "The D-T/S-G triad of aspartyl proteases such as pepsin, renin and
+   HIV-1 protease."
+  (prosite "[LIVMFGAC]-[LIVMTADN]-[LIVFSA]-D-[ST]-G-[STAV]")
+  :category 'catalytic :alphabet 'protein
+  :ref "PROSITE PS00141")
+
+(defmotif cysteine-protease
+  "The catalytic cysteine of the papain family in its conserved setting."
+  (prosite "Q-x(3)-[GE]-x-C-[YW]-x(2)-[STAGC]")
+  :category 'catalytic :alphabet 'protein
+  :ref "PROSITE PS00139"
+  :scan #f)
+
+(defmotif lipase-gxsxg
+  "GxSxG nucleophile elbow of the alpha/beta hydrolase fold, present in
+   lipases, esterases and serine hydrolases generally."
+  (prosite "[LIV]-x-[LIVFY]-[LIVMST]-G-[HYWV]-S-x-G-[GSTAC]")
+  :category 'catalytic :alphabet 'protein
+  :ref "PROSITE PS00120")
+
+(defmotif thioredoxin-active-site
+  "CXXC redox active site of thioredoxins and the wider thioredoxin fold."
+  (prosite "W-C-[GATP]-[PLIVMFYWC]-C")
+  :category 'catalytic :alphabet 'protein :example "WCGPC"
+  :scan #f)
+
+(defmotif kinase-hrd
+  "HRD motif of the protein kinase catalytic loop, whose aspartate is the
+   catalytic base."
+  (prosite "H-[RC]-D-[LIVMFY]-[KR]-x(2)-N")
+  :category 'catalytic :alphabet 'protein
+  :scan #f)
+
+(defmotif kinase-dfg
+  "DFG motif at the start of the kinase activation loop. Its in and out
+   conformations decide whether type I or type II inhibitors bind."
+  (prosite "D-F-G")
+  :category 'catalytic :alphabet 'protein :example "DFG"
+  :scan #f)
+
+(defmotif kinase-atp-binding
+  "Protein kinase ATP-binding signature: the glycine-rich loop of subdomain I
+   followed by the invariant VAIK lysine of subdomain II, which positions the
+   alpha and beta phosphates of ATP."
+  (prosite "[LIV]-G-{P}-G-{P}-[FYWMGSTNH]-[SGA]-{PW}-[LIVCAT]-{PD}-x-[GSTACLIVMFY]-x(5,18)-[LIVMFYWCSTAR]-[AIVP]-[LIVMFAGCKR]-K")
+  :category 'catalytic :alphabet 'protein
+  :ref "PROSITE PS00107")
+
+(defmotif kinase-active-site
+  "Serine/threonine kinase active site signature, built around the catalytic
+   aspartate of the HRD motif."
+  (prosite "[LIVMFYC]-x-[HY]-x-D-[LIVMFY]-K-x(2)-N-[LIVMFYCT](3)")
+  :category 'catalytic :alphabet 'protein
+  :ref "PROSITE PS00108")
+
+(defmotif tyrosine-kinase-active-site
+  "Tyrosine kinase active site signature."
+  (prosite "[LIVMFYC]-x-[HY]-x-D-[LIVMFY]-[RSTAC]-x(2)-N-[LIVMFYC](3)")
+  :category 'catalytic :alphabet 'protein
+  :ref "PROSITE PS00109")
+
+(defmotif glycine-rich-loop
+  "Glycine-rich (P-loop-like) nucleotide binding loop of protein kinases,
+   GxGxxG. Not the same as the Walker A P-loop, though it does the same job."
+  (prosite "G-x-G-x(2)-[GSA]")
+  :category 'catalytic :alphabet 'protein :example "GEGSFG"
+  :scan #f)
+
+(defmotif atp-binding-abc
+  "ABC transporter signature, the LSGGQ motif that couples ATP hydrolysis
+   to transport."
+  (prosite "L-S-G-G-[QE]")
+  :category 'catalytic :alphabet 'protein :example "LSGGQ"
+  :scan #f)
+
+(defmotif selenocysteine
+  "A selenocysteine residue, encoded by an in-frame UGA read through a
+   SECIS element. Written U in one-letter code."
+  (prosite "U")
+  :category 'modification :alphabet 'protein
+  :scan #f)
+
+;; ------------------------------------------------ protease cleavage sites
+
+(defmotif trypsin-site
+  "Trypsin cleaves after lysine or arginine, unless proline follows."
+  (prosite "[KR]-{P}")
+  :category 'protease :alphabet 'protein :example "KA")
+
+(defmotif chymotrypsin-site
+  "Chymotrypsin cleaves after large hydrophobic residues, unless
+   proline follows."
+  (prosite "[FYW]-{P}")
+  :category 'protease :alphabet 'protein)
+
+(defmotif glu-c-site
+  "Endoproteinase Glu-C (V8 protease) cleaves after glutamate, and after
+   aspartate in phosphate buffer."
+  (prosite "[DE]-{P}")
+  :category 'protease :alphabet 'protein)
+
+(defmotif furin-site
+  "Furin cleaves after R-X-K/R-R in the trans-Golgi, activating many
+   growth factors, receptors and viral envelope proteins."
+  (prosite "R-x-[KR]-R")
+  :category 'protease :alphabet 'protein :example "RQKR"
+  :ref "Molloy et al. 1992, J Biol Chem 267:16396")
+
+(defmotif caspase-3-site
+  "Caspase-3 and caspase-7 cleave after DEVD, the canonical apoptotic
+   substrate motif."
+  (prosite "D-E-V-D")
+  :category 'protease :alphabet 'protein :example "DEVD")
+
+(defmotif caspase-1-site
+  "Caspase-1 cleaves after YVAD, releasing mature IL-1beta."
+  (prosite "[YW]-[VE]-[AH]-D")
+  :category 'protease :alphabet 'protein :example "YVAD")
+
+(defmotif granzyme-b-site
+  "Granzyme B cleaves after IEPD, the way cytotoxic lymphocytes trigger
+   apoptosis in a target cell."
+  (prosite "I-E-P-D")
+  :category 'protease :alphabet 'protein :example "IEPD")
+
+(defmotif tev-protease-site
+  "Tobacco etch virus protease cleaves between Q and G in ENLYFQ/G.
+   The standard way to remove an affinity tag."
+  (prosite "E-N-L-Y-F-Q-[GS]")
+  :category 'protease :alphabet 'protein :example "ENLYFQG")
+
+(defmotif thrombin-site
+  "Thrombin cleaves LVPR/GS, the site built into GST and many His-tag vectors."
+  (prosite "L-V-P-R-G-S")
+  :category 'protease :alphabet 'protein :example "LVPRGS")
+
+(defmotif factor-xa-site
+  "Factor Xa cleaves after IEGR or IDGR, leaving no extra residues."
+  (prosite "I-[ED]-G-R")
+  :category 'protease :alphabet 'protein :example "IEGR")
+
+(defmotif enterokinase-site
+  "Enteropeptidase cleaves after DDDDK, leaving a native N-terminus."
+  (prosite "D-D-D-D-K")
+  :category 'protease :alphabet 'protein :example "DDDDK")
+
+(defmotif prescission-site
+  "HRV 3C (PreScission) protease cleaves between Q and G in LEVLFQ/GP.
+   Works at 4 degrees, which is why it is preferred for fragile proteins."
+  (prosite "L-E-V-L-F-Q-G-P")
+  :category 'protease :alphabet 'protein :example "LEVLFQGP")
+
+(defmotif sortase-lpxtg
+  "LPXTG sorting signal. Sortase A cuts between T and G and joins the
+   protein to the cell wall, and is now the standard protein ligation tool."
+  (prosite "L-P-x-T-G")
+  :category 'protease :alphabet 'protein :example "LPETG")
+
+(defmotif signal-peptidase-axa
+  "A-x-A signal peptidase I cleavage site, the -3,-1 rule."
+  (prosite "A-x-A")
+  :category 'protease :alphabet 'protein :example "AQA"
+  :scan #f)

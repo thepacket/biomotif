@@ -1,0 +1,301 @@
+;;; rna.mtf -- RNA elements: structure, stability, localisation, modification
+;;; and small RNA targets. Written with U; the engine reads U and T as the same
+;;; base, so these motifs work against DNA sequences too.
+
+;; -------------------------------------------------------------- structure
+
+(defmotif rna-hairpin
+  "A generic RNA hairpin: a stem of 4 to 12 paired bases and a loop of 3 to 10.
+   Wobble G:U pairs are allowed, as they are in real RNA."
+  (hairpin (stem 4 12) (loop 3 10) :wobble #t)
+  :category 'rna-structure :alphabet 'rna :example "GGCGCuuuuGCGCC"
+  :scan #f)
+
+(defmotif tetraloop-gnra
+  "GNRA tetraloop, the most common stable loop in structured RNA.
+   Closed by a strong stem, it is unusually resistant to unfolding."
+  (hairpin (stem 4 10) (iupac "GNRA") :wobble #t)
+  :category 'rna-structure :alphabet 'rna :example "GGCCgcaaGGCC"
+  :ref "Woese et al. 1990, PNAS 87:8467")
+
+(defmotif tetraloop-uncg
+  "UNCG tetraloop, the other exceptionally stable tetraloop family."
+  (hairpin (stem 4 10) (iupac "UNCG") :wobble #t)
+  :category 'rna-structure :alphabet 'rna)
+
+(defmotif rna-g-quadruplex
+  "RNA G-quadruplex. Unlike DNA quadruplexes these are almost always
+   parallel, and they regulate translation from 5' UTRs."
+  (seq (run "G" 2 5) (gap 1 7) (run "G" 2 5) (gap 1 7) (run "G" 2 5) (gap 1 7) (run "G" 2 5))
+  :category 'rna-structure :alphabet 'rna
+  :scan #f)
+
+(defmotif kissing-loop-stem
+  "A stem-loop with a 6 to 8 base loop, the size that can form a
+   kissing interaction with a complementary loop."
+  (hairpin (stem 5 12) (loop 6 8) :wobble #t)
+  :category 'rna-structure :alphabet 'rna
+  :scan #f)
+
+;; ------------------------------------------------------- translation control
+
+(defmotif iron-responsive-element
+  "Iron responsive element. IRP1 and IRP2 bind the CAGUGH loop of this hairpin
+   when iron is scarce, blocking ferritin translation and stabilising the
+   transferrin receptor message."
+  (hairpin (stem 5 6) (iupac "CAGUGH") :wobble #t)
+  :category 'utr :alphabet 'rna :example "GGGGCCAGUGUGCCCC"
+  :ref "Hentze & Kuhn 1996, PNAS 93:8175")
+
+(defmotif ire-loop
+  "The bare IRE apical loop CAGUGH, without the stem context."
+  (iupac "CAGUGH")
+  :category 'utr :alphabet 'rna :example "CAGUGU"
+  :scan #f)
+
+(defmotif secis-core
+  "Core of the SECIS element, which recodes an in-frame UGA as selenocysteine.
+   The non-Watson-Crick quartet is the invariant part."
+  (seq (iupac "AUGA") (gap 8 20) (iupac "GA"))
+  :category 'utr :alphabet 'rna
+  :ref "Walczak et al. 1996, RNA 2:367"
+  :scan #f)
+
+(defmotif upstream-orf
+  "An upstream open reading frame in a 5' UTR: a start codon in good context
+   followed by a short reading frame and a stop. uORFs dampen translation of
+   the main ORF and mediate stress responses."
+  (seq (any-of "AG") (gap 2 2) "AUG" (repeat (gap 3 3) 2 60) (alt "UAA" "UAG" "UGA"))
+  :category 'utr :alphabet 'rna
+  :scan #f)
+
+(defmotif kozak-rna
+  "Kozak context in RNA form."
+  (iupac "GCCRCCAUGG")
+  :category 'translation :alphabet 'rna
+  :scan #f)
+
+(defmotif shine-dalgarno-rna
+  "Shine-Dalgarno sequence in RNA form, pairing with the 16S rRNA 3' end."
+  (iupac "AGGAGG")
+  :category 'translation :alphabet 'rna
+  :scan #f)
+
+(defmotif slippery-site
+  "Ribosomal frameshift slippery heptamer X XXY YYZ. Followed by a downstream
+   pseudoknot it makes the ribosome shift back one base, as in retroviral
+   gag-pol and coronavirus ORF1ab."
+  (iupac "NNNWWWH")
+  :category 'recoding :alphabet 'rna :example "UUUAAAC"
+  :ref "Brierley et al. 1989, Cell 57:537"
+  :scan #f)
+
+(defmotif slippery-site-canonical
+  "The two most common slippery heptamers, UUUAAAC and UUUUUUA."
+  (alt "UUUAAAC" "UUUUUUA" "AAAAAAC" "GGGAAAC")
+  :category 'recoding :alphabet 'rna)
+
+;; ---------------------------------------------------------- mRNA stability
+
+(defmotif au-rich-element
+  "AU-rich element core AUUUA. In a U-rich context it recruits decay factors
+   and shortens the life of cytokine and proto-oncogene messages."
+  (literal "AUUUA")
+  :category 'stability :alphabet 'rna :example "AUUUA"
+  :ref "Shaw & Kamen 1986, Cell 46:659")
+
+(defmotif are-class-ii
+  "Class II AU-rich element: overlapping AUUUA pentamers in a U-rich stretch,
+   the strongly destabilising form found in TNF and GM-CSF messages."
+  (seq (iupac "WW") "A" (repeat (literal "UUUA") 2 6) (iupac "WW"))
+  :category 'stability :alphabet 'rna :example "UUAUUUAUUUAUU")
+
+(defmotif are-nonamer
+  "The nonamer UUAUUUAWW used to score functional AU-rich elements."
+  (iupac "UUAUUUAWW")
+  :category 'stability :alphabet 'rna
+  :scan #f)
+
+(defmotif pumilio-response-element
+  "Pumilio response element UGUANAUA, bound by PUF proteins to repress
+   and destabilise target messages."
+  (iupac "UGUANAUA")
+  :category 'stability :alphabet 'rna :example "UGUAAAUA")
+
+(defmotif histone-stem-loop
+  "Histone mRNA 3' stem-loop. Replication-dependent histone messages end
+   here instead of carrying a poly(A) tail; SLBP binds it."
+  (iupac "GGYYCUUUUMAGRGCC")
+  :category 'stability :alphabet 'rna :example "GGCUCUUUUCAGAGCC"
+  :ref "Marzluff et al. 2008, Nat Rev Genet 9:843")
+
+(defmotif zipcode-beta-actin
+  "Beta-actin zipcode, the 54-base 3' UTR element that localises the message
+   to the leading edge of migrating fibroblasts. Core ACACCC."
+  (literal "ACACCC")
+  :category 'localisation :alphabet 'rna
+  :scan #f)
+
+(defmotif cpe
+  "Cytoplasmic polyadenylation element, bound by CPEB to extend the poly(A)
+   tail and activate translation of stored maternal messages."
+  (iupac "UUUUUAU")
+  :category 'translation :alphabet 'rna :example "UUUUUAU"
+  :scan #f)
+
+;; ------------------------------------------------------------ modification
+
+(defmotif m6a-drach
+  "DRACH consensus of N6-methyladenosine. The methylated A is the fourth base.
+   The commonest instance is GGACU."
+  (iupac "DRACH")
+  :category 'modification :alphabet 'rna :example "GGACU"
+  :ref "Dominissini et al. 2012, Nature 485:201"
+  :scan #f)
+
+(defmotif m6a-ggact
+  "The GGACU core, the most frequently methylated DRACH instance."
+  (literal "GGACU")
+  :category 'modification :alphabet 'rna)
+
+(defmotif pseudouridine-box-h
+  "H box of H/ACA snoRNAs, ANANNA, which guides pseudouridylation."
+  (iupac "ANANNA")
+  :category 'modification :alphabet 'rna
+  :scan #f)
+
+(defmotif snorna-c-box
+  "C box of C/D box snoRNAs, which guide 2'-O-methylation."
+  (iupac "RUGAUGA")
+  :category 'modification :alphabet 'rna :example "AUGAUGA"
+  :scan #f)
+
+(defmotif snorna-d-box
+  "D box of C/D box snoRNAs. The methylated nucleotide of the target sits
+   exactly five bases upstream of it."
+  (literal "CUGA")
+  :category 'modification :alphabet 'rna
+  :scan #f)
+
+;; ------------------------------------------------------------- small RNAs
+
+(defmotif mirna-seed-let7
+  "Target site for the let-7 seed. let-7 was the second microRNA found and
+   is conserved from worms to humans."
+  (literal "CUACCUC")
+  :category 'mirna :alphabet 'rna :example "CUACCUC")
+
+(defmotif mirna-seed-mir21
+  "Target site for the miR-21 seed. miR-21 is the microRNA most consistently
+   over-expressed in solid tumours."
+  (literal "AUAAGCUA")
+  :category 'mirna :alphabet 'rna)
+
+(defmotif mirna-seed-mir155
+  "Target site for the miR-155 seed."
+  (literal "AGCAUUAA")
+  :category 'mirna :alphabet 'rna)
+
+(defmotif pre-mirna-hairpin
+  "Precursor microRNA hairpin: a stem of roughly 22 base pairs with a
+   terminal loop. Drosha and Dicer cut it into the mature duplex."
+  (hairpin (stem 18 30) (loop 4 15) :wobble #t :mismatches 4)
+  :category 'mirna :alphabet 'rna
+  :scan #f)
+
+(defmotif piwi-1u
+  "The 5' uridine preference of piRNAs, a strong signature of the
+   PIWI-bound small RNA class."
+  (seq at-start "U")
+  :category 'small-rna :alphabet 'rna
+  :scan #f)
+
+;; ------------------------------------------------------- splicing and 3' end
+
+(defmotif branch-point-rna
+  "Branch point adenosine in its RNA context."
+  (iupac "YURAY")
+  :category 'splicing-rna :alphabet 'rna :example "CUGAC"
+  :scan #f)
+
+(defmotif u1-binding-site
+  "5' splice site as U1 snRNA sees it, in RNA form."
+  (iupac "MAGGURAGU")
+  :category 'splicing-rna :alphabet 'rna
+  :scan #f)
+
+(defmotif poly-a-signal-rna
+  "Poly(A) signal AAUAAA in RNA form."
+  (literal "AAUAAA")
+  :category 'polyadenylation :alphabet 'rna
+  :scan #f)
+
+(defmotif poly-a-tail
+  "A poly(A) tail: a run of at least 12 adenosines."
+  (run "A" 12)
+  :category 'polyadenylation :alphabet 'rna
+  :scan #f)
+
+;; ------------------------------------------------------------------- tRNA
+
+(defmotif trna-t-loop
+  "The T-loop signature GUUCGA (T-psi-C-G in the modified RNA). One of the
+   most conserved sequences in all of biology."
+  (literal "GUUCGA")
+  :category 'trna :alphabet 'rna :example "GUUCGA"
+  :scan #f)
+
+(defmotif trna-d-loop
+  "The dihydrouridine loop signature, a GG dinucleotide in a short loop."
+  (seq "GG" (gap 1 3) (any-of "AU"))
+  :category 'trna :alphabet 'rna
+  :scan #f)
+
+(defmotif trna-cca-end
+  "The CCA end added to every tRNA after transcription. The amino acid
+   attaches to its terminal adenosine."
+  (seq "CCA" at-end)
+  :category 'trna :alphabet 'rna
+  :scan #f)
+
+(defmotif trna-acceptor-stem
+  "tRNA acceptor stem: seven base pairs at the ends of the molecule."
+  (hairpin (stem 7 7) (loop 50 80) :wobble #t :mismatches 1)
+  :category 'trna :alphabet 'rna
+  :scan #f)
+
+;; ------------------------------------------------------------ riboswitches
+
+(defmotif riboswitch-purine
+  "Conserved core of the purine riboswitch aptamer. The pyrimidine at
+   position 74 decides whether it reads guanine or adenine."
+  (seq (iupac "CUCUUAUA") (gap 20 60) (iupac "UAUAAUCG"))
+  :category 'riboswitch :alphabet 'rna
+  :scan #f)
+
+(defmotif riboswitch-sam
+  "Conserved element of the S-adenosylmethionine (SAM-I) riboswitch,
+   which controls methionine and cysteine biosynthesis in Gram positives."
+  (seq (iupac "CUUAUCAAGAG") (gap 20 80) (iupac "GGCUGGUGG"))
+  :category 'riboswitch :alphabet 'rna
+  :scan #f)
+
+(defmotif ires-poly-u
+  "Polypyrimidine tract of a type II internal ribosome entry site,
+   found in picornaviral 5' UTRs."
+  (seq (run "CU" 8 20) (gap 15 25) "AUG")
+  :category 'ires :alphabet 'rna
+  :scan #f)
+
+(defmotif rev-response-element-core
+  "Stem-loop IIB core of the HIV-1 Rev response element, the site Rev binds
+   to export unspliced viral RNA."
+  (fuzzy 2 (literal "GGGCGCAGCGUCAAUGACGCUGACGGUACAGGCC"))
+  :category 'viral :alphabet 'rna)
+
+(defmotif tar-element
+  "HIV-1 TAR element apical loop, bound by Tat with cyclin T1 to allow
+   transcription elongation."
+  (fuzzy 1 (literal "CUGGGA"))
+  :category 'viral :alphabet 'rna
+  :scan #f)

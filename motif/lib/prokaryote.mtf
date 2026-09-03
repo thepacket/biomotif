@@ -1,0 +1,270 @@
+;;; prokaryote.mtf -- bacterial promoters, ribosome binding sites, terminators,
+;;; operators and chromosome landmarks. Consensus sequences are exactly that:
+;;; consensus. Real sites deviate, which is what (fuzzy k ...) and PWMs are for.
+
+;; ---------------------------------------------------------------- promoters
+
+(defmotif minus-35
+  "Sigma-70 -35 element. The consensus TTGACA is rarely matched exactly;
+   most functional -35 boxes carry one or two mismatches."
+  (iupac "TTGACA")
+  :category 'promoter :alphabet 'dna :example "TTGACA"
+  :ref "Harley & Reynolds 1987, Nucleic Acids Res 15:2343"
+  :scan #f)
+
+(defmotif minus-10
+  "Sigma-70 -10 element, the Pribnow box. Consensus TATAAT; positions T-12 and
+   T-7 are the most conserved and the least tolerant of substitution."
+  (iupac "TATAAT")
+  :category 'promoter :alphabet 'dna :example "TATAAT"
+  :ref "Pribnow 1975, PNAS 72:784"
+  :scan #f)
+
+(defmotif sigma70-promoter
+  "A full sigma-70 promoter: -35 and -10 boxes separated by 15 to 19 bases,
+   17 being optimal. Allows one mismatch in each box, which is what most
+   real E. coli promoters look like."
+  (seq (named 'box35 (fuzzy 1 (iupac "TTGACA")))
+       (named 'spacer (gap 15 19))
+       (named 'box10 (fuzzy 1 (iupac "TATAAT"))))
+  :category 'promoter :alphabet 'dna :example "TTGACAgcgtacgtacgtacgTATAAT"
+  :ref "Hawley & McClure 1983, Nucleic Acids Res 11:2237")
+
+(defmotif extended-minus-10
+  "Extended -10 promoter. A TG dinucleotide one base upstream of the -10 box
+   can compensate for a missing or weak -35 element."
+  (seq "TG" (gap 1 1) (fuzzy 1 (iupac "TATAAT")))
+  :category 'promoter :alphabet 'dna :example "TGnTATAAT"
+  :ref "Mitchell et al. 2003, Nucleic Acids Res 31:4689"
+  :scan #f)
+
+(defmotif up-element
+  "UP element: an AT-rich sequence upstream of -35 bound by the alpha subunit
+   C-terminal domain. Boosts transcription up to 30-fold at rrn promoters."
+  (iupac "AAAWWTWTTTTNNNAAANNN")
+  :category 'promoter :alphabet 'dna :example "AAAATTATTTTTGCAAAAGC"
+  :ref "Estrem et al. 1998, Genes Dev 12:2134")
+
+(defmotif discriminator
+  "GC-rich discriminator between the -10 box and the start site. Its length and
+   composition set the promoter's sensitivity to ppGpp during the stringent response."
+  (seq (fuzzy 1 (iupac "TATAAT")) (run "GC" 4 9) (any-of "AG"))
+  :category 'promoter :alphabet 'dna
+  :scan #f)
+
+(defmotif sigma54-promoter
+  "Sigma-54 (RpoN) promoter, recognised at -24/-12 rather than -35/-10.
+   Needs an enhancer-bound activator and ATP hydrolysis to open."
+  (seq (named 'box24 (iupac "TGGCAC")) (gap 5 5) (named 'box12 (iupac "TTGCW")))
+  :category 'promoter :alphabet 'dna :example "TGGCACgcgtaTTGCA"
+  :ref "Barrios et al. 1999, Nucleic Acids Res 27:4305")
+
+(defmotif sigma32-minus-10
+  "Sigma-32 (RpoH) -10 element of the heat shock regulon."
+  (fuzzy 1 (iupac "CCCCATNTA"))
+  :category 'promoter :alphabet 'dna :example "CCCCATTTA"
+  :scan #f)
+
+(defmotif sigma38-minus-10
+  "Sigma-38 (RpoS) -10 element of the general stress regulon. A C at -13
+   distinguishes many RpoS-dependent promoters from sigma-70 ones."
+  (iupac "CTATACT")
+  :category 'promoter :alphabet 'dna :example "CTATACT"
+  :scan #f)
+
+(defmotif sigma28-promoter
+  "Sigma-28 (FliA) flagellar promoter: -35 TAAA and -10 GCCGATAA."
+  (seq (iupac "TAAA") (gap 13 17) (iupac "GCCGATAA"))
+  :category 'promoter :alphabet 'dna)
+
+;; ------------------------------------------------------- translation signals
+
+(defmotif shine-dalgarno
+  "Shine-Dalgarno sequence, complementary to the 3' end of 16S rRNA (anti-SD CCUCC).
+   The core AGGAGG sits 5 to 10 bases upstream of the start codon."
+  (iupac "AGGAGG")
+  :category 'rbs :alphabet 'dna :example "AGGAGG"
+  :ref "Shine & Dalgarno 1974, PNAS 71:1342"
+  :scan #f)
+
+(defmotif ribosome-binding-site
+  "A complete prokaryotic RBS: a Shine-Dalgarno core, a 4 to 12 base spacer
+   and a start codon. One mismatch is allowed in the SD, as most genes have."
+  (seq (named 'sd (fuzzy 1 (iupac "AGGAGG")))
+       (named 'spacer (gap 4 12))
+       (named 'start (alt "ATG" "GTG" "TTG")))
+  :category 'rbs :alphabet 'dna :example "AGGAGGtataccATG"
+  :ref "Ringquist et al. 1992, Mol Microbiol 6:1219")
+
+(defmotif strong-rbs
+  "The strong synthetic RBS used in many expression vectors: a perfect
+   Shine-Dalgarno with an 8-base spacer to ATG."
+  (seq "AAGGAGG" (gap 5 9) "ATG")
+  :category 'rbs :alphabet 'dna :example "AAGGAGGatatacatATG")
+
+(defmotif start-codon
+  "Bacterial start codon. ATG is used by roughly 80% of E. coli genes,
+   GTG by 12% and TTG by 8%."
+  (alt "ATG" "GTG" "TTG")
+  :category 'coding :alphabet 'dna :example "ATG"
+  :scan #f)
+
+(defmotif stop-codon
+  "Any of the three stop codons. TAA is the most common in E. coli."
+  (alt "TAA" "TAG" "TGA")
+  :category 'coding :alphabet 'dna :example "TAA"
+  :scan #f)
+
+;; ------------------------------------------------------------- terminators
+
+(defmotif rho-independent-terminator
+  "Intrinsic (Rho-independent) terminator: a GC-rich hairpin followed by a
+   run of uridines. The hairpin stalls RNA polymerase and the weak rU:dA
+   hybrid lets the transcript fall off."
+  (seq (named 'hairpin (hairpin (stem 5 10) (loop 3 8)))
+       (named 'utail (run "T" 4 9)))
+  :category 'terminator :alphabet 'dna :example "GCGCCcgatGGCGCTTTTTTT"
+  :ref "d'Aubenton Carafa et al. 1990, J Mol Biol 216:835")
+
+(defmotif t7-terminator
+  "The T7 phage transcription terminator carried by pET vectors."
+  (literal "CTAGCATAACCCCTTGGGGCCTCTAAACGGGTCTTGAGGGGTTTTTTG")
+  :category 'terminator :alphabet 'dna)
+
+(defmotif rrnb-t1-terminator
+  "The rrnB T1 terminator, the standard strong terminator in E. coli vectors."
+  (literal "AGCCCGCCTAATGAGCGGGCTTTTTTTT")
+  :category 'terminator :alphabet 'dna)
+
+;; --------------------------------------------------------------- operators
+
+(defmotif lac-operator
+  "The primary lac operator O1, a near-palindrome bound by the Lac repressor.
+   Two auxiliary operators O2 and O3 loop the DNA with it."
+  (fuzzy 2 (literal "AATTGTGAGCGGATAACAATT"))
+  :category 'operator :alphabet 'dna :example "AATTGTGAGCGGATAACAATT"
+  :ref "Gilbert & Maxam 1973, PNAS 70:3581")
+
+(defmotif lac-operator-symmetric
+  "The perfectly palindromic lac operator Osym, which binds LacI more tightly
+   than the natural O1 and is used in tightly repressed expression vectors."
+  (literal "AATTGTGAGCGCTCACAATT")
+  :category 'operator :alphabet 'dna)
+
+(defmotif crp-site
+  "CRP (CAP) binding site. The core is a TGTGA half-site, six bases, then the
+   inverted TCACA. Binding bends the DNA by about 90 degrees."
+  (seq (named 'left "TGTGA") (gap 6 6) (named 'right "TCACA"))
+  :category 'operator :alphabet 'dna :example "TGTGAtctagaTCACA"
+  :ref "Berg & von Hippel 1988, J Mol Biol 200:709")
+
+(defmotif tet-operator
+  "tetO2, bound by the Tet repressor and released by tetracycline or
+   doxycycline. The basis of Tet-On and Tet-Off systems."
+  (literal "TCCCTATCAGTGATAGAGA")
+  :category 'operator :alphabet 'dna)
+
+(defmotif lexa-box
+  "LexA box (SOS box). LexA represses the SOS regulon until RecA-stimulated
+   autocleavage removes it after DNA damage."
+  (seq "CTGT" (gap 8 8) "ACAG")
+  :category 'operator :alphabet 'dna :example "CTGTatatatatACAG"
+  :ref "Wertman & Mount 1985, J Bacteriol 163:376")
+
+(defmotif fur-box
+  "Fur box, the iron-responsive operator bound by Fur loaded with Fe(II)."
+  (fuzzy 3 (literal "GATAATGATAATCATTATC"))
+  :category 'operator :alphabet 'dna)
+
+(defmotif trp-operator
+  "trp operator, overlapping the trp promoter and bound by TrpR charged
+   with tryptophan."
+  (fuzzy 2 (literal "ACTAGTTAACTAGTACGCAAGTT"))
+  :category 'operator :alphabet 'dna)
+
+(defmotif ara-i1
+  "araI1 half-site of the araBAD operator, bound by AraC."
+  (fuzzy 2 (literal "AGCGGATCCTACCTGACGCT"))
+  :category 'operator :alphabet 'dna)
+
+;; ------------------------------------------------- nucleoid and chromosome
+
+(defmotif dnaa-box
+  "DnaA box. Five of them in oriC nucleate replication initiation."
+  (iupac "TTATNCACA")
+  :category 'replication :alphabet 'dna :example "TTATCCACA"
+  :ref "Fuller et al. 1984, Cell 38:889"
+  :scan #f)
+
+(defmotif oric-13mer
+  "The AT-rich 13-mer repeat in the DNA unwinding element of oriC,
+   where the duplex first opens."
+  (iupac "GATCTNTTNTTTT")
+  :category 'replication :alphabet 'dna :example "GATCTGTTCTTTT"
+  :scan #f)
+
+(defmotif chi-site
+  "Chi site. RecBCD switches from destructive nuclease to recombinase when it
+   runs into one, which is why Chi sites are over-represented on the leading strand."
+  (literal "GCTGGTGG")
+  :category 'recombination :alphabet 'dna :example "GCTGGTGG"
+  :ref "Smith et al. 1981, Cell 24:429")
+
+(defmotif ihf-site
+  "Integration host factor binding site. IHF bends DNA by up to 160 degrees
+   and organises the nucleoid as well as phage lambda integration."
+  (iupac "WATCAANNNNTTR")
+  :category 'nucleoid :alphabet 'dna :example "TATCAAGCATTTA"
+  :scan #f)
+
+(defmotif fis-site
+  "Fis binding site. Fis is the most abundant nucleoid protein in fast growth
+   and activates rRNA promoters."
+  (iupac "GNTYAAAWTTTRANC")
+  :category 'nucleoid :alphabet 'dna
+  :scan #f)
+
+(defmotif ter-site
+  "Ter site, bound by Tus to form a replication fork trap that permits
+   forks to pass in one direction only."
+  (iupac "GTTGTAACTAAAT")
+  :category 'replication :alphabet 'dna
+  :scan #f)
+
+(defmotif rep-element
+  "Repetitive extragenic palindromic (REP) element, a short palindrome present
+   in hundreds of copies in enterobacterial intergenic regions."
+  (fuzzy 2 (literal "GCCGGATGCGGCGTGAACGCCTTATCCGGCCTAC"))
+  :category 'repeat :alphabet 'dna)
+
+(defmotif tn5-mosaic-end
+  "Tn5 mosaic end, the 19 bp sequence recognised by Tn5 transposase.
+   Nextera and ATAC-seq use it to insert sequencing adapters."
+  (literal "CTGTCTCTTATACACATCT")
+  :category 'transposon :alphabet 'dna :example "CTGTCTCTTATACACATCT")
+
+(defmotif is1-inverted-repeat
+  "Terminal inverted repeat of IS1, the smallest and most common E. coli
+   insertion sequence."
+  (fuzzy 2 (literal "GGTGATGCTGCCAACTTACT"))
+  :category 'transposon :alphabet 'dna)
+
+(defmotif crispr-repeat-ecoli
+  "Direct repeat of the E. coli type I-E CRISPR array. Spacers of about 32 bases
+   sit between copies."
+  (fuzzy 2 (literal "GTGTTCCCCGCGCCAGCGGGGATAAACCG"))
+  :category 'crispr :alphabet 'dna)
+
+(defmotif riboswitch-tpp-core
+  "Conserved core of the thiamine pyrophosphate riboswitch aptamer,
+   the most widespread riboswitch class."
+  (seq (iupac "CTGAGA") (gap 20 60) (iupac "CTTGAACC"))
+  :category 'riboswitch :alphabet 'dna
+  :scan #f)
+
+(defmotif attenuator-trp-leader
+  "The tandem tryptophan codons in the trpL leader peptide. Slow translation
+   here when tryptophan is scarce lets the antiterminator form."
+  (seq "TGG" "TGG")
+  :category 'attenuation :alphabet 'dna :example "TGGTGG"
+  :scan #f)
