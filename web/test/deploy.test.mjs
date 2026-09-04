@@ -52,3 +52,43 @@ test("the image builds with Node and carries no Python", () => {
   assert.ok(!/python/i.test(docker), "the web app has no Python in its toolchain");
   assert.match(docker, /tools\/build\.mjs --dist web\/dist/);
 });
+
+/* ------------------------------------------------------------- licensing */
+
+test("the licence, the notice and the contributing guide agree", () => {
+  const licence = read("LICENSE");
+  assert.match(licence, /^MIT License/);
+  assert.match(licence, /Copyright \(c\) 2026 Andre Paquette/);
+  assert.match(licence, /WITHOUT WARRANTY OF ANY KIND/);
+
+  const readme = read("README.md");
+  assert.match(readme, /MIT — Copyright \(c\) 2026 Andre Paquette/);
+  assert.ok(readme.includes("[LICENSE](LICENSE)"));
+  assert.ok(readme.includes("[CONTRIBUTING.md](CONTRIBUTING.md)"));
+
+  const pkg = JSON.parse(read("package.json"));
+  assert.equal(pkg.license, "MIT");
+  assert.equal(pkg.author, "Andre Paquette");
+});
+
+test("bundled data keeps its own terms, and they are named", () => {
+  /* The MIT licence covers the code, not the catalogues the library draws on.
+     Each source named here must actually be cited by the file that uses it. */
+  const contributing = read("CONTRIBUTING.md");
+  for (const [source, file] of [["REBASE", "restriction.mtf"],
+                                ["PROSITE", "protein.mtf"],
+                                ["PLACE", "plant.mtf"]]) {
+    assert.ok(contributing.includes(source), `${source} is not credited`);
+    assert.ok(read("library", file).includes(source),
+      `${file} does not cite ${source}, so crediting it would be wrong`);
+  }
+  assert.ok(contributing.includes("does not accept pull requests"));
+});
+
+test("pull requests are closed automatically, as CONTRIBUTING says they are", () => {
+  const workflow = read(".github", "workflows", "close-pull-requests.yml");
+  assert.match(workflow, /pull_request_target/);
+  assert.match(workflow, /pull-requests: write/);
+  assert.match(workflow, /state: "closed"/);
+  assert.ok(workflow.includes("thepacket/biomotif"), "the link must point at this repo");
+});
