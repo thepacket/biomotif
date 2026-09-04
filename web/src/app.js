@@ -33,6 +33,7 @@ const state = {
   provider: null,     // the assistant, once one is available
   asking: null,       // AbortController for the request in flight
   fetching: null,     // AbortController for the request in flight
+  railObserver: null, // watches the rail so the splitter's bounds stay true
 };
 
 /* ------------------------------------------------------------------ library */
@@ -716,7 +717,111 @@ const DEMO_LABELS = {
   proteins: "proteins",
 };
 
+/* --------------------------------------------------------------- splitter */
+
+const CHIPS_HEIGHT = "biomotif-chips-height";
+const CHIPS_MIN = 34;      // one row of chips
+const LIST_MIN = 120;      // enough of the motif list to still be a list
+const CHIPS_DEFAULT = 132;
+let chipsWanted = CHIPS_DEFAULT;   // what the reader asked for, before clamping
+
+function chipsBounds() {
+  const rail = $(".rail").getBoundingClientRect();
+  const chips = $("#category-chips").getBoundingClientRect();
+  // Everything above the chips plus everything below the list must still fit.
+  const fixed = (chips.top - rail.top) + $("#rail-splitter").offsetHeight;
+  return [CHIPS_MIN, Math.max(CHIPS_MIN, rail.height - fixed - LIST_MIN)];
+}
+
+function setChipsHeight(px, remember = true) {
+  const [lo, hi] = chipsBounds();
+  const height = Math.round(Math.min(hi, Math.max(lo, px)));
+  $("#category-chips").style.height = `${height}px`;
+  const splitter = $("#rail-splitter");
+  splitter.setAttribute("aria-valuenow", String(height));
+  splitter.setAttribute("aria-valuemin", String(lo));
+  splitter.setAttribute("aria-valuemax", String(Math.round(hi)));
+  if (remember) {
+    try { localStorage.setItem(CHIPS_HEIGHT, String(height)); } catch { /* storage refused */ }
+  }
+  return height;
+}
+
+function wireSplitter() {
+  const splitter = $("#rail-splitter");
+  const chips = $("#category-chips");
+  let startY = 0;
+  let startHeight = 0;
+
+  /* The bounds depend on the rail, whose height is set by the grid row it
+     shares with the results and keeps changing as they render. Rather than
+     guess when it has settled, re-read them whenever someone is about to use
+     the splitter — which is the only moment they have to be right. */
+  const refresh = () => setChipsHeight(chipsWanted, false);
+  splitter.addEventListener("pointerenter", refresh);
+  splitter.addEventListener("focus", refresh);
+
+  splitter.addEventListener("pointerdown", (e) => {
+    refresh();
+    startY = e.clientY;
+    startHeight = chips.getBoundingClientRect().height;
+    splitter.setPointerCapture(e.pointerId);
+    splitter.classList.add("dragging");
+    e.preventDefault();
+  });
+  splitter.addEventListener("pointermove", (e) => {
+    if (!splitter.hasPointerCapture(e.pointerId)) return;
+    chipsWanted = setChipsHeight(startHeight + (e.clientY - startY));
+  });
+  const end = (e) => {
+    if (splitter.hasPointerCapture(e.pointerId)) splitter.releasePointerCapture(e.pointerId);
+    splitter.classList.remove("dragging");
+  };
+  splitter.addEventListener("pointerup", end);
+  splitter.addEventListener("pointercancel", end);
+
+  splitter.addEventListener("keydown", (e) => {
+    const step = e.shiftKey ? 48 : 16;
+    const now = chips.getBoundingClientRect().height;
+    if (e.key === "ArrowUp") chipsWanted = setChipsHeight(now - step);
+    else if (e.key === "ArrowDown") chipsWanted = setChipsHeight(now + step);
+    else if (e.key === "Home") chipsWanted = setChipsHeight(CHIPS_MIN);
+    else if (e.key === "End") chipsWanted = setChipsHeight(chipsBounds()[1]);
+    else return;
+    e.preventDefault();
+  });
+  // Double-click puts it back where it started.
+  splitter.addEventListener("dblclick", () => { chipsWanted = setChipsHeight(CHIPS_DEFAULT); });
+
+  let stored = null;
+  try { stored = localStorage.getItem(CHIPS_HEIGHT); } catch { /* storage refused */ }
+  chipsWanted = Number(stored) || CHIPS_DEFAULT;
+  setChipsHeight(chipsWanted, false);
+
+  /* The rail is only as tall as the grid row it shares with the results, so
+     until those have rendered the bounds are far too tight and would clamp a
+     remembered height away. settleSplitter() re-applies it once boot is done;
+     the observer keeps it honest when the window changes afterwards. */
+  if (typeof ResizeObserver === "function") {
+    let last = 0;
+    // Held on state: an observer that nothing references can be collected.
+    state.railObserver = new ResizeObserver(([entry]) => {
+      const height = Math.round(entry.contentRect.height);
+      if (height === last) return;
+      last = height;
+      setChipsHeight(chipsWanted, false);
+    });
+    state.railObserver.observe($(".rail"));
+  }
+}
+
+/** Re-apply the remembered split now that the rail has its real height. */
+function settleSplitter() {
+  if ($("#rail-splitter")) setChipsHeight(chipsWanted, false);
+}
+
 function wire() {
+  wireSplitter();
   $("#library-search").addEventListener("input", (e) => {
     state.filterText = e.target.value.trim();
     renderRail();
@@ -869,6 +974,7 @@ function boot() {
   renderRail();
   run();
   initAssistant();
+  settleSplitter();
 }
 
 boot();

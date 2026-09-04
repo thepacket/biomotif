@@ -173,8 +173,37 @@ textarea.field { resize: vertical; font-family: var(--mono); font-size: 12.5px; 
 /* ------------------------------------------------------------------- rail */
 
 .rail { position: sticky; top: 74px; max-height: calc(100vh - 92px); display: flex; flex-direction: column; }
-.rail .panel-body { display: flex; flex-direction: column; gap: 9px; padding-bottom: 9px; }
-.entry-list { overflow-y: auto; border-top: 1px solid var(--line); flex: 1; min-height: 220px; }
+.rail .panel-body { display: flex; flex-direction: column; gap: 9px; padding-bottom: 9px; flex: 0 0 auto; }
+
+/* The categories and the motif list share the rail's height. The splitter
+   between them sets the division; the list takes whatever is left. */
+#category-chips {
+  flex: 0 0 auto;
+  height: 132px;
+  overflow-y: auto;
+  padding: 0 14px 9px;
+  align-content: flex-start;
+}
+.splitter {
+  flex: 0 0 auto;
+  height: 11px;
+  background: var(--surface-2);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  cursor: row-resize;
+  position: relative;
+  touch-action: none;
+}
+.splitter::after {
+  content: "";
+  position: absolute; left: 50%; top: 5px;
+  width: 30px; height: 1px; margin-left: -15px;
+  background: var(--line-strong);
+}
+.splitter:hover, .splitter:focus-visible { background: var(--accent-soft); }
+.splitter:hover::after, .splitter:focus-visible::after { background: var(--accent); }
+.splitter.dragging { background: var(--accent-soft); }
+.entry-list { overflow-y: auto; flex: 1 1 auto; min-height: 120px; }
 .entry {
   display: block; width: 100%; text-align: left;
   padding: 8px 14px;
@@ -354,5 +383,8 @@ details.help > div { padding-top: 8px; }
   .workbench { grid-template-columns: 1fr; padding: 12px; }
   .rail { position: static; max-height: none; }
   .entry-list { max-height: 300px; }
+  /* Stacked on a narrow screen there is no shared height to divide. */
+  .splitter { display: none; }
+  #category-chips { height: auto; max-height: 200px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

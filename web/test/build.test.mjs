@@ -85,6 +85,31 @@ test("the self-contained build is a fragment the Artifact viewer wraps", () => {
   assert.ok(statSync(join(ROOT, "web", "biomotif.html")).size < 16 * 1024 * 1024);
 });
 
+test("the rail splitter is reachable without a mouse", () => {
+  /* It divides the category chips from the motif list, so it has to be a real
+     separator: focusable, labelled, and driven by the keyboard as well as by
+     dragging. */
+  const src = readFileSync(join(ROOT, "web", "src", "index.html"), "utf8");
+  const splitter = src.match(/<div class="splitter"[^>]*>/s)[0];
+  assert.match(splitter, /role="separator"/);
+  assert.match(splitter, /aria-orientation="horizontal"/);
+  assert.match(splitter, /tabindex="0"/);
+  assert.match(splitter, /aria-label="[^"]+"/);
+  assert.ok(src.indexOf('id="category-chips"') < src.indexOf('class="splitter"'));
+  assert.ok(src.indexOf('class="splitter"') < src.indexOf('id="entry-list"'));
+
+  const app = readFileSync(join(ROOT, "web", "src", "app.js"), "utf8");
+  for (const key of ["ArrowUp", "ArrowDown", "Home", "End", "dblclick"])
+    assert.ok(app.includes(key), `the splitter should answer to ${key}`);
+  assert.match(app, /setPointerCapture/, "a drag must keep the pointer even when it leaves the bar");
+  assert.match(app, /localStorage/, "the split should be remembered");
+
+  const css = readFileSync(join(ROOT, "web", "src", "app.css"), "utf8");
+  assert.match(css, /\.splitter[\s\S]*?touch-action: none/, "a touch drag must not scroll the page");
+  assert.match(css, /\.splitter[\s\S]*?cursor: row-resize/);
+  assert.match(css, /\.splitter \{ display: none; \}/, "stacked on a narrow screen there is nothing to divide");
+});
+
 test("bundling twice gives the same bytes", () => {
   assert.equal(bundleModules(), bundleModules());
 });
