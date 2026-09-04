@@ -82,13 +82,28 @@ test("bundled data keeps its own terms, and they are named", () => {
     assert.ok(read("library", file).includes(source),
       `${file} does not cite ${source}, so crediting it would be wrong`);
   }
-  assert.ok(contributing.includes("does not accept pull requests"));
 });
 
-test("pull requests are closed automatically, as CONTRIBUTING says they are", () => {
-  const workflow = read(".github", "workflows", "close-pull-requests.yml");
-  assert.match(workflow, /pull_request_target/);
-  assert.match(workflow, /pull-requests: write/);
-  assert.match(workflow, /state: "closed"/);
-  assert.ok(workflow.includes("thepacket/biomotif"), "the link must point at this repo");
+test("the contributing guide tells a contributor what to actually do", () => {
+  /* This project takes pull requests, so the guide has to be usable: how to
+     run it, how to add a motif, and which generated files CI will check. */
+  const contributing = read("CONTRIBUTING.md");
+  assert.ok(contributing.includes("Pull requests are welcome"));
+  for (const command of ["npm test", "npm run dist", "npm run serve",
+                         "npm run data", "npm run index", "npm run build"])
+    assert.ok(contributing.includes(command), `${command} is not explained`);
+  for (const key of [":example", ":ref", ":category", ":alphabet", ":scan #f"])
+    assert.ok(contributing.includes(key), `${key} is not documented`);
+  assert.ok(contributing.includes("defmotif") && contributing.includes("defenzyme"));
+  assert.ok(contributing.includes("MIT licence"), "a contributor should be told the terms");
+});
+
+test("nothing claims an automation this project does not have", () => {
+  /* The guide was copied from a repository that refuses pull requests and
+     closes them with a workflow. This one accepts them, so both the claim and
+     the workflow must be gone. */
+  const contributing = read("CONTRIBUTING.md");
+  assert.ok(!/closed automatically|automated workflow|closed unread/i.test(contributing));
+  assert.throws(() => read(".github", "workflows", "close-pull-requests.yml"),
+    "a PR-closing workflow would contradict the guide");
 });

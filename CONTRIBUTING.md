@@ -1,38 +1,95 @@
 # Contributing
 
-**This project does not accept pull requests.**
+Pull requests are welcome, and so are issues that never become one.
 
-Biomotif is developed as a personal project with a deliberately narrow scope.
-Pull requests opened against this repository will be closed unread, and an
-automated workflow closes them on arrival. Please do not spend your time
-preparing one.
+The most valuable contribution is **a motif that is wrong, or a motif that is
+missing**. The library carries 487 definitions and only 72 of them cite a paper;
+any of them may be mistaken, and a short pattern that matches by chance is easy
+to mistake for a finding. If a consensus disagrees with the literature or with
+your bench results, that is worth an issue even if you never touch the code.
 
-## What is welcome
+## Getting it running
 
-**Bug reports, particularly ones about incorrect biology.** If a motif in the
-library has the wrong consensus, cites a paper that says something else, or
-matches where it should not, please open an issue with the motif name, the
-sequence you ran it against, what Biomotif reported and what you expected.
-Those reports are valuable and will be acted on. Any of the 487 definitions may
-be wrong, and a short pattern that matches by chance is easy to mistake for a
-finding.
+Node 20 or newer. There are no dependencies, and adding one needs a good reason
+— the whole app is served as static files with no build chain beyond
+`tools/build.mjs`.
 
-**Motifs that are missing.** If an element you rely on is not in the library,
-an issue naming it with a reference is useful even without any code.
+```bash
+npm test           # 126 tests
+npm run dist       # build web/dist
+npm run serve      # serve it with the deployed security policy
+```
 
-**Anything the language cannot express.** The engine is a regular language plus
-approximate matching, position weight matrices and one context-free construct
-for hairpins. There is no negation over a region, no computed property such as
-GC content, and no backreference. If you hit one of those walls doing real
-work, saying so is more useful than a patch, because the fix is a design
-decision rather than a change.
+`npm run serve` applies the same content security policy nginx sets, so a
+change that the policy would block fails locally instead of in production.
 
-## Forking
+## Adding a motif
 
-The MIT licence permits forking, modifying and redistributing this code,
-including for commercial use. If you want the project to go in a different
-direction, fork it — that is what the licence is for. The only requirement is
-that the copyright notice and licence text travel with the copy.
+Motifs live in `library/*.mtf` and are parsed in the browser exactly as
+written; nothing in the build rewrites them. Pick the file for the organism or
+molecule, and follow the shape of what is already there:
+
+```lisp
+(defmotif g-quadruplex
+  "G-quadruplex forming sequence: four G-tracts separated by short loops.
+   Common at telomeres, promoters and replication origins."
+  (seq (run "G" 3 6) (gap 1 7) (run "G" 3 6) (gap 1 7) (run "G" 3 6) (gap 1 7) (run "G" 3 6))
+  :category 'structure :alphabet 'dna :example "GGGTTAGGGTTAGGGTTAGGG"
+  :ref "Huppert & Balasubramanian 2005, Nucleic Acids Res 33:2908")
+```
+
+Restriction enzymes are shorter, written the way REBASE writes a site:
+
+```lisp
+(defenzyme EcoRI "G^AATTC")
+```
+
+What each part is for:
+
+- **The docstring** says what the element does biologically, not what the
+  expression matches. Someone reading the library should learn something.
+- **`:example`** is a sequence the motif must match. A test runs every example
+  against its own motif, so a wrong pattern fails CI rather than sitting in the
+  library looking plausible.
+- **`:ref`** is the paper. Add one if you have it; leaving it off is better than
+  guessing.
+- **`:category`** and **`:alphabet`** (`dna`, `rna` or `protein`) drive the
+  library filters and decide which sequences the motif is offered for.
+- **`:scan #f`** marks a template — something like `pam-spcas9` or an N-run that
+  matches almost anywhere. Scan skips these. If your motif would fire every few
+  bases, it is a template.
+
+Then rebuild and run the tests:
+
+```bash
+npm run index && npm run build && npm test
+```
+
+## Generated files must be rebuilt
+
+`data/`, `docs/LIBRARY.md` and `web/biomotif.html` are generated, and CI fails
+if they drift from their sources. Run `npm run data`, `npm run index` and
+`npm run build` before committing, and include the results in the change.
+
+## Changing the engine
+
+Every expected value in `web/test/` is written from the biology, not captured
+from a run, so a behaviour change fails rather than being rubber-stamped. Keep
+it that way: if a change makes a test fail, decide whether the old answer or
+the new one is right before touching the test.
+
+The language has deliberate limits. There is no negation over a region, no
+computed property such as GC content, and no backreference; the engine is a
+regular language plus approximate matching, weight matrices and one
+context-free construct for hairpins. Adding any of those is a design decision
+rather than a patch, so please open an issue first — it will be a better
+conversation than a review.
+
+## Style
+
+Match the surrounding code. Comments explain why something is the way it is,
+not what the line does; several in this repo exist because the obvious version
+was wrong first, and those are worth keeping.
 
 ## Attribution of bundled data
 
@@ -49,7 +106,8 @@ their own terms, which this project's MIT licence does not override:
 - Plant elements draw on [PLACE](https://www.dna.affrc.go.jp/PLACE/) (Higo et
   al. 1999) and PlantCARE (Lescot et al. 2002).
 
-If you redistribute this code, those terms continue to apply to that data.
+If you redistribute this code, those terms continue to apply to that data. By
+contributing you agree your work is released under the same MIT licence.
 
 The example sequences in `data/` are synthetic and generated by
 `tools/make-data.mjs`, with one exception: the protein records in

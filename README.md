@@ -258,9 +258,10 @@ every demo has a known right answer. CI rebuilds them and fails if they drift.
 
 ## Contributing
 
-**Pull requests are not accepted** — see [CONTRIBUTING.md](CONTRIBUTING.md).
-Bug reports about incorrect biology are welcome as issues, and the MIT licence
-means you are free to fork.
+Pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md), which has
+the recipe for adding a motif. The most valuable contribution is a motif that
+is wrong or a motif that is missing; only 72 of the 487 entries cite a paper,
+so any of them may be mistaken.
 
 ## Licence
 
