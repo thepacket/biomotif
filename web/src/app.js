@@ -751,6 +751,19 @@ function buildGel(lanes) {
   const bodyBox = el("div", "panel-body gel-box scroller");
   bodyBox.innerHTML = gelSvg(lanes);
   wrap.appendChild(bodyBox);
+  // A schematic, and said to be one: the gel a textbook draws beside a digest
+  // table, not a prediction of the one a lab would run.
+  const note = el("div", "panel-body panel-note gel-note");
+  note.appendChild(document.createTextNode(
+    "A schematic: one agarose percentage, every site cut, no methylation, no partial digest, and the enzymes chosen for you. " +
+    "For a real simulation of a digest and its gel, see "));
+  const link = el("a", null, "VIRGE");
+  link.href = "https://virge.fly.dev";
+  link.target = "_blank";
+  link.rel = "noopener";
+  note.appendChild(link);
+  note.appendChild(document.createTextNode("."));
+  wrap.appendChild(note);
   return wrap;
 }
 

@@ -521,6 +521,8 @@ table.hits .name { font-family: var(--mono); font-size: 12px; white-space: nowra
 .gel-band { fill: #7fd8e0; }
 .gel-label { fill: var(--ink-soft); font-size: 11px; }
 .gel-size { fill: #b6c9ce; font-size: 10px; font-variant-numeric: tabular-nums; }
+.gel-note { padding-top: 0; max-width: 78ch; }
+.gel-note a { color: var(--accent); }
 
 .empty { padding: 26px 14px; text-align: center; color: var(--muted); font-family: var(--serif); font-size: 13px; }
 
@@ -4020,6 +4022,19 @@ function buildGel(lanes) {
   const bodyBox = el("div", "panel-body gel-box scroller");
   bodyBox.innerHTML = gelSvg(lanes);
   wrap.appendChild(bodyBox);
+  // A schematic, and said to be one: the gel a textbook draws beside a digest
+  // table, not a prediction of the one a lab would run.
+  const note = el("div", "panel-body panel-note gel-note");
+  note.appendChild(document.createTextNode(
+    "A schematic: one agarose percentage, every site cut, no methylation, no partial digest, and the enzymes chosen for you. " +
+    "For a real simulation of a digest and its gel, see "));
+  const link = el("a", null, "VIRGE");
+  link.href = "https://virge.fly.dev";
+  link.target = "_blank";
+  link.rel = "noopener";
+  note.appendChild(link);
+  note.appendChild(document.createTextNode("."));
+  wrap.appendChild(note);
   return wrap;
 }
 

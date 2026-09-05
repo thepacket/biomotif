@@ -128,6 +128,8 @@ test("a digest draws the gel", () => {
   assert.equal(labels.length, 4, "each enzyme alone, then both");
   assert.match(text("#results-note"), /fragments \d+/);
   assert.match(text("#explain"), /drawn as they would look on a gel/);
+  assert.match(text(".gel-note"), /^A schematic: .* see VIRGE\.$/);
+  assert.equal($(".gel-note a").getAttribute("href"), "https://virge.fly.dev");
   $("#circular").checked = false;
 });
 

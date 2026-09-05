@@ -308,7 +308,11 @@ reachable with Tab and Enter.
 each enzyme alone, then both, beside a 1 kb ladder, on a log scale, with a
 band's darkness following the fragment's mass. It is drawn with attributes and
 classes only, since the policy allows no inline style, and described in words
-for anyone who cannot see it.
+for anyone who cannot see it. It is a schematic and says so under the picture:
+one agarose percentage, every site cut, no methylation, no partial digest, and
+the enzymes chosen for you. For a real simulation of a digest and its gel there
+is [VIRGE](https://virge.fly.dev), which models agarose percentage, pulsed
+fields, dam/dcm and CpG methylation, isoschizomers and partial digests.
 
 **A glossary.** The words the explanation cannot avoid — strand, consensus,
 reading frame, weight matrix — carry a definition on hover or keyboard focus at

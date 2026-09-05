@@ -90,6 +90,12 @@ class Element extends Node {
   set type(v) { this.attrs.set("type", v); }
   get label() { return this.attrs.get("label") || ""; }
   set label(v) { this.attrs.set("label", v); }
+  get href() { return this.attrs.get("href") || ""; }
+  set href(v) { this.attrs.set("href", v); }
+  get target() { return this.attrs.get("target") || ""; }
+  set target(v) { this.attrs.set("target", v); }
+  get rel() { return this.attrs.get("rel") || ""; }
+  set rel(v) { this.attrs.set("rel", v); }
   get tabIndex() { return Number(this.attrs.get("tabindex") ?? -1); }
   set tabIndex(v) { this.attrs.set("tabindex", String(v)); }
   get value() {
