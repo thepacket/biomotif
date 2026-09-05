@@ -12,10 +12,13 @@ your bench results, that is worth an issue even if you never touch the code.
 
 Node 20 or newer. There are no dependencies, and adding one needs a good reason
 — the whole app is served as static files with no build chain beyond
-`tools/build.mjs`.
+`tools/build.mjs`. That includes the tests: the interface is tested against a
+small DOM of the project's own, `web/test/dom.mjs`, which knows what `app.js`
+uses and nothing more. It has no layout, so an interface test can check
+structure, text and the requests made, never appearance.
 
 ```bash
-npm test           # 148 tests
+npm test           # 190 tests
 npm run dist       # build web/dist
 npm run serve      # serve it with the deployed security policy
 ```
