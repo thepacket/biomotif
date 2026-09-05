@@ -122,6 +122,14 @@ export function ensemblCoordinates(text) {
          `on the ${strand === "-1" ? "minus" : "plus"} strand of ${assembly}`;
 }
 
+/** Which build of the genome Ensembl's coordinates refer to — "GRCh38" out of
+    "chromosome:GRCh38:11:5225464:5229395:-1". A position means nothing without
+    it: the same HBB region sits about 40 kb away on GRCh37. */
+export function ensemblAssembly(text) {
+  const m = /^\w+:([^:\s]+):[^:\s]+:\d+:\d+:-?1$/.exec((text ?? "").trim());
+  return m ? m[1] : "";
+}
+
 /** Give every record in a set the same description, when it has none of its own. */
 function describeRecords(records, description) {
   if (!description) return records;
@@ -198,13 +206,14 @@ async function ensemblFetch(query, { signal, species = "homo_sapiens", upstream 
     const url = `${ENSEMBL}/sequence/region/${encodeURIComponent(species)}/` +
                 `${chrom}:${a}..${b}${strand ? `:${strand}` : ""}?content-type=text/x-fasta`;
     const records = guard(parseFasta(await (await get(url, { signal, what: query.trim(), where: "Ensembl" })).text()));
+    const assembly = ensemblAssembly(records[0]?.description) || ensemblAssembly(records[0]?.name);
     // A bare region belongs to no gene, so its coordinates are all there is to say.
     for (const r of records) {
       const said = ensemblCoordinates(r.description) || ensemblCoordinates(r.name);
       if (said && !r.description) r.name = `${chrom}:${Number(a).toLocaleString()}-${Number(b).toLocaleString()}`;
       r.description = said || r.description;
     }
-    return { records, info: null };
+    return { records, info: null, assembly };
   }
 
   let id = query.trim();
@@ -220,8 +229,9 @@ async function ensemblFetch(query, { signal, species = "homo_sapiens", upstream 
   info = info ?? await ensemblLookupId(id, { signal });
   const said = ensemblDescription(info?.description);
   const where = ensemblCoordinates(records[0]?.description);
+  const assembly = info?.assembly_name || ensemblAssembly(records[0]?.description);
   describeRecords(records, [info?.display_name, said, where].filter(Boolean).join(", "));
-  return { records, info };
+  return { records, info, assembly };
 }
 
 /* -------------------------------------------------------------------- ENA */
@@ -268,7 +278,8 @@ export async function uniprotSearch(term, { signal, limit = 20 } = {}) {
 
 /* ------------------------------------------------------------------ front */
 
-/** Fetch by identifier. Returns {records, info, source}. */
+/** Fetch by identifier. Returns {records, info, source, assembly}: `assembly`
+    is the genome build the coordinates refer to, which only Ensembl states. */
 export async function fetchSequence(query, { source = "auto", species = "homo_sapiens",
                                              upstream = 0, signal } = {}) {
   const q = query.trim();
@@ -277,8 +288,8 @@ export async function fetchSequence(query, { source = "auto", species = "homo_sa
   if (!chosen) throw new BiomotifError(`${q} does not look like an identifier. Use Search to look it up by name.`);
 
   if (chosen === "ensembl") {
-    const { records, info } = await ensemblFetch(q, { signal, species, upstream });
-    return { records, info, source: chosen };
+    const { records, info, assembly } = await ensemblFetch(q, { signal, species, upstream });
+    return { records, info, source: chosen, assembly: assembly || null };
   }
   if (chosen === "ncbi") return { records: await ncbiFetch(q, { signal }), info: null, source: chosen };
   if (chosen === "ena") return { records: await enaFetch(q, { signal }), info: null, source: chosen };

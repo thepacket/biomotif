@@ -290,18 +290,22 @@ async function doFetch(query, { source, upstream, species, title } = {}) {
   fetchStatus(`Fetching ${q} from ${where}…`);
   $("#fetch-results").hidden = true;
   try {
-    const { records, info, source: used } = await fetchSequence(q, { source: chosen, upstream: up, species: sp, signal });
+    const { records, info, source: used, assembly } = await fetchSequence(q, { source: chosen, upstream: up, species: sp, signal });
     state.records = records;
     state.active = 0;
     state.origin = `It was fetched from ${SOURCES[used].label}${up > 0 && used === "ensembl"
       ? `, with the first ${n2(up)} bases being the region upstream of the gene, so position ${n2(up + 1)} is where the gene itself starts`
       : ""}.`;
+    // Positions get copied into other tools, where they mean nothing without
+    // the build they were read from: the same gene sits elsewhere on GRCh37.
+    if (assembly) state.origin += ` Its coordinates are on the ${assembly} assembly of the genome, which is the build to quote alongside any position you copy from here.`;
     renderRecords();
     renderRail();
     const bases = records.reduce((n, r) => n + r.seq.length, 0);
     const bits = [`${SOURCES[used].label}: ${records.length} record${records.length === 1 ? "" : "s"}, ${bases.toLocaleString()} ${records[0].type === "protein" ? "residues" : "bases"}`];
     if (up > 0 && used === "ensembl") bits.push(`the first ${up.toLocaleString()} bases are upstream, so position ${up + 1} is the start`);
     if (info?.display_name) bits.push(`${info.display_name} on ${info.seq_region_name}:${info.start}-${info.end} strand ${info.strand > 0 ? "+" : "−"} (${info.assembly_name})`);
+    else if (assembly) bits.push(`coordinates on ${assembly}`);
     if (title) bits.push(title);
     fetchStatus(bits.join(" · "), "good");
     run();

@@ -11,7 +11,7 @@ import { test } from "node:test";
 
 import { BiomotifError } from "../src/engine.js";
 import {
-  CONNECT_HOSTS, SOURCES, detectSource, ensemblCoordinates, ensemblDescription,
+  CONNECT_HOSTS, SOURCES, detectSource, ensemblAssembly, ensemblCoordinates, ensemblDescription,
   fetchSequence, uniprotDefline,
 } from "../src/databases.js";
 
@@ -113,4 +113,11 @@ test("Ensembl coordinates are turned into a sentence, since that is all a region
     "chromosome 11:5,225,464-5,225,500 on the plus strand of GRCh38");
   // Anything that is not a coordinate string is left for someone else to describe.
   assert.equal(ensemblCoordinates("Homo sapiens hemoglobin subunit beta (HBB), mRNA"), "");
+});
+
+test("the genome build is read off Ensembl's header, because a position is meaningless without it", () => {
+  assert.equal(ensemblAssembly("chromosome:GRCh38:11:5225464:5229395:-1"), "GRCh38");
+  assert.equal(ensemblAssembly("chromosome:GRCm39:7:103462000:103464000:1"), "GRCm39");
+  assert.equal(ensemblAssembly("Homo sapiens hemoglobin subunit beta (HBB), mRNA"), "");
+  assert.equal(ensemblAssembly(undefined), "");
 });
