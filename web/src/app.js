@@ -37,6 +37,7 @@ const state = {
   railObserver: null, // watches the rail so the splitter's bounds stay true
   mode: "motif",      // which button produced what is on screen
   origin: null,       // a sentence about where the sequence came from
+  search: null,       // the last search, so more of it can be asked for
 };
 
 /* ------------------------------------------------------------------ library */
@@ -296,7 +297,9 @@ async function doFetch(query, { source, upstream, species, title } = {}) {
   }
 }
 
-async function doSearch() {
+const plural2 = (c, one, many) => `${n2(c)} ${c === 1 ? one : many}`;
+
+async function doSearch(limit = 20) {
   const term = $("#fetch-query").value.trim();
   if (!term) { fetchStatus("Type a name to search for, such as \"hemoglobin beta human\".", "bad"); return; }
   const picked = $("#fetch-source").value;
@@ -305,13 +308,20 @@ async function doSearch() {
   fetchStatus(`Searching ${SOURCES[source].label} for “${term}”…`);
   $("#fetch-results").hidden = true;
   try {
-    const results = await searchDatabase(term, { source, signal });
+    const { results, total } = await searchDatabase(term, { source, signal, limit });
     if (!results.length) {
       fetchStatus(`${SOURCES[source].label} has nothing matching “${term}”.`, "bad");
       return;
     }
-    fetchStatus(`${results.length} result${results.length === 1 ? "" : "s"} from ${SOURCES[source].label}. Pick one to load it.`, "good");
-    renderSearchResults(results);
+    state.search = { term, source, limit, total };
+    const more = total > results.length;
+    fetchStatus(
+      (more
+        ? `Showing ${n2(results.length)} of ${n2(total)} matches in ${SOURCES[source].label}. ` +
+          "Pick one to load it, ask for more, or narrow the search — the first few are rarely the ones you want out of this many."
+        : `${plural2(results.length, "match", "matches")} in ${SOURCES[source].label}. Pick one to load it.`),
+      more ? "busy" : "good");
+    renderSearchResults(results, more);
   } catch (err) {
     const msg = describeError(err);
     if (msg) fetchStatus(msg, "bad");
@@ -320,7 +330,7 @@ async function doSearch() {
   }
 }
 
-function renderSearchResults(results) {
+function renderSearchResults(results, more = false) {
   const box = $("#fetch-results");
   box.textContent = "";
   box.hidden = false;
@@ -340,6 +350,19 @@ function renderSearchResults(results) {
       doFetch(r.id, { source: r.source, upstream: 0 });
     });
     box.appendChild(b);
+  }
+  if (more) {
+    const row = el("button", "hit-row more");
+    row.type = "button";
+    const shown = results.length;
+    const next = Math.min(shown + 40, 200);
+    row.appendChild(el("b", null, next > shown ? `Show ${next - shown} more` : "That is as many as this will list"));
+    row.appendChild(el("span", null,
+      `${n2(state.search.total - shown)} further matches. Past a couple of hundred it is quicker to narrow the ` +
+      "search than to scroll: add the organism, or use a field like HBB[gene] AND human[orgn]."));
+    row.disabled = next <= shown;
+    row.addEventListener("click", () => doSearch(next));
+    box.appendChild(row);
   }
 }
 
@@ -949,7 +972,8 @@ function wire() {
     e.target.value = "";
   });
   $("#fetch-btn").addEventListener("click", () => doFetch());
-  $("#search-btn").addEventListener("click", doSearch);
+  // Wrapped: doSearch takes a result limit, and a bare listener would hand it the event.
+  $("#search-btn").addEventListener("click", () => doSearch());
   $("#fetch-query").addEventListener("keydown", (e) => {
     if (e.key === "Enter") { e.preventDefault(); doFetch(); }
   });

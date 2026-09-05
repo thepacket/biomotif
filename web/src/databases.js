@@ -99,15 +99,19 @@ async function ncbiFetch(id, { signal }) {
 }
 
 export async function ncbiSearch(term, { signal, limit = 20 } = {}) {
+  limit = Number.isFinite(limit) ? Math.min(Math.max(1, Math.round(limit)), 200) : 20;
   const esearch = `${NCBI}/esearch.fcgi?db=nuccore&term=${encodeURIComponent(term)}` +
                   `&retmode=json&retmax=${limit}&${TOOL}`;
   const found = await (await get(esearch, { signal, accept: "application/json", what: `“${term}”`, where: "NCBI" })).json();
   const ids = found?.esearchresult?.idlist ?? [];
-  if (!ids.length) return [];
+  // NCBI reports how many records matched, which is routinely thousands more
+  // than were asked for. Losing that number makes a truncated list look complete.
+  const total = Number(found?.esearchresult?.count ?? ids.length);
+  if (!ids.length) return { results: [], total: 0 };
   const esummary = `${NCBI}/esummary.fcgi?db=nuccore&id=${ids.join(",")}&retmode=json&${TOOL}`;
   const summary = await (await get(esummary, { signal, accept: "application/json", where: "NCBI" })).json();
   const result = summary?.result ?? {};
-  return (result.uids ?? []).map((uid) => {
+  const results = (result.uids ?? []).map((uid) => {
     const r = result[uid] ?? {};
     return {
       source: "ncbi",
@@ -119,6 +123,7 @@ export async function ncbiSearch(term, { signal, limit = 20 } = {}) {
       moltype: r.moltype || "",
     };
   });
+  return { results, total };
 }
 
 /* ---------------------------------------------------------------- Ensembl */
@@ -170,10 +175,13 @@ async function uniprotFetch(accession, { signal }) {
 }
 
 export async function uniprotSearch(term, { signal, limit = 20 } = {}) {
+  limit = Number.isFinite(limit) ? Math.min(Math.max(1, Math.round(limit)), 200) : 20;
   const url = `${UNIPROT}/uniprotkb/search?query=${encodeURIComponent(term)}` +
               `&format=json&size=${limit}&fields=accession,id,protein_name,organism_name,length`;
-  const data = await (await get(url, { signal, accept: "application/json", what: `“${term}”`, where: "UniProt" })).json();
-  return (data.results ?? []).map((r) => ({
+  const response = await get(url, { signal, accept: "application/json", what: `“${term}”`, where: "UniProt" });
+  const total = Number(response.headers.get("x-total-results") ?? NaN);
+  const data = await response.json();
+  const results = (data.results ?? []).map((r) => ({
     source: "uniprot",
     id: r.primaryAccession,
     label: r.primaryAccession,
@@ -182,6 +190,7 @@ export async function uniprotSearch(term, { signal, limit = 20 } = {}) {
     length: r.sequence?.length ?? null,
     moltype: "protein",
   }));
+  return { results, total: Number.isFinite(total) ? total : results.length };
 }
 
 /* ------------------------------------------------------------------ front */
@@ -204,9 +213,11 @@ export async function fetchSequence(query, { source = "auto", species = "homo_sa
   throw new BiomotifError(`Unknown source ${chosen}.`);
 }
 
-/** Look a sequence up by name. Only NCBI and UniProt offer free-text search. */
+/** Look a sequence up by name. Only NCBI and UniProt offer free-text search.
+    Returns {results, total}: `total` is how many the database matched, which is
+    usually far more than were asked for. */
 export async function searchDatabase(term, { source = "ncbi", signal, limit = 20 } = {}) {
-  if (!term.trim()) return [];
+  if (!term.trim()) return { results: [], total: 0 };
   if (source === "uniprot") return uniprotSearch(term, { signal, limit });
   return ncbiSearch(term, { signal, limit });
 }
