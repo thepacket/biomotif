@@ -95,7 +95,7 @@ function buildDist(css, js, outDir) {
          '<meta charset="utf-8">\n' +
          '<meta name="viewport" content="width=device-width, initial-scale=1">\n' +
          '<meta name="description" content="A workbench for DNA, RNA and protein sequence patterns, ' +
-         'with 487 documented motifs.">\n' +
+         'with 523 documented motifs.">\n' +
          '<meta name="color-scheme" content="light dark">\n' +
          head.trim() + "\n</head>\n<body>\n" + marker + body + "\n</body>\n</html>\n";
   writeFileSync(join(outDir, "index.html"), html);

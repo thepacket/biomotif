@@ -3,7 +3,7 @@
 Pull requests are welcome, and so are issues that never become one.
 
 The most valuable contribution is **a motif that is wrong, or a motif that is
-missing**. The library carries 487 definitions and only 72 of them cite a paper;
+missing**. The library carries 523 definitions and only 108 of them cite a paper;
 any of them may be mistaken, and a short pattern that matches by chance is easy
 to mistake for a finding. If a consensus disagrees with the literature or with
 your bench results, that is worth an issue even if you never touch the code.
@@ -15,7 +15,7 @@ Node 20 or newer. There are no dependencies, and adding one needs a good reason
 `tools/build.mjs`.
 
 ```bash
-npm test           # 126 tests
+npm test           # 148 tests
 npm run dist       # build web/dist
 npm run serve      # serve it with the deployed security policy
 ```

@@ -3,7 +3,7 @@
 **[biomotif.fly.dev](https://biomotif.fly.dev)**
 
 A browser workbench for sequence patterns. Describe a motif as an expression,
-find it in DNA, RNA or protein, and read the result — with a library of 487
+find it in DNA, RNA or protein, and read the result — with a library of 523
 documented motifs and live retrieval from the public databases.
 
 Everything runs in the page. There is no server component: the deployment is
@@ -32,7 +32,7 @@ turned into every DNA motif that could encode it.
 No install and no dependencies — Node 20 or newer is used only to build.
 
 ```bash
-npm test           # 126 tests
+npm test           # 148 tests
 npm run dist       # build web/dist
 npm run serve      # serve it with the deployed security policy
 ```
@@ -111,6 +111,14 @@ scaffolds — `pam-spcas9`, `umi-8` — that match almost anywhere and are meant
 be searched for by name. The `.mtf` files are parsed in the browser as they are,
 so they remain the one source of truth; nothing in the build rewrites a motif.
 
+The rail lists in name order throughout — unfiltered, by category and by search
+— with digits compared by value, so `mirna-seed-mir21` files before
+`mirna-seed-mir155`. Motifs the loaded sequence cannot match are faded where
+they stand and marked *needs a protein* or *needs DNA or RNA*, rather than
+sorted out of the way: a name stays where you looked it up, and reading a motif
+is not the same as running it. Only the protein/nucleotide divide counts. An
+RNA motif applies to DNA, because the engine reads U and T as the same base.
+
 Add your own with `defmotif`, and it joins the library:
 
 ```lisp
@@ -136,12 +144,20 @@ sequence's composition and nothing else:
 |---|---|---|---|
 | `loxp` | 1 | 0.0 | only in the real sequence |
 | `t7-promoter` | 1 | 0.0 | only in the real sequence |
-| `poly-a-signal` | 4 | 1.1 | over-represented |
-| `e-box` | 17 | 18.4 | **noise** |
+| `poly-a-signal` | 4 | 0.8 | over-represented |
+| `e-box` | 17 | 17.9 | **noise** |
 
 Seventeen E-box matches look like seventeen findings. They are not one. A
 beginner has no way to know that, so the pane says it, and the verdict carries a
-coloured rule so it reads at a glance. It costs about 7 ms for one pattern.
+coloured rule so it reads at a glance. One pattern on a 2.7 kb plasmid costs
+about 10 ms.
+
+The shuffle draws from a seeded xorshift32 generator: seeded so that the same
+sequence is always explained the same way, and xorshift because the decoys have
+to be genuinely shuffled. An earlier linear congruential generator multiplied
+its seed past the integers a JavaScript number holds exactly, losing the low
+bits — 20,000 draws visited 12,889 distinct states — which quietly weakened
+every estimate on this page.
 
 A scan gets its own version of this. It reports how many *places* the matches
 sit at rather than how many matches there are — several patterns routinely
@@ -165,6 +181,21 @@ in between.
 | Ensembl | gene symbol (`HBB`), stable ID (`ENSG…`, `ENST…`), or a region (`11:5225464-5229395`) |
 | ENA | accession |
 | UniProt | accession or search, for protein |
+
+A search reports how many the database matched, not only how many it listed.
+NCBI routinely matches tens of thousands, and twenty results that look like the
+whole answer are worse than none. Twenty come back first, forty more each time
+you ask, to a ceiling of two hundred — past which narrowing the search beats
+scrolling it.
+
+Every fetched record carries its description, so the pane can say what a
+sequence is and not only what it is called. The four databases state that four
+ways, and one of them does not state it at all: NCBI and ENA put a title on the
+FASTA defline; UniProt buries one among `OS=`/`GN=`/`PE=` fields, which are
+split off to keep the organism and gene; Ensembl labels sequence with
+coordinates only, so the record is looked up separately for its description, and
+a bare region — belonging to no gene — is described by its coordinates said in
+words. A lookup that fails costs the description, not the sequence.
 
 Ensembl matters most here, because it can return a gene **with its upstream
 sequence**. Fetching the canonical HBB transcript with 200 bases of upstream and
@@ -237,14 +268,14 @@ Nothing else on the page depends on the assistant.
 ## Performance
 
 The matchers are generators, so backtracking is the generator protocol. On 1 Mb
-of random DNA:
+of random DNA, median of five warmed runs, Node 24 on an Apple M3:
 
 | Pattern | Throughput |
 |---|---|
-| Literal `GAATTC` | 10.3 Mb/s |
-| IUPAC `TATAWAWR` | 10.0 Mb/s |
-| Sigma-70 promoter, two fuzzy boxes and a gap | 8.1 Mb/s |
-| Hairpin, stem 5 to 10 | 0.2 Mb/s |
+| Literal `GAATTC` | 7.7 Mb/s |
+| IUPAC `TATAWAWR` | 6.4 Mb/s |
+| Sigma-70 promoter, two fuzzy boxes and a gap | 2.0 Mb/s |
+| Hairpin, stem 5 to 10 | 0.1 Mb/s |
 
 Fast enough for plasmids, genes, promoter sets and bacterial genomes. Not fast
 enough for a vertebrate genome, and a fetch above 12 Mb is refused rather than
@@ -301,8 +332,8 @@ docker build -t biomotif . && docker run --rm -p 8080:80 biomotif
 
 ```
 web/src/      engine, motif builder, database clients, assistant, explanations, interface
-web/test/     126 tests, run with `npm test`
-library/      the seven .mtf files — the motif library itself
+web/test/     148 tests, run with `npm test`
+library/      the eight .mtf files — the motif library itself
 data/         example sequences, generated by tools/make-data.mjs
 tools/        build, data and index generators, and a local server
 deploy/       nginx config and the content security policy
@@ -317,7 +348,7 @@ every demo has a known right answer. CI rebuilds them and fails if they drift.
 
 Pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md), which has
 the recipe for adding a motif. The most valuable contribution is a motif that
-is wrong or a motif that is missing; only 72 of the 487 entries cite a paper,
+is wrong or a motif that is missing; only 108 of the 523 entries cite a paper,
 so any of them may be mistaken.
 
 ## Licence
@@ -326,7 +357,7 @@ MIT — Copyright (c) 2026 Andre Paquette. See [LICENSE](LICENSE).
 
 The motif library is a set of published consensus sequences, each defined in a
 `.mtf` file with a docstring, and with a literature reference where one exists
-— 72 of the 487 carry one. Some follow catalogues with their own
+— 108 of the 523 carry one. Some follow catalogues with their own
 terms, which this licence does not override: restriction sites derive from
 [REBASE](http://rebase.neb.com), Copyright (c) Dr. Richard J. Roberts, free for
 academic use; many protein patterns are written in, and several taken from,
