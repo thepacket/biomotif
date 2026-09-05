@@ -14,6 +14,7 @@
 export const LADDER = [10000, 8000, 6000, 5000, 4000, 3000, 2500, 2000, 1500, 1000, 750, 500, 250, 100];
 
 const W = 96;          // lane pitch
+const LEFT = 76;       // room for the ladder's sizes, "10,000" being the widest
 const TOP = 34;        // room for the lane labels
 const HEIGHT = 300;    // the migration distance available
 const WELL = 8;
@@ -36,7 +37,7 @@ export function gelSvg(lanes, { ladder = LADDER } = {}) {
   const hi = Math.max(ladder[0], ...all);
   const lo = Math.min(ladder[ladder.length - 1], ...all.filter((s) => s > 0));
   const cols = [{ label: "ladder", sizes: ladder, ladder: true }, ...lanes];
-  const width = cols.length * W + 60;
+  const width = LEFT + cols.length * W + 30;
   const height = TOP + WELL + HEIGHT + 24;
   const parts = [];
 
@@ -46,7 +47,7 @@ export function gelSvg(lanes, { ladder = LADDER } = {}) {
   parts.push(`<rect class="gel-slab" x="0" y="${TOP}" width="${width}" height="${height - TOP}" rx="6"/>`);
 
   cols.forEach((lane, i) => {
-    const x = 30 + i * W;
+    const x = LEFT + i * W;
     parts.push(`<text class="gel-label" x="${x + W / 2 - 8}" y="${TOP - 12}" text-anchor="middle">${esc(lane.label)}</text>`);
     parts.push(`<rect class="gel-well" x="${x}" y="${TOP + 2}" width="${W - 16}" height="${WELL}" rx="1"/>`);
     const biggest = Math.max(...lane.sizes, 1);
