@@ -87,6 +87,48 @@ function guard(records) {
   return records;
 }
 
+/* --------------------------------------------------------- what a record is
+
+   Every database states what a record is, but none of them state it the same
+   way, and one of them does not state it at all. These turn each convention
+   into the same plain sentence, so a fetched sequence can say what it is
+   instead of only what it is called. */
+
+/** A UniProt defline carries the description and then a run of key=value
+    fields: "Hemoglobin subunit beta OS=Homo sapiens OX=9606 GN=HBB PE=1 SV=2".
+    Only the part before the first key is the description. */
+export function uniprotDefline(text) {
+  const cut = text.search(/\s(?:OS|OX|GN|PE|SV)=/);
+  const description = (cut === -1 ? text : text.slice(0, cut)).trim();
+  const organism = /\sOS=(.+?)(?=\s(?:OX|GN|PE|SV)=|$)/.exec(text)?.[1]?.trim() ?? "";
+  const gene = /\sGN=(\S+)/.exec(text)?.[1] ?? "";
+  return { description, organism, gene };
+}
+
+/** Ensembl descriptions end in a source credit — "haemoglobin subunit beta
+    [Source:HGNC Symbol;Acc:HGNC:4827]" — which is provenance, not description. */
+export function ensemblDescription(text) {
+  return (text ?? "").replace(/\s*\[Source:[^\]]*\]\s*$/, "").trim();
+}
+
+/** Ensembl labels sequence with coordinates and nothing else:
+    "chromosome:GRCh38:11:5225464:5229395:-1". Said in words those coordinates
+    are the only description a bare region has. */
+export function ensemblCoordinates(text) {
+  const m = /^(\w+):([^:\s]+):([^:\s]+):(\d+):(\d+):(-?1)$/.exec((text ?? "").trim());
+  if (!m) return "";
+  const [, kind, assembly, name, from, to, strand] = m;
+  return `${kind} ${name}:${Number(from).toLocaleString()}-${Number(to).toLocaleString()} ` +
+         `on the ${strand === "-1" ? "minus" : "plus"} strand of ${assembly}`;
+}
+
+/** Give every record in a set the same description, when it has none of its own. */
+function describeRecords(records, description) {
+  if (!description) return records;
+  for (const r of records) r.description = description;
+  return records;
+}
+
 /* ------------------------------------------------------------------- NCBI */
 
 async function ncbiFetch(id, { signal }) {
@@ -134,6 +176,20 @@ async function ensemblLookup(symbol, species, { signal }) {
   return (await get(url, { signal, accept: "application/json", what: symbol, where: `Ensembl (${species.replace(/_/g, " ")})` })).json();
 }
 
+/* Ensembl returns sequence labelled with coordinates and no description, so
+   when the query was already an Ensembl id there is nothing to say about the
+   record until it is looked up separately. The sequence is the thing that was
+   asked for, so a lookup that fails costs the description and not the fetch. */
+async function ensemblLookupId(id, { signal }) {
+  try {
+    const url = `${ENSEMBL}/lookup/id/${encodeURIComponent(id)}?content-type=application/json`;
+    return await (await get(url, { signal, accept: "application/json", what: id, where: "Ensembl" })).json();
+  } catch (err) {
+    if (err.name === "AbortError") throw err;
+    return null;
+  }
+}
+
 async function ensemblFetch(query, { signal, species = "homo_sapiens", upstream = 0 }) {
   const region = RE.region.exec(query.trim());
   if (region) {
@@ -141,7 +197,14 @@ async function ensemblFetch(query, { signal, species = "homo_sapiens", upstream 
     const a = from.replace(/,/g, ""), b = to.replace(/,/g, "");
     const url = `${ENSEMBL}/sequence/region/${encodeURIComponent(species)}/` +
                 `${chrom}:${a}..${b}${strand ? `:${strand}` : ""}?content-type=text/x-fasta`;
-    return { records: guard(parseFasta(await (await get(url, { signal, what: query.trim(), where: "Ensembl" })).text())), info: null };
+    const records = guard(parseFasta(await (await get(url, { signal, what: query.trim(), where: "Ensembl" })).text()));
+    // A bare region belongs to no gene, so its coordinates are all there is to say.
+    for (const r of records) {
+      const said = ensemblCoordinates(r.description) || ensemblCoordinates(r.name);
+      if (said && !r.description) r.name = `${chrom}:${Number(a).toLocaleString()}-${Number(b).toLocaleString()}`;
+      r.description = said || r.description;
+    }
+    return { records, info: null };
   }
 
   let id = query.trim();
@@ -153,7 +216,12 @@ async function ensemblFetch(query, { signal, species = "homo_sapiens", upstream 
   }
   const expand = upstream > 0 ? `;expand_5prime=${Math.min(upstream, 100000)}` : "";
   const url = `${ENSEMBL}/sequence/id/${encodeURIComponent(id)}?content-type=text/x-fasta;type=genomic${expand}`;
-  return { records: guard(parseFasta(await (await get(url, { signal, what: id, where: "Ensembl" })).text())), info };
+  const records = guard(parseFasta(await (await get(url, { signal, what: id, where: "Ensembl" })).text()));
+  info = info ?? await ensemblLookupId(id, { signal });
+  const said = ensemblDescription(info?.description);
+  const where = ensemblCoordinates(records[0]?.description);
+  describeRecords(records, [info?.display_name, said, where].filter(Boolean).join(", "));
+  return { records, info };
 }
 
 /* -------------------------------------------------------------------- ENA */
@@ -171,7 +239,12 @@ async function uniprotFetch(accession, { signal }) {
   const url = `${UNIPROT}/uniprotkb/${encodeURIComponent(accession)}.fasta`;
   const text = await (await get(url, { signal, what: accession, where: "UniProt" })).text();
   if (!text.trim().startsWith(">")) throw new BiomotifError(`UniProt has no entry for ${accession}.`);
-  return guard(parseFasta(text, "protein"));
+  const records = guard(parseFasta(text, "protein"));
+  for (const r of records) {
+    const { description, organism, gene } = uniprotDefline(r.description);
+    r.description = [description, gene && `gene ${gene}`, organism].filter(Boolean).join(", ");
+  }
+  return records;
 }
 
 export async function uniprotSearch(term, { signal, limit = 20 } = {}) {

@@ -10,7 +10,10 @@ import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
 import { BiomotifError } from "../src/engine.js";
-import { CONNECT_HOSTS, SOURCES, detectSource, fetchSequence } from "../src/databases.js";
+import {
+  CONNECT_HOSTS, SOURCES, detectSource, ensemblCoordinates, ensemblDescription,
+  fetchSequence, uniprotDefline,
+} from "../src/databases.js";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const SRC = readFileSync(join(ROOT, "web", "src", "databases.js"), "utf8");
@@ -85,4 +88,29 @@ test("a failure names both the record and the database", () => {
   assert.match(SRC, /has no record for \$\{what\}/);
   assert.match(SRC, /rate limiting requests/);
   assert.match(SRC, /Could not reach \$\{where\}/);
+});
+
+test("a UniProt defline is split from the fields packed after it", () => {
+  const { description, organism, gene } = uniprotDefline(
+    "Hemoglobin subunit beta OS=Homo sapiens OX=9606 GN=HBB PE=1 SV=2");
+  assert.equal(description, "Hemoglobin subunit beta");
+  assert.equal(organism, "Homo sapiens");
+  assert.equal(gene, "HBB");
+  // A defline with no fields at all is all description.
+  assert.equal(uniprotDefline("Something uncharacterised").description, "Something uncharacterised");
+});
+
+test("Ensembl's source credit is provenance, not description", () => {
+  assert.equal(ensemblDescription("hemoglobin subunit beta [Source:HGNC Symbol;Acc:HGNC:4827]"),
+    "hemoglobin subunit beta");
+  assert.equal(ensemblDescription(null), "");
+});
+
+test("Ensembl coordinates are turned into a sentence, since that is all a region has", () => {
+  assert.equal(ensemblCoordinates("chromosome:GRCh38:11:5225464:5229395:-1"),
+    "chromosome 11:5,225,464-5,229,395 on the minus strand of GRCh38");
+  assert.equal(ensemblCoordinates("chromosome:GRCh38:11:5225464:5225500:1"),
+    "chromosome 11:5,225,464-5,225,500 on the plus strand of GRCh38");
+  // Anything that is not a coordinate string is left for someone else to describe.
+  assert.equal(ensemblCoordinates("Homo sapiens hemoglobin subunit beta (HBB), mRNA"), "");
 });

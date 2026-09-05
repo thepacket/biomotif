@@ -82,7 +82,12 @@ export const rnaMotifs = new Set();
 function describeSequence(record, origin) {
   const unit = record.type === "protein" ? "amino acids long" : "bases long";
   const kind = { dna: "a DNA sequence", rna: "an RNA sequence", protein: "a protein" }[record.type];
-  const bits = [`**${record.name}** is ${kind}, ${n(record.length)} ${unit}.`];
+  /* When the database said what the record is, that answers "what am I looking
+     at" ahead of anything measured about it, so it leads. */
+  const said = (record.description ?? "").trim().replace(/[.\s]+$/, "");
+  const bits = [said
+    ? `**${record.name}** — ${said}. It is ${kind}, ${n(record.length)} ${unit}.`
+    : `**${record.name}** is ${kind}, ${n(record.length)} ${unit}.`];
   if (record.type !== "protein") {
     const gc = gcContent(record.seq);
     const lean = gc > 0.6 ? " That is GC-rich, which is common in bacterial genomes with high GC and in promoter regions."

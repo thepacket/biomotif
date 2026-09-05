@@ -227,6 +227,8 @@ function renderRecords() {
     const unit = r.type === "protein" ? "aa" : "bp";
     const extra = r.type === "protein" ? "" : ` · GC ${(gcContent(r.seq) * 100).toFixed(1)}%`;
     b.appendChild(el("span", null, `${r.length.toLocaleString()} ${unit} · ${r.type}${extra}`));
+    // Too long for the chip, but worth having on hover when several are loaded.
+    if (r.description) b.title = r.description;
     b.addEventListener("click", () => { state.active = i; renderRecords(); renderRail(); run(); });
     box.appendChild(b);
   });
