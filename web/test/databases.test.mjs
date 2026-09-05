@@ -12,7 +12,7 @@ import { test } from "node:test";
 import { BiomotifError } from "../src/engine.js";
 import {
   CONNECT_HOSTS, SOURCES, detectSource, ensemblAssembly, ensemblCoordinates, ensemblDescription,
-  fetchSequence, uniprotDefline,
+  fetchSequence, speciesKey, suggestSpecies, uniprotDefline,
 } from "../src/databases.js";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -120,4 +120,37 @@ test("the genome build is read off Ensembl's header, because a position is meani
   assert.equal(ensemblAssembly("chromosome:GRCm39:7:103462000:103464000:1"), "GRCm39");
   assert.equal(ensemblAssembly("Homo sapiens hemoglobin subunit beta (HBB), mRNA"), "");
   assert.equal(ensemblAssembly(undefined), "");
+});
+
+/* --------------------------------------------------------------- species */
+
+const SPECIES = [
+  { name: "homo_sapiens", display: "Human", common: "Human", assembly: "GRCh38", aliases: ["human", "hsapiens"] },
+  { name: "mus_musculus", display: "Mouse", common: "House mouse", assembly: "GRCm39", aliases: ["mouse"] },
+  { name: "mus_spretus", display: "Algerian mouse", common: "Algerian mouse", assembly: "SPRET_EiJ_v1", aliases: [] },
+  { name: "danio_rerio", display: "Zebrafish", common: "Zebrafish", assembly: "GRCz11", aliases: ["zebrafish"] },
+  { name: "gallus_gallus", display: "Chicken", common: "Chicken", assembly: "bGalGal1", aliases: ["chicken"] },
+];
+
+test("a species is written the way Ensembl writes it", () => {
+  assert.equal(speciesKey(" Homo sapiens "), "homo_sapiens");
+  assert.equal(speciesKey("Mus-musculus"), "mus_musculus");
+});
+
+test("a slip of the keyboard is caught, a different organism is not guessed at", () => {
+  assert.equal(suggestSpecies("homo_sapein", SPECIES), "homo_sapiens");
+  assert.equal(suggestSpecies("mus_musculs", SPECIES), "mus_musculus");
+  assert.equal(suggestSpecies("Homo sapiens", SPECIES), null, "a right name needs no suggestion");
+  assert.equal(suggestSpecies("human", SPECIES), "homo_sapiens", "a common name is understood");
+  assert.equal(suggestSpecies("zebrafish", SPECIES), "danio_rerio");
+  assert.equal(suggestSpecies("arabidopsis_thaliana", SPECIES), null, "nothing near it, so nothing is offered");
+  assert.equal(suggestSpecies("", SPECIES), null);
+  assert.equal(suggestSpecies("human", []), null);
+});
+
+test("a failed Ensembl lookup asks whether the species exists before blaming the gene", () => {
+  assert.match(SRC, /info\/assembly\/\$\{encodeURIComponent\(species\)\}/);
+  assert.match(SRC, /Ensembl has no species called/);
+  // Both routes to Ensembl — a gene name and a region — go through the check.
+  assert.equal((SRC.match(/await withSpeciesCheck\(species, signal/g) || []).length, 2);
 });

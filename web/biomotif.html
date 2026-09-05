@@ -521,9 +521,10 @@ details.help > div { padding-top: 8px; }
             <option value="rattus_norvegicus"></option><option value="danio_rerio"></option>
             <option value="drosophila_melanogaster"></option><option value="caenorhabditis_elegans"></option>
             <option value="saccharomyces_cerevisiae"></option><option value="arabidopsis_thaliana"></option>
-            <option value="escherichia_coli_str_k_12_substr_mg1655"></option>
+            <option value="escherichia_coli_str_k_12_substr_mg1655_gca_000005845"></option>
           </datalist>
-          <span class="hint">Upstream and species apply to Ensembl gene and region lookups.
+          <span class="hint">Upstream and species apply to Ensembl gene and region lookups; a species is written
+            like <code>mus_musculus</code>, and a misspelt one is reported as such.
             Search accepts NCBI field syntax, so <code>HBB[gene] AND human[orgn]</code> beats a bare name.</span>
         </div>
         <div class="fetch-status" id="fetch-status" hidden></div>
@@ -2051,14 +2052,118 @@ async function ensemblLookupId(id, { signal }) {
   }
 }
 
+/* ------------------------------------------------------- Ensembl species
+
+   The species field is free text, because Ensembl serves some fifty thousand
+   genomes across its divisions and no list of them belongs in a page. What
+   the page can do is tell a wrong name from a wrong gene: a lookup that fails
+   is followed by one cheap question — does this species exist at all? — so
+   "homo_sapein" is reported as a misspelt species and not as a missing gene. */
+
+let speciesList = null;   // the vertebrate list, once asked for
+
+/** Ensembl's vertebrate species, for completion and for spelling suggestions.
+    The other divisions — plants, fungi, thirty thousand bacteria — are served
+    by the same API but not listed here; a name typed for one of them is
+    checked directly instead. Never throws: the list is a convenience. */
+async function ensemblSpecies({ signal } = {}) {
+  if (speciesList) return speciesList;
+  try {
+    const res = await fetch(`${ENSEMBL}/info/species?content-type=application/json`, { signal, headers: { Accept: "application/json" } });
+    if (!res.ok) return [];
+    const json = await res.json();
+    speciesList = (json.species ?? []).map((s) => ({
+      name: s.name, display: s.display_name || "", common: s.common_name || "",
+      assembly: s.assembly || "", aliases: s.aliases || [],
+    })).sort((a, b) => a.name.localeCompare(b.name));
+    return speciesList;
+  } catch {
+    return [];
+  }
+}
+
+/** Ensembl's own spelling of a species name: lower case, underscores. */
+const speciesKey = (text) => text.trim().toLowerCase().replace(/[\s-]+/g, "_");
+
+function editDistance(a, b) {
+  const prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    let diag = prev[0];
+    prev[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const tmp = prev[j];
+      prev[j] = Math.min(prev[j] + 1, prev[j - 1] + 1, diag + (a[i - 1] === b[j - 1] ? 0 : 1));
+      diag = tmp;
+    }
+  }
+  return prev[b.length];
+}
+
+/** The species the reader probably meant, or null. An exact hit on a common
+    name ("human", "mouse") or an alias counts; otherwise the nearest name
+    within a few letters, so a slip of the keyboard is caught and a different
+    organism is not guessed at. */
+function suggestSpecies(typed, list) {
+  const key = speciesKey(typed);
+  if (!key || !list?.length) return null;
+  const words = key.replace(/_/g, " ");
+  for (const s of list) {
+    if (s.name === key) return null;   // it is right; nothing to suggest
+    const names = [s.display, s.common, ...s.aliases].map((x) => x.toLowerCase());
+    if (names.includes(words) || names.includes(key)) return s.name;
+  }
+  let best = null, bestScore = Infinity;
+  for (const s of list) {
+    const d = editDistance(key, s.name);
+    if (d < bestScore) { best = s.name; bestScore = d; }
+  }
+  const budget = key.length >= 10 ? 3 : 2;   // a transposition costs two, and a missing letter beside it three
+  if (bestScore <= budget) return best;
+  const prefixed = list.find((s) => s.name.startsWith(key) && key.length >= 4);
+  return prefixed ? prefixed.name : null;
+}
+
+/** Whether Ensembl knows a species, and which assembly it serves for it.
+    One request, and it works for every division, bacteria included. */
+async function ensemblSpeciesExists(species, { signal } = {}) {
+  try {
+    const res = await fetch(`${ENSEMBL}/info/assembly/${encodeURIComponent(species)}?content-type=application/json`,
+      { signal, headers: { Accept: "application/json" } });
+    if (!res.ok) return { ok: false, assembly: "" };
+    const json = await res.json();
+    return { ok: !json.error, assembly: json.assembly_name || "" };
+  } catch (e) {
+    if (e.name === "AbortError") throw e;
+    return { ok: true, assembly: "" };   // could not tell; blame the gene, not the species
+  }
+}
+
+/** Run an Ensembl request and, if it fails, find out whether the species was
+    the problem before reporting a missing record. */
+async function withSpeciesCheck(species, signal, action) {
+  try {
+    return await action();
+  } catch (err) {
+    if (!(err instanceof BiomotifError) || !/has no record for/.test(err.message)) throw err;
+    const { ok } = await ensemblSpeciesExists(species, { signal });
+    if (ok) throw err;
+    const guess = suggestSpecies(species, await ensemblSpecies({ signal }));
+    throw new BiomotifError(`Ensembl has no species called ${species}.` +
+      (guess ? ` Did you mean ${guess}?` : " Names are written like homo_sapiens or mus_musculus."));
+  }
+}
+
 async function ensemblFetch(query, { signal, species = "homo_sapiens", upstream = 0 }) {
+  species = speciesKey(species) || "homo_sapiens";
   const region = RE.region.exec(query.trim());
   if (region) {
     const [, chrom, from, to, strand] = region;
     const a = from.replace(/,/g, ""), b = to.replace(/,/g, "");
     const url = `${ENSEMBL}/sequence/region/${encodeURIComponent(species)}/` +
                 `${chrom}:${a}..${b}${strand ? `:${strand}` : ""}?content-type=text/x-fasta`;
-    const records = guard(parseFasta(await (await get(url, { signal, what: query.trim(), where: "Ensembl" })).text()));
+    const text = await withSpeciesCheck(species, signal,
+      async () => (await get(url, { signal, what: query.trim(), where: "Ensembl" })).text());
+    const records = guard(parseFasta(text));
     const assembly = ensemblAssembly(records[0]?.description) || ensemblAssembly(records[0]?.name);
     // A bare region belongs to no gene, so its coordinates are all there is to say.
     for (const r of records) {
@@ -2072,7 +2177,7 @@ async function ensemblFetch(query, { signal, species = "homo_sapiens", upstream 
   let id = query.trim();
   let info = null;
   if (!RE.ensembl.test(id)) {
-    info = await ensemblLookup(id, species, { signal });
+    info = await withSpeciesCheck(species, signal, () => ensemblLookup(id, species, { signal }));
     if (!info?.id) throw new BiomotifError(`Ensembl has no gene called ${id} in ${species.replace(/_/g, " ")}.`);
     id = info.id;
   }
@@ -3743,6 +3848,22 @@ function wire() {
     e.target.value = "";
   });
   $("#fetch-btn").addEventListener("click", () => doFetch());
+  // The species list is a few hundred names, fetched the first time the field
+  // is used and folded into the datalist behind the model organisms already there.
+  $("#fetch-species").addEventListener("focus", async () => {
+    const list = $("#species-list");
+    if (list.dataset.loaded) return;
+    list.dataset.loaded = "1";
+    const species = await ensemblSpecies();
+    const have = new Set([...list.querySelectorAll("option")].map((o) => o.value));
+    for (const s of species) {
+      if (have.has(s.name)) continue;
+      const option = el("option");
+      option.value = s.name;
+      option.label = s.display && s.display !== s.name ? `${s.display} (${s.assembly})` : s.assembly;
+      list.appendChild(option);
+    }
+  }, { once: false });
   // Wrapped: doSearch takes a result limit, and a bare listener would hand it the event.
   $("#search-btn").addEventListener("click", () => doSearch());
   $("#fetch-query").addEventListener("keydown", (e) => {

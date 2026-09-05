@@ -4,7 +4,7 @@ import * as E from "./engine.js";
 import {
   Registry, loadLibrarySource, buildMotif, digest, gcContent, meltingTemp, orfs, translate,
 } from "./library.js";
-import { SOURCES, detectSource, fetchSequence, searchDatabase } from "./databases.js";
+import { SOURCES, detectSource, ensemblSpecies, fetchSequence, searchDatabase } from "./databases.js";
 import {
   DEFAULT_MODEL, SUGGESTED_MODELS, fetchModels, getApiKey, getModel, resolveProvider,
   setApiKey, setModel,
@@ -1007,6 +1007,22 @@ function wire() {
     e.target.value = "";
   });
   $("#fetch-btn").addEventListener("click", () => doFetch());
+  // The species list is a few hundred names, fetched the first time the field
+  // is used and folded into the datalist behind the model organisms already there.
+  $("#fetch-species").addEventListener("focus", async () => {
+    const list = $("#species-list");
+    if (list.dataset.loaded) return;
+    list.dataset.loaded = "1";
+    const species = await ensemblSpecies();
+    const have = new Set([...list.querySelectorAll("option")].map((o) => o.value));
+    for (const s of species) {
+      if (have.has(s.name)) continue;
+      const option = el("option");
+      option.value = s.name;
+      option.label = s.display && s.display !== s.name ? `${s.display} (${s.assembly})` : s.assembly;
+      list.appendChild(option);
+    }
+  }, { once: false });
   // Wrapped: doSearch takes a result limit, and a bare listener would hand it the event.
   $("#search-btn").addEventListener("click", () => doSearch());
   $("#fetch-query").addEventListener("keydown", (e) => {
