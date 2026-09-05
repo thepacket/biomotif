@@ -64,6 +64,34 @@
 
 * { box-sizing: border-box; }
 
+/* macOS hides overlay scrollbars until you scroll, so a pane that overflows
+   looks like one that ends. Styling the scrollbar opts out of that: these are
+   always drawn, which is the only cue that there is more below. */
+.fetch-results, .entry-list, #category-chips, .scroller, .explain {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+.fetch-results::-webkit-scrollbar,
+.entry-list::-webkit-scrollbar,
+#category-chips::-webkit-scrollbar,
+.scroller::-webkit-scrollbar { width: 11px; height: 11px; }
+.fetch-results::-webkit-scrollbar-track,
+.entry-list::-webkit-scrollbar-track,
+#category-chips::-webkit-scrollbar-track,
+.scroller::-webkit-scrollbar-track { background: var(--ground); }
+.fetch-results::-webkit-scrollbar-thumb,
+.entry-list::-webkit-scrollbar-thumb,
+#category-chips::-webkit-scrollbar-thumb,
+.scroller::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 6px;
+  border: 2px solid var(--ground);
+}
+.fetch-results::-webkit-scrollbar-thumb:hover,
+.entry-list::-webkit-scrollbar-thumb:hover,
+#category-chips::-webkit-scrollbar-thumb:hover,
+.scroller::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
 /* A class that sets `display` outranks the user agent's [hidden] rule, so the
    hidden assistant composer would otherwise show through. */
 [hidden] { display: none !important; }
@@ -246,7 +274,9 @@ textarea.field { resize: vertical; font-family: var(--mono); font-size: 12.5px; 
 .fetch-status.good { border-color: var(--good); }
 .fetch-results {
   margin-top: 10px; border: 1px solid var(--line); border-radius: 5px;
-  max-height: 260px; overflow-y: auto;
+  /* Rows run to about 55px, so 260px showed four of twenty. */
+  max-height: min(52vh, 460px);
+  overflow-y: auto;
 }
 .hit-row {
   display: block; width: 100%; text-align: left; padding: 7px 11px;
@@ -256,9 +286,20 @@ textarea.field { resize: vertical; font-family: var(--mono); font-size: 12.5px; 
 .hit-row:hover { background: var(--surface-2); }
 .hit-row b { font-family: var(--mono); font-size: 12.5px; font-weight: 500; }
 .hit-row span { display: block; font-family: var(--serif); font-size: 12px; color: var(--muted); }
-.hit-row.more { background: var(--surface-2); position: sticky; bottom: 0; }
-.hit-row.more:disabled { cursor: default; opacity: .7; }
+.hit-row.more {
+  background: var(--surface-2); position: sticky; bottom: 0;
+  border-top: 1px solid var(--line-strong); border-bottom: 0;
+}
+.hit-row.more:disabled { cursor: default; }
 .hit-row.more b { color: var(--accent); }
+.hit-row.more:disabled b { color: var(--muted); }
+/* A fade above the pinned footer, so it is obvious the rows continue under it. */
+.fetch-results.overflowing .hit-row.more::before {
+  content: ""; position: absolute; left: 0; right: 0; top: -18px; height: 18px;
+  background: linear-gradient(to bottom, transparent, var(--surface));
+  pointer-events: none;
+}
+.hit-row.more { position: sticky; }
 .hit-row em { font-style: normal; color: var(--ink-soft); font-family: var(--sans); font-size: 11px; }
 
 /* --------------------------------------------------------------- sequence */

@@ -68,6 +68,34 @@
 
 * { box-sizing: border-box; }
 
+/* macOS hides overlay scrollbars until you scroll, so a pane that overflows
+   looks like one that ends. Styling the scrollbar opts out of that: these are
+   always drawn, which is the only cue that there is more below. */
+.fetch-results, .entry-list, #category-chips, .scroller, .explain {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+.fetch-results::-webkit-scrollbar,
+.entry-list::-webkit-scrollbar,
+#category-chips::-webkit-scrollbar,
+.scroller::-webkit-scrollbar { width: 11px; height: 11px; }
+.fetch-results::-webkit-scrollbar-track,
+.entry-list::-webkit-scrollbar-track,
+#category-chips::-webkit-scrollbar-track,
+.scroller::-webkit-scrollbar-track { background: var(--ground); }
+.fetch-results::-webkit-scrollbar-thumb,
+.entry-list::-webkit-scrollbar-thumb,
+#category-chips::-webkit-scrollbar-thumb,
+.scroller::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 6px;
+  border: 2px solid var(--ground);
+}
+.fetch-results::-webkit-scrollbar-thumb:hover,
+.entry-list::-webkit-scrollbar-thumb:hover,
+#category-chips::-webkit-scrollbar-thumb:hover,
+.scroller::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
 /* A class that sets `display` outranks the user agent's [hidden] rule, so the
    hidden assistant composer would otherwise show through. */
 [hidden] { display: none !important; }
@@ -250,7 +278,9 @@ textarea.field { resize: vertical; font-family: var(--mono); font-size: 12.5px; 
 .fetch-status.good { border-color: var(--good); }
 .fetch-results {
   margin-top: 10px; border: 1px solid var(--line); border-radius: 5px;
-  max-height: 260px; overflow-y: auto;
+  /* Rows run to about 55px, so 260px showed four of twenty. */
+  max-height: min(52vh, 460px);
+  overflow-y: auto;
 }
 .hit-row {
   display: block; width: 100%; text-align: left; padding: 7px 11px;
@@ -260,9 +290,20 @@ textarea.field { resize: vertical; font-family: var(--mono); font-size: 12.5px; 
 .hit-row:hover { background: var(--surface-2); }
 .hit-row b { font-family: var(--mono); font-size: 12.5px; font-weight: 500; }
 .hit-row span { display: block; font-family: var(--serif); font-size: 12px; color: var(--muted); }
-.hit-row.more { background: var(--surface-2); position: sticky; bottom: 0; }
-.hit-row.more:disabled { cursor: default; opacity: .7; }
+.hit-row.more {
+  background: var(--surface-2); position: sticky; bottom: 0;
+  border-top: 1px solid var(--line-strong); border-bottom: 0;
+}
+.hit-row.more:disabled { cursor: default; }
 .hit-row.more b { color: var(--accent); }
+.hit-row.more:disabled b { color: var(--muted); }
+/* A fade above the pinned footer, so it is obvious the rows continue under it. */
+.fetch-results.overflowing .hit-row.more::before {
+  content: ""; position: absolute; left: 0; right: 0; top: -18px; height: 18px;
+  background: linear-gradient(to bottom, transparent, var(--surface));
+  pointer-events: none;
+}
+.hit-row.more { position: sticky; }
 .hit-row em { font-style: normal; color: var(--ink-soft); font-family: var(--sans); font-size: 11px; }
 
 /* --------------------------------------------------------------- sequence */
@@ -2919,19 +2960,34 @@ function renderSearchResults(results, more = false) {
     });
     box.appendChild(b);
   }
-  if (more) {
-    const row = el("button", "hit-row more");
-    row.type = "button";
-    const shown = results.length;
-    const next = Math.min(shown + 40, 200);
-    row.appendChild(el("b", null, next > shown ? `Show ${next - shown} more` : "That is as many as this will list"));
-    row.appendChild(el("span", null,
+  /* A footer pinned to the bottom of the list. On a machine with overlay
+     scrollbars — the macOS default — a list that overflows looks exactly like
+     one that ends, so this says how much is out of sight. It doubles as the
+     control for asking the database for more. */
+  const shown = results.length;
+  const footer = el("button", "hit-row more");
+  footer.type = "button";
+  const next = Math.min(shown + 40, 200);
+  if (more && next > shown) {
+    footer.appendChild(el("b", null, `Show ${next - shown} more`));
+    footer.appendChild(el("span", null,
       `${n2(state.search.total - shown)} further matches. Past a couple of hundred it is quicker to narrow the ` +
       "search than to scroll: add the organism, or use a field like HBB[gene] AND human[orgn]."));
-    row.disabled = next <= shown;
-    row.addEventListener("click", () => doSearch(next));
-    box.appendChild(row);
+    footer.addEventListener("click", () => doSearch(next));
+  } else {
+    footer.appendChild(el("b", null, `${plural2(shown, "result", "results")}`));
+    footer.appendChild(el("span", null, more
+      ? "That is as many as this will list. Narrow the search to see different ones."
+      : "That is all of them."));
+    footer.disabled = true;
   }
+  box.appendChild(footer);
+
+  /* Reading scrollHeight flushes layout, so this is accurate straight away.
+     A requestAnimationFrame here would be worse than useless: its callback
+     never runs while the tab is hidden, so the list would render unmarked. */
+  const hiddenPx = box.scrollHeight - box.clientHeight;
+  box.classList.toggle("overflowing", hiddenPx > 8);
 }
 
 /* ------------------------------------------------------------------- runs */

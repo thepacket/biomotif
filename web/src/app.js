@@ -351,19 +351,34 @@ function renderSearchResults(results, more = false) {
     });
     box.appendChild(b);
   }
-  if (more) {
-    const row = el("button", "hit-row more");
-    row.type = "button";
-    const shown = results.length;
-    const next = Math.min(shown + 40, 200);
-    row.appendChild(el("b", null, next > shown ? `Show ${next - shown} more` : "That is as many as this will list"));
-    row.appendChild(el("span", null,
+  /* A footer pinned to the bottom of the list. On a machine with overlay
+     scrollbars — the macOS default — a list that overflows looks exactly like
+     one that ends, so this says how much is out of sight. It doubles as the
+     control for asking the database for more. */
+  const shown = results.length;
+  const footer = el("button", "hit-row more");
+  footer.type = "button";
+  const next = Math.min(shown + 40, 200);
+  if (more && next > shown) {
+    footer.appendChild(el("b", null, `Show ${next - shown} more`));
+    footer.appendChild(el("span", null,
       `${n2(state.search.total - shown)} further matches. Past a couple of hundred it is quicker to narrow the ` +
       "search than to scroll: add the organism, or use a field like HBB[gene] AND human[orgn]."));
-    row.disabled = next <= shown;
-    row.addEventListener("click", () => doSearch(next));
-    box.appendChild(row);
+    footer.addEventListener("click", () => doSearch(next));
+  } else {
+    footer.appendChild(el("b", null, `${plural2(shown, "result", "results")}`));
+    footer.appendChild(el("span", null, more
+      ? "That is as many as this will list. Narrow the search to see different ones."
+      : "That is all of them."));
+    footer.disabled = true;
   }
+  box.appendChild(footer);
+
+  /* Reading scrollHeight flushes layout, so this is accurate straight away.
+     A requestAnimationFrame here would be worse than useless: its callback
+     never runs while the tab is hidden, so the list would render unmarked. */
+  const hiddenPx = box.scrollHeight - box.clientHeight;
+  box.classList.toggle("overflowing", hiddenPx > 8);
 }
 
 /* ------------------------------------------------------------------- runs */
