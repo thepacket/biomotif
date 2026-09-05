@@ -323,6 +323,45 @@ textarea.field { resize: vertical; font-family: var(--mono); font-size: 12.5px; 
 .hit-row.more { position: sticky; }
 .hit-row em { font-style: normal; color: var(--ink-soft); font-family: var(--sans); font-size: 11px; }
 
+/* ------------------------------------------------------------- walkthrough */
+
+details.lesson > summary {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 9px 14px; cursor: pointer; list-style: none;
+  background: var(--surface-2);
+}
+details.lesson > summary::-webkit-details-marker { display: none; }
+details.lesson > summary h2 {
+  margin: 0; font-size: 11px; font-weight: 600;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--ink-soft);
+}
+details.lesson > summary h2::before { content: "▸ "; color: var(--accent); }
+details.lesson[open] > summary { border-bottom: 1px solid var(--line); }
+details.lesson[open] > summary h2::before { content: "▾ "; }
+.lesson-pick { display: flex; flex-direction: column; gap: 6px; }
+.lesson-pick button {
+  display: block; width: 100%; text-align: left; padding: 8px 11px;
+  background: var(--ground); border: 1px solid var(--line); border-radius: 5px; cursor: pointer;
+}
+.lesson-pick button:hover { border-color: var(--accent); }
+.lesson-pick b { display: block; font-size: 13px; }
+.lesson-pick span { font-family: var(--serif); font-size: 12.5px; color: var(--muted); }
+.lesson-intro { margin: 0 0 10px; font-family: var(--serif); font-size: 13px; color: var(--ink-soft); max-width: 74ch; }
+.lesson-steps { display: flex; flex-wrap: wrap; gap: 5px; margin: 0 0 10px; padding: 0; list-style: none; counter-reset: step; }
+.lesson-steps button {
+  padding: 2px 9px; border-radius: 20px; font-size: 11.5px; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); color: var(--ink-soft);
+}
+.lesson-steps button::before { counter-increment: step; content: counter(step) " · "; color: var(--muted); }
+.lesson-steps button[aria-current="step"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.lesson-steps button[aria-current="step"]::before { color: inherit; }
+.lesson-steps button.done { border-color: var(--good); }
+.lesson-step { padding: 10px 12px; background: var(--ground); border-left: 3px solid var(--accent); border-radius: 0 5px 5px 0; max-width: 78ch; }
+.lesson-step h3 { margin: 0 0 4px; font-size: 13px; font-weight: 600; }
+.lesson-step p { margin: 0 0 6px; font-family: var(--serif); font-size: 13px; color: var(--ink-soft); }
+.lesson-step .lesson-look { margin: 0; padding-top: 6px; border-top: 1px dashed var(--line-strong); }
+.lesson-step .lesson-look::before { content: "What to look for. "; font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--accent); }
+
 /* --------------------------------------------------------------- sequence */
 
 .seq-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 12px 0 10px; }
@@ -538,6 +577,31 @@ details.help > div { padding-top: 8px; }
   </aside>
 
   <div class="work">
+    <details class="panel lesson" id="lesson-panel">
+      <summary>
+        <h2>Walkthrough</h2>
+        <span class="hint spacer">learn the tool on a real sequence, one step at a time</span>
+      </summary>
+      <div class="panel-body">
+        <div class="lesson-pick" id="lesson-pick"></div>
+        <div class="lesson-body" id="lesson-body" hidden>
+          <p class="lesson-intro" id="lesson-intro"></p>
+          <ol class="lesson-steps" id="lesson-steps"></ol>
+          <div class="lesson-step" id="lesson-step" hidden>
+            <h3 id="lesson-step-title"></h3>
+            <p id="lesson-step-text"></p>
+            <p class="lesson-look" id="lesson-step-look"></p>
+          </div>
+          <div class="motif-row">
+            <button class="btn btn-primary" id="lesson-next" type="button">Start</button>
+            <button class="btn" id="lesson-prev" type="button" disabled>Back</button>
+            <span class="hint spacer" id="lesson-where"></span>
+            <button class="btn btn-sm" id="lesson-close" type="button">Choose another</button>
+          </div>
+        </div>
+      </div>
+    </details>
+
     <section class="panel">
       <header>
         <h2>Sequence</h2>
@@ -2932,7 +2996,7 @@ function encodeState(state) {
   }
   put("circular", !!state.circular);
   put("lesson", state.lesson);
-  return params.toString().replace(/%28/g, "(").replace(/%29/g, ")").replace(/%27/g, "'").replace(/%22/g, '"');
+  return params.toString().replace(/%28/g, "(").replace(/%29/g, ")").replace(/%27/g, "'").replace(/%22/g, '"').replace(/%2F/g, "/");
 }
 
 /** The state a fragment describes, or null when it describes nothing. Unknown
@@ -3114,6 +3178,109 @@ function annotate(html, terms = TERMS) {
 }
 
 
+/* ==== lessons.js ==== */
+/* Walkthroughs: the tool taught on a real sequence, one step at a time.
+
+   Each lesson names the sequence it needs and a list of steps. A step does
+   one thing — loads a motif, or scans — and says what to look for once it
+   has. The text is written for the same reader as the explanation pane, and
+   it is data, so a lesson can be checked: the offline one runs in a test,
+   with the number of matches each step should find. */
+
+const LESSONS = [
+  {
+    id: "operon",
+    title: "A bacterial gene, from promoter to terminator",
+    intro: "Uses the built-in operon, so it works without a connection. A synthetic sequence with real signals planted " +
+      "in it: a promoter, three genes each with its ribosome binding site, and a terminator at the end.",
+    seq: { demo: "operon" },
+    steps: [
+      { title: "Find the promoter",
+        motif: "sigma70-promoter",
+        text: "A bacterial promoter is two short boxes a fixed distance apart: TTGACA, then 15 to 19 bases of anything, then TATAAT. " +
+          "The library's version allows one mismatch in each box, because real promoters rarely match the textbook exactly.",
+        look: "One match, starting at position 121. In the table, each named part is reported separately — box35, spacer, box10 — " +
+          "so you can see which bases played which role. The verdict says shuffling the sequence never produces this: it is real.",
+        expect: 1 },
+      { title: "Find where each gene starts being translated",
+        motif: "shine-dalgarno",
+        text: "Before every bacterial gene is a short signal the ribosome grabs onto, AGGAGG or close to it, a few bases before the ATG.",
+        look: "Three matches, one per gene. Chance would give well under one. Note where they sit relative to the promoter: " +
+          "all after it, as they should be.",
+        expect: 3 },
+      { title: "See what a bad pattern looks like",
+        motif: "start-codon",
+        text: "ATG marks the start of a protein — and any three-base pattern occurs by accident every sixty bases or so.",
+        look: "Over a hundred matches, and the verdict says chance alone would give about as many. This is the most important " +
+          "thing the pane tells you: a pattern this short finds nothing, however many times it matches.",
+        expect: 125 },
+      { title: "Put two signals together",
+        motif: "(seq (named 'sd \"AGGAGG\") (gap 4 10) (named 'start \"ATG\"))",
+        text: "The fix for a short pattern is context. This asks for the ribosome signal, then 4 to 10 bases of anything, then ATG: " +
+          "a start codon that a ribosome could actually reach.",
+        look: "Three matches — exactly the three real gene starts — and a chance figure of zero. Composition is how a weak " +
+          "signal becomes a strong one.",
+        expect: 3 },
+      { title: "Find the terminator by its shape",
+        motif: "rho-independent-terminator",
+        text: "Transcription stops at a hairpin: a stretch of bases that folds back and pairs with itself, followed by a run of T. " +
+          "This motif checks the pairing, not just the letters.",
+        look: "One match near the end, at 1189. The table names the two halves of the stem and the loop between them. " +
+          "Try it on the plasmid example afterwards: the T7 terminator is the same shape.",
+        expect: 1 },
+      { title: "Scan everything",
+        scan: true,
+        text: "Finally, run every applicable pattern in the library at once.",
+        look: "A long list. The pane above the results explains why it is a list of things to look at, not a list of findings: " +
+          "most short patterns turn up by accident. The picture draws each place once, however many patterns land on it." },
+    ],
+  },
+  {
+    id: "beta-globin",
+    title: "The human beta-globin promoter",
+    intro: "Fetches the HBB gene from Ensembl with 200 bases of the DNA before it, where the promoter is. " +
+      "The textbook promoter is three boxes at known positions; this walk finds each, and shows why the textbook is not enough.",
+    seq: { fetch: "ENST00000335295", source: "ensembl", upstream: 200 },
+    steps: [
+      { title: "Look for the textbook TATA box",
+        motif: "tata-box",
+        text: "The TATA box is the best-known promoter element, about 30 bases before the start. Its consensus is TATAWAWR, " +
+          "where W is A or T and R is A or G. The gene starts at position 201, so the box should be near position 170.",
+        look: "One match — at 1368, deep inside the gene, and nowhere near 170. The verdict says chance would give about one anyway. " +
+          "The real promoter is missed entirely." },
+      { title: "Allow one letter to differ",
+        motif: "(fuzzy 1 (iupac \"TATAWAWR\"))",
+        text: "fuzzy lets a fixed-width pattern differ in a given number of letters.",
+        look: "The first match is at 169: CATAAAAG, 32 bases before the start. That is the real HBB TATA box, and it begins with C. " +
+          "A consensus is a summary of many sites, not a rule any one of them must obey. But look at the rest: thirty-odd matches, " +
+          "and chance would give about nineteen. Loosening a pattern finds the real site at the cost of many false ones." },
+      { title: "Find the CCAAT box",
+        motif: "(iupac \"CCAAT\")",
+        text: "About 75 bases before the start, a second protein binds at CCAAT.",
+        look: "A match at 125, which is 76 before the start — and three others. Five letters occur by accident every kilobase or so, " +
+          "and the verdict says as much. Position is what makes this one credible, not the match itself." },
+      { title: "Find the CACCC box",
+        motif: "(iupac \"CCACACCC\")",
+        text: "Further out, at about 90 before the start, is the site for KLF1, the factor that makes this gene a red-cell gene.",
+        look: "One match at 108, 93 before the start, and a chance figure near zero: eight specific bases are rare by accident." },
+      { title: "Ask for all three in order",
+        motif: "(seq (named 'cacc \"CCACACCC\") (gap 5 20) (named 'ccaat \"CCAAT\") (gap 30 50) (named 'tata (fuzzy 1 (iupac \"TATAWAWR\"))))",
+        text: "A promoter is not one box but an arrangement. This asks for the three at the spacings the textbook gives, each named.",
+        look: "Exactly one match, from 108 to 176, and chance gives zero. The table reports which bases played each part. " +
+          "The loose TATA pattern that found thirty sites on its own is now pinned to the one that belongs." },
+      { title: "Compare the measured version",
+        motif: "tbp-matrix",
+        text: "The library also has the TATA-binding protein's site as JASPAR measured it: a weight matrix that scores every " +
+          "position rather than accepting or rejecting a letter.",
+        look: "Two matches, both inside the gene, each with a score; the promoter's own box is not among them. Even a measured " +
+          "matrix is a summary. The lesson of this promoter is that the sequence is the evidence and the consensus is the guide." },
+    ],
+  },
+];
+
+const lessonById = (id) => LESSONS.find((l) => l.id === id) ?? null;
+
+
 /* ==== app.js ==== */
 /* Biomotif workbench: library browser, motif editor, assistant, results. */
 
@@ -3145,6 +3312,7 @@ const state = {
   search: null,       // the last search, so more of it can be asked for
   came: null,         // how the sequence was obtained, when that can go in a link
   gel: null,          // the lanes of the last digest, for the drawn gel
+  lesson: "",         // "id/step" while a walkthrough is open, for the link
 };
 
 /* ------------------------------------------------------------------ library */
@@ -3680,7 +3848,119 @@ function applyLink(link) {
   return true;
 }
 
-function openLesson() { /* the walkthrough, when there is one */ }
+/* ------------------------------------------------------------ walkthrough */
+
+/** Whether the sequence on screen is the one a lesson wants, so a step that
+    is re-run does not fetch it again. */
+function haveSequence(seq) {
+  const c = state.came;
+  if (!c || !currentRecord()) return false;
+  if (seq.demo) return c.demo === seq.demo;
+  return c.fetch === seq.fetch && (c.upstream || 0) === (seq.upstream || 0);
+}
+
+async function ensureSequence(seq) {
+  if (haveSequence(seq)) return true;
+  if (seq.demo) { document.querySelector(`[data-demo="${seq.demo}"]`)?.click(); return true; }
+  $("#fetch-query").value = seq.fetch;
+  $("#fetch-source").value = seq.source || "auto";
+  $("#fetch-upstream").value = String(seq.upstream || 0);
+  await doFetch(seq.fetch, { source: seq.source || "auto", upstream: seq.upstream || 0 });
+  return haveSequence(seq);
+}
+
+function renderLessonPick() {
+  const box = $("#lesson-pick");
+  box.textContent = "";
+  for (const l of LESSONS) {
+    const b = el("button");
+    b.type = "button";
+    b.appendChild(el("b", null, l.title));
+    b.appendChild(el("span", null, l.intro));
+    b.addEventListener("click", () => openLesson(l.id));
+    box.appendChild(b);
+  }
+}
+
+/** Show a lesson at a step; -1 is the introduction, before any step has run. */
+function renderLesson(lesson, at) {
+  $("#lesson-pick").hidden = true;
+  $("#lesson-body").hidden = false;
+  $("#lesson-panel").open = true;
+  $("#lesson-intro").textContent = `${lesson.title}. ${lesson.intro}`;
+  const steps = $("#lesson-steps");
+  steps.textContent = "";
+  lesson.steps.forEach((s, i) => {
+    const li = el("li");
+    const b = el("button", i < at ? "done" : "", s.title);
+    b.type = "button";
+    if (i === at) b.setAttribute("aria-current", "step");
+    b.addEventListener("click", () => runLessonStep(lesson, i));
+    li.appendChild(b);
+    steps.appendChild(li);
+  });
+  const step = lesson.steps[at];
+  $("#lesson-step").hidden = !step;
+  if (step) {
+    $("#lesson-step-title").textContent = step.title;
+    $("#lesson-step-text").textContent = step.text;
+    $("#lesson-step-look").textContent = step.look;
+  }
+  const last = at >= lesson.steps.length - 1;
+  $("#lesson-next").textContent = at < 0 ? "Start" : last ? "Done" : "Next step";
+  $("#lesson-next").disabled = last;
+  $("#lesson-prev").disabled = at <= 0;
+  $("#lesson-where").textContent = step ? `step ${at + 1} of ${lesson.steps.length}` : `${lesson.steps.length} steps`;
+  state.lesson = `${lesson.id}/${at + 1}`;
+}
+
+async function runLessonStep(lesson, i) {
+  const step = lesson.steps[i];
+  if (!step) return;
+  renderLesson(lesson, i);
+  state.fetching?.abort();
+  const ok = await ensureSequence(lesson.seq);
+  if (!ok) return;   // the fetch failed, and the fetch status has said why
+  if (step.scan) { scanAll(); return; }
+  const entry = state.registry.get(step.motif);
+  state.selectedEntry = entry ? entry.name : null;
+  setMotifSource(entry ? (entry.editorSource ?? entry.pattern) : step.motif, entry ? entry.name : "walkthrough");
+  showDoc(entry ?? null);
+  renderRail();
+  run();
+}
+
+/** Open a lesson by id, or "id/step" as a link says it. */
+function openLesson(spec) {
+  const [id, n] = String(spec).split("/");
+  const lesson = lessonById(id);
+  if (!lesson) return;
+  const at = Math.min(Math.max(Number(n) || 0, 0), lesson.steps.length) - 1;
+  if (at >= 0) runLessonStep(lesson, at);
+  else renderLesson(lesson, -1);
+}
+
+function closeLesson() {
+  state.lesson = "";
+  $("#lesson-body").hidden = true;
+  $("#lesson-pick").hidden = false;
+  syncLink();
+}
+
+function wireLessons() {
+  renderLessonPick();
+  $("#lesson-next").addEventListener("click", () => {
+    const [id, n] = state.lesson.split("/");
+    const lesson = lessonById(id);
+    if (lesson) runLessonStep(lesson, Number(n));
+  });
+  $("#lesson-prev").addEventListener("click", () => {
+    const [id, n] = state.lesson.split("/");
+    const lesson = lessonById(id);
+    if (lesson) runLessonStep(lesson, Number(n) - 2);
+  });
+  $("#lesson-close").addEventListener("click", closeLesson);
+}
 
 /* ---------------------------------------------------------------- results */
 
@@ -4226,6 +4506,7 @@ function settleSplitter() {
 function wire() {
   wireSplitter();
   wireResultsLinks();
+  wireLessons();
   $("#library-search").addEventListener("input", (e) => {
     state.filterText = e.target.value.trim();
     renderRail();

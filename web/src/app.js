@@ -14,6 +14,7 @@ import { describeState, rnaMotifs } from "./describe.js";
 import { decodeState, encodeState, shareUrl } from "./share.js";
 import { gelSvg } from "./gel.js";
 import { annotate } from "./glossary.js";
+import { LESSONS, lessonById } from "./lessons.js";
 
 const $ = (sel) => document.querySelector(sel);
 const el = (tag, cls, text) => {
@@ -43,6 +44,7 @@ const state = {
   search: null,       // the last search, so more of it can be asked for
   came: null,         // how the sequence was obtained, when that can go in a link
   gel: null,          // the lanes of the last digest, for the drawn gel
+  lesson: "",         // "id/step" while a walkthrough is open, for the link
 };
 
 /* ------------------------------------------------------------------ library */
@@ -578,7 +580,119 @@ function applyLink(link) {
   return true;
 }
 
-function openLesson() { /* the walkthrough, when there is one */ }
+/* ------------------------------------------------------------ walkthrough */
+
+/** Whether the sequence on screen is the one a lesson wants, so a step that
+    is re-run does not fetch it again. */
+function haveSequence(seq) {
+  const c = state.came;
+  if (!c || !currentRecord()) return false;
+  if (seq.demo) return c.demo === seq.demo;
+  return c.fetch === seq.fetch && (c.upstream || 0) === (seq.upstream || 0);
+}
+
+async function ensureSequence(seq) {
+  if (haveSequence(seq)) return true;
+  if (seq.demo) { document.querySelector(`[data-demo="${seq.demo}"]`)?.click(); return true; }
+  $("#fetch-query").value = seq.fetch;
+  $("#fetch-source").value = seq.source || "auto";
+  $("#fetch-upstream").value = String(seq.upstream || 0);
+  await doFetch(seq.fetch, { source: seq.source || "auto", upstream: seq.upstream || 0 });
+  return haveSequence(seq);
+}
+
+function renderLessonPick() {
+  const box = $("#lesson-pick");
+  box.textContent = "";
+  for (const l of LESSONS) {
+    const b = el("button");
+    b.type = "button";
+    b.appendChild(el("b", null, l.title));
+    b.appendChild(el("span", null, l.intro));
+    b.addEventListener("click", () => openLesson(l.id));
+    box.appendChild(b);
+  }
+}
+
+/** Show a lesson at a step; -1 is the introduction, before any step has run. */
+function renderLesson(lesson, at) {
+  $("#lesson-pick").hidden = true;
+  $("#lesson-body").hidden = false;
+  $("#lesson-panel").open = true;
+  $("#lesson-intro").textContent = `${lesson.title}. ${lesson.intro}`;
+  const steps = $("#lesson-steps");
+  steps.textContent = "";
+  lesson.steps.forEach((s, i) => {
+    const li = el("li");
+    const b = el("button", i < at ? "done" : "", s.title);
+    b.type = "button";
+    if (i === at) b.setAttribute("aria-current", "step");
+    b.addEventListener("click", () => runLessonStep(lesson, i));
+    li.appendChild(b);
+    steps.appendChild(li);
+  });
+  const step = lesson.steps[at];
+  $("#lesson-step").hidden = !step;
+  if (step) {
+    $("#lesson-step-title").textContent = step.title;
+    $("#lesson-step-text").textContent = step.text;
+    $("#lesson-step-look").textContent = step.look;
+  }
+  const last = at >= lesson.steps.length - 1;
+  $("#lesson-next").textContent = at < 0 ? "Start" : last ? "Done" : "Next step";
+  $("#lesson-next").disabled = last;
+  $("#lesson-prev").disabled = at <= 0;
+  $("#lesson-where").textContent = step ? `step ${at + 1} of ${lesson.steps.length}` : `${lesson.steps.length} steps`;
+  state.lesson = `${lesson.id}/${at + 1}`;
+}
+
+async function runLessonStep(lesson, i) {
+  const step = lesson.steps[i];
+  if (!step) return;
+  renderLesson(lesson, i);
+  state.fetching?.abort();
+  const ok = await ensureSequence(lesson.seq);
+  if (!ok) return;   // the fetch failed, and the fetch status has said why
+  if (step.scan) { scanAll(); return; }
+  const entry = state.registry.get(step.motif);
+  state.selectedEntry = entry ? entry.name : null;
+  setMotifSource(entry ? (entry.editorSource ?? entry.pattern) : step.motif, entry ? entry.name : "walkthrough");
+  showDoc(entry ?? null);
+  renderRail();
+  run();
+}
+
+/** Open a lesson by id, or "id/step" as a link says it. */
+function openLesson(spec) {
+  const [id, n] = String(spec).split("/");
+  const lesson = lessonById(id);
+  if (!lesson) return;
+  const at = Math.min(Math.max(Number(n) || 0, 0), lesson.steps.length) - 1;
+  if (at >= 0) runLessonStep(lesson, at);
+  else renderLesson(lesson, -1);
+}
+
+function closeLesson() {
+  state.lesson = "";
+  $("#lesson-body").hidden = true;
+  $("#lesson-pick").hidden = false;
+  syncLink();
+}
+
+function wireLessons() {
+  renderLessonPick();
+  $("#lesson-next").addEventListener("click", () => {
+    const [id, n] = state.lesson.split("/");
+    const lesson = lessonById(id);
+    if (lesson) runLessonStep(lesson, Number(n));
+  });
+  $("#lesson-prev").addEventListener("click", () => {
+    const [id, n] = state.lesson.split("/");
+    const lesson = lessonById(id);
+    if (lesson) runLessonStep(lesson, Number(n) - 2);
+  });
+  $("#lesson-close").addEventListener("click", closeLesson);
+}
 
 /* ---------------------------------------------------------------- results */
 
@@ -1124,6 +1238,7 @@ function settleSplitter() {
 function wire() {
   wireSplitter();
   wireResultsLinks();
+  wireLessons();
   $("#library-search").addEventListener("input", (e) => {
     state.filterText = e.target.value.trim();
     renderRail();

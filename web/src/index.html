@@ -34,6 +34,31 @@
   </aside>
 
   <div class="work">
+    <details class="panel lesson" id="lesson-panel">
+      <summary>
+        <h2>Walkthrough</h2>
+        <span class="hint spacer">learn the tool on a real sequence, one step at a time</span>
+      </summary>
+      <div class="panel-body">
+        <div class="lesson-pick" id="lesson-pick"></div>
+        <div class="lesson-body" id="lesson-body" hidden>
+          <p class="lesson-intro" id="lesson-intro"></p>
+          <ol class="lesson-steps" id="lesson-steps"></ol>
+          <div class="lesson-step" id="lesson-step" hidden>
+            <h3 id="lesson-step-title"></h3>
+            <p id="lesson-step-text"></p>
+            <p class="lesson-look" id="lesson-step-look"></p>
+          </div>
+          <div class="motif-row">
+            <button class="btn btn-primary" id="lesson-next" type="button">Start</button>
+            <button class="btn" id="lesson-prev" type="button" disabled>Back</button>
+            <span class="hint spacer" id="lesson-where"></span>
+            <button class="btn btn-sm" id="lesson-close" type="button">Choose another</button>
+          </div>
+        </div>
+      </div>
+    </details>
+
     <section class="panel">
       <header>
         <h2>Sequence</h2>

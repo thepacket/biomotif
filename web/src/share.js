@@ -27,7 +27,7 @@ export function encodeState(state) {
   }
   put("circular", !!state.circular);
   put("lesson", state.lesson);
-  return params.toString().replace(/%28/g, "(").replace(/%29/g, ")").replace(/%27/g, "'").replace(/%22/g, '"');
+  return params.toString().replace(/%28/g, "(").replace(/%29/g, ")").replace(/%27/g, "'").replace(/%22/g, '"').replace(/%2F/g, "/");
 }
 
 /** The state a fragment describes, or null when it describes nothing. Unknown
