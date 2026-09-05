@@ -235,8 +235,9 @@ export function describeState({ record, entry, matcher, source, hits, mode = "mo
     });
     sections.push({
       heading: "What was found",
-      body: "The cut positions and the resulting piece sizes are below. Pieces of similar size look the same on a gel, " +
-        "so a useful pair of enzymes gives pieces that differ clearly in length.",
+      body: "The cut positions and the resulting piece sizes are below, drawn as they would look on a gel: " +
+        "each enzyme on its own, then both together, beside a ladder of known sizes. Bigger pieces travel less far, " +
+        "and pieces of similar size look the same, so a useful pair of enzymes gives pieces that differ clearly in length.",
     });
     return sections;
   }

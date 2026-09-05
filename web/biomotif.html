@@ -448,6 +448,16 @@ table.hits .name { font-family: var(--mono); font-size: 12px; white-space: nowra
 .track .lane { color: var(--accent); }
 .track .skip { color: var(--muted); font-style: italic; }
 
+/* The gel: a dark slab whatever the theme, since that is what a gel looks like
+   on a transilluminator, with bands in the accent so they read as data. */
+.gel-box { display: flex; justify-content: center; }
+.gel { max-width: 100%; height: auto; font-family: var(--mono); }
+.gel-slab { fill: #1b2327; }
+.gel-well { fill: #0b1013; }
+.gel-band { fill: #7fd8e0; }
+.gel-label { fill: var(--ink-soft); font-size: 11px; }
+.gel-size { fill: #b6c9ce; font-size: 10px; font-variant-numeric: tabular-nums; }
+
 .empty { padding: 26px 14px; text-align: center; color: var(--muted); font-family: var(--serif); font-size: 13px; }
 
 /* ------------------------------------------------------------------ misc */
@@ -2838,8 +2848,9 @@ function describeState({ record, entry, matcher, source, hits, mode = "motif", o
     });
     sections.push({
       heading: "What was found",
-      body: "The cut positions and the resulting piece sizes are below. Pieces of similar size look the same on a gel, " +
-        "so a useful pair of enzymes gives pieces that differ clearly in length.",
+      body: "The cut positions and the resulting piece sizes are below, drawn as they would look on a gel: " +
+        "each enzyme on its own, then both together, beside a ladder of known sizes. Bigger pieces travel less far, " +
+        "and pieces of similar size look the same, so a useful pair of enzymes gives pieces that differ clearly in length.",
     });
     return sections;
   }
@@ -2922,6 +2933,92 @@ function shareUrl(state, base = location.href) {
 }
 
 
+/* ==== gel.js ==== */
+/* A drawn agarose gel.
+
+   Fragment sizes as a list are the answer; the gel is how the answer is read
+   in a lab. Bands sit on a log scale, because DNA migrates roughly with the
+   log of its length, and a band's darkness follows the fragment's mass —
+   every fragment of a digest is present in equal number, so a long one
+   carries more stain than a short one. A ladder in the first lane gives the
+   scale, the way a real gel needs one.
+
+   Everything is drawn with SVG attributes and classes, never a style
+   attribute: the deployed policy allows no inline style. */
+
+/** A common 1 kb ladder, rungs in base pairs. */
+const LADDER = [10000, 8000, 6000, 5000, 4000, 3000, 2500, 2000, 1500, 1000, 750, 500, 250, 100];
+
+const W = 96;          // lane pitch
+const TOP = 34;        // room for the lane labels
+const HEIGHT = 300;    // the migration distance available
+const WELL = 8;
+
+const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const fmt = (n) => n.toLocaleString("en-US");
+
+/** Where a fragment of `size` bases runs to, in pixels below the wells. */
+function migration(size, lo, hi) {
+  const clamp = Math.min(Math.max(size, lo), hi);
+  return TOP + WELL + ((Math.log(hi) - Math.log(clamp)) / (Math.log(hi) - Math.log(lo))) * HEIGHT;
+}
+
+/** The SVG for a gel. `lanes` is [{label, sizes}], each a digest to draw; the
+    ladder is added as the first lane. Sizes below the ladder's smallest rung
+    still draw, at the bottom, since a real gel shows them run off too. */
+function gelSvg(lanes, { ladder = LADDER } = {}) {
+  const all = [...ladder, ...lanes.flatMap((l) => l.sizes)];
+  // The scale spans the ladder, stretched when a fragment is bigger than its top rung.
+  const hi = Math.max(ladder[0], ...all);
+  const lo = Math.min(ladder[ladder.length - 1], ...all.filter((s) => s > 0));
+  const cols = [{ label: "ladder", sizes: ladder, ladder: true }, ...lanes];
+  const width = cols.length * W + 60;
+  const height = TOP + WELL + HEIGHT + 24;
+  const parts = [];
+
+  parts.push(`<svg class="gel" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" ` +
+             `aria-label="${esc(describeGel(lanes))}">`);
+  parts.push(`<title>${esc(describeGel(lanes))}</title>`);
+  parts.push(`<rect class="gel-slab" x="0" y="${TOP}" width="${width}" height="${height - TOP}" rx="6"/>`);
+
+  cols.forEach((lane, i) => {
+    const x = 30 + i * W;
+    parts.push(`<text class="gel-label" x="${x + W / 2 - 8}" y="${TOP - 12}" text-anchor="middle">${esc(lane.label)}</text>`);
+    parts.push(`<rect class="gel-well" x="${x}" y="${TOP + 2}" width="${W - 16}" height="${WELL}" rx="1"/>`);
+    const biggest = Math.max(...lane.sizes, 1);
+    // Draw the largest first so the label of a smaller band that sits close
+    // to it can be skipped rather than drawn on top of it.
+    const sorted = [...lane.sizes].sort((a, b) => b - a);
+    let lastLabelY = -Infinity;
+    for (const size of sorted) {
+      if (size <= 0) continue;
+      const y = migration(size, lo, hi);
+      // Mass: an equimolar band's stain scales with its length. The ladder is
+      // drawn evenly, since a bought ladder is mixed to look that way.
+      const weight = lane.ladder ? 0.85 : 0.35 + 0.65 * Math.sqrt(size / biggest);
+      const thick = lane.ladder ? 3 : 3 + 3 * Math.sqrt(size / biggest);
+      parts.push(`<rect class="gel-band" x="${x}" y="${(y - thick / 2).toFixed(1)}" width="${W - 16}" ` +
+                 `height="${thick.toFixed(1)}" rx="1.5" opacity="${weight.toFixed(2)}"/>`);
+      const wantLabel = lane.ladder ? [10000, 5000, 3000, 2000, 1500, 1000, 500, 250, 100].includes(size) : true;
+      if (wantLabel && Math.abs(y - lastLabelY) >= 11) {
+        const lx = lane.ladder ? x - 4 : x + W - 12;
+        const anchor = lane.ladder ? "end" : "start";
+        parts.push(`<text class="gel-size" x="${lx}" y="${(y + 3.5).toFixed(1)}" text-anchor="${anchor}">${fmt(size)}</text>`);
+        lastLabelY = y;
+      }
+    }
+  });
+  parts.push("</svg>");
+  return parts.join("\n");
+}
+
+/** The gel in words, for a screen reader and the SVG's title. */
+function describeGel(lanes) {
+  return "A drawn gel: " + lanes.map((l) => `${l.label} gives ${l.sizes.length === 1 ? "one band" : `${l.sizes.length} bands`} at ` +
+    `${[...l.sizes].sort((a, b) => b - a).map(fmt).join(", ")} bp`).join("; ") + ".";
+}
+
+
 /* ==== app.js ==== */
 /* Biomotif workbench: library browser, motif editor, assistant, results. */
 
@@ -2952,6 +3049,7 @@ const state = {
   origin: null,       // a sentence about where the sequence came from
   search: null,       // the last search, so more of it can be asked for
   came: null,         // how the sequence was obtained, when that can go in a link
+  gel: null,          // the lanes of the last digest, for the drawn gel
 };
 
 /* ------------------------------------------------------------------ library */
@@ -3367,6 +3465,12 @@ function runDigest() {
   }
   if (!chosen.length) { renderResults([], "No restriction site from the library cuts this sequence."); return; }
   const d = digest(rec, chosen.map((e) => ({ name: e.name, info: e.meta })), { circular });
+  // The gel a lab would run to check this: each enzyme alone, then both.
+  const lane = (entries) => ({
+    label: entries.map((e) => e.name).join(" + "),
+    sizes: digest(rec, entries.map((e) => ({ name: e.name, info: e.meta })), { circular }).fragments.map((f) => f[2]),
+  });
+  state.gel = chosen.length > 1 ? [...chosen.map((e) => lane([e])), lane(chosen)] : [lane(chosen)];
   const hits = [];
   for (const s of d.sites) {
     hits.push(new E.Match(s.enzyme, s.start, s.end, s.strand, rec.seq.slice(s.start, s.end),
@@ -3522,8 +3626,23 @@ function renderResults(hits, error = null, note = null) {
       "Nothing found. Try a looser motif: wrap it in (fuzzy 1 …), widen a gap, or pick a shorter consensus."));
     return;
   }
+  if (state.mode === "digest" && state.gel) body.appendChild(buildGel(state.gel));
   body.appendChild(buildTrack(rec, hits));
   body.appendChild(buildTable(hits));
+}
+
+function buildGel(lanes) {
+  const wrap = el("div", "panel");
+  const head = el("header");
+  head.appendChild(el("h2", null, "Gel"));
+  const legend = el("span", "hint spacer",
+    "how the pieces would look on an agarose gel · bigger pieces run less far · a longer piece carries more stain, so it is darker");
+  head.appendChild(legend);
+  wrap.appendChild(head);
+  const bodyBox = el("div", "panel-body gel-box scroller");
+  bodyBox.innerHTML = gelSvg(lanes);
+  wrap.appendChild(bodyBox);
+  return wrap;
 }
 
 const BASE_CLASS = { A: "A", C: "C", G: "G", T: "T", U: "T" };

@@ -12,6 +12,7 @@ import {
 import { PROMPT_COUNT, PROMPT_GROUPS } from "./prompts.js";
 import { describeState, rnaMotifs } from "./describe.js";
 import { decodeState, encodeState, shareUrl } from "./share.js";
+import { gelSvg } from "./gel.js";
 
 const $ = (sel) => document.querySelector(sel);
 const el = (tag, cls, text) => {
@@ -40,6 +41,7 @@ const state = {
   origin: null,       // a sentence about where the sequence came from
   search: null,       // the last search, so more of it can be asked for
   came: null,         // how the sequence was obtained, when that can go in a link
+  gel: null,          // the lanes of the last digest, for the drawn gel
 };
 
 /* ------------------------------------------------------------------ library */
@@ -455,6 +457,12 @@ function runDigest() {
   }
   if (!chosen.length) { renderResults([], "No restriction site from the library cuts this sequence."); return; }
   const d = digest(rec, chosen.map((e) => ({ name: e.name, info: e.meta })), { circular });
+  // The gel a lab would run to check this: each enzyme alone, then both.
+  const lane = (entries) => ({
+    label: entries.map((e) => e.name).join(" + "),
+    sizes: digest(rec, entries.map((e) => ({ name: e.name, info: e.meta })), { circular }).fragments.map((f) => f[2]),
+  });
+  state.gel = chosen.length > 1 ? [...chosen.map((e) => lane([e])), lane(chosen)] : [lane(chosen)];
   const hits = [];
   for (const s of d.sites) {
     hits.push(new E.Match(s.enzyme, s.start, s.end, s.strand, rec.seq.slice(s.start, s.end),
@@ -610,8 +618,23 @@ function renderResults(hits, error = null, note = null) {
       "Nothing found. Try a looser motif: wrap it in (fuzzy 1 …), widen a gap, or pick a shorter consensus."));
     return;
   }
+  if (state.mode === "digest" && state.gel) body.appendChild(buildGel(state.gel));
   body.appendChild(buildTrack(rec, hits));
   body.appendChild(buildTable(hits));
+}
+
+function buildGel(lanes) {
+  const wrap = el("div", "panel");
+  const head = el("header");
+  head.appendChild(el("h2", null, "Gel"));
+  const legend = el("span", "hint spacer",
+    "how the pieces would look on an agarose gel · bigger pieces run less far · a longer piece carries more stain, so it is darker");
+  head.appendChild(legend);
+  wrap.appendChild(head);
+  const bodyBox = el("div", "panel-body gel-box scroller");
+  bodyBox.innerHTML = gelSvg(lanes);
+  wrap.appendChild(bodyBox);
+  return wrap;
 }
 
 const BASE_CLASS = { A: "A", C: "C", G: "G", T: "T", U: "T" };

@@ -444,6 +444,16 @@ table.hits .name { font-family: var(--mono); font-size: 12px; white-space: nowra
 .track .lane { color: var(--accent); }
 .track .skip { color: var(--muted); font-style: italic; }
 
+/* The gel: a dark slab whatever the theme, since that is what a gel looks like
+   on a transilluminator, with bands in the accent so they read as data. */
+.gel-box { display: flex; justify-content: center; }
+.gel { max-width: 100%; height: auto; font-family: var(--mono); }
+.gel-slab { fill: #1b2327; }
+.gel-well { fill: #0b1013; }
+.gel-band { fill: #7fd8e0; }
+.gel-label { fill: var(--ink-soft); font-size: 11px; }
+.gel-size { fill: #b6c9ce; font-size: 10px; font-variant-numeric: tabular-nums; }
+
 .empty { padding: 26px 14px; text-align: center; color: var(--muted); font-family: var(--serif); font-size: 13px; }
 
 /* ------------------------------------------------------------------ misc */
