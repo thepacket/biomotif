@@ -206,15 +206,27 @@ export class Registry {
   get size() { return this.entries.size; }
   all() { return [...this.entries.values()]; }
   categories() { return [...new Set(this.all().map((e) => e.category))].sort(); }
+  /** Entries matching the filters, in name order. `all()` keeps the order the
+      library files were read in, which is what a scan reports by; a list
+      someone reads needs to be findable instead. */
   find({ category = null, alphabet = null, text = null } = {}) {
     const t = text ? text.toLowerCase() : null;
     return this.all().filter((e) =>
       (!category || e.category === category) &&
       (!alphabet || e.alphabet === alphabet) &&
       (!t || e.name.toLowerCase().includes(t) || e.doc.toLowerCase().includes(t) ||
-        e.category.includes(t) || (e.ref || "").toLowerCase().includes(t)));
+        e.category.includes(t) || (e.ref || "").toLowerCase().includes(t)))
+      .sort(byName);
   }
 }
+
+/* Names carry numbers -- mir21 and mir155, minus-10 and minus-35, sigma28
+   through sigma70 -- so digits are compared by value. Character by character,
+   mir155 would file before mir21. The locale is pinned rather than taken from
+   the browser, so the library lists the same way on every machine. */
+const collator = new Intl.Collator("en", { numeric: true });
+const byName = (a, b) => collator.compare(a.name, b.name) ||
+                         (a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
 
 const PROTEIN_CATEGORIES = new Set(["protein", "targeting", "modification", "protease", "tag",
   "domain", "binding-site", "catalytic", "degradation", "linker"]);

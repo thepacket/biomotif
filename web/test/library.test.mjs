@@ -276,3 +276,32 @@ test("the status line still never echoes what was typed", () => {
     .map((e) => e.name);
   assert.deepEqual(drift, []);
 });
+
+test("a listed library is in name order, with numbers read as numbers", () => {
+  const names = registry.find({}).map((e) => e.name);
+  assert.equal(names.length, registry.size, "filtering nothing lists everything");
+
+  const collator = new Intl.Collator("en", { numeric: true });
+  for (let i = 1; i < names.length; i++) {
+    assert.ok(collator.compare(names[i - 1], names[i]) <= 0,
+      `${names[i - 1]} should not come before ${names[i]}`);
+  }
+
+  // The cases a character-by-character sort gets wrong.
+  const at = (n) => names.indexOf(n);
+  assert.ok(at("mirna-seed-mir21") < at("mirna-seed-mir155"), "mir21 before mir155");
+  assert.ok(at("minus-10") < at("minus-35"), "minus-10 before minus-35");
+  assert.ok(at("sigma28-promoter") < at("sigma70-promoter"), "sigma28 before sigma70");
+
+  // Filtering must not disturb the order it lists in.
+  const restriction = registry.find({ category: "restriction" }).map((e) => e.name);
+  assert.deepEqual(restriction, [...restriction].sort(collator.compare.bind(collator)));
+});
+
+test("a scan still reports in the order the library was written, not sorted", () => {
+  // find() sorts for the reader; all() is what a scan walks, and its order is
+  // the library's own so related motifs are reported together.
+  const all = registry.all().map((e) => e.name);
+  const sorted = registry.find({}).map((e) => e.name);
+  assert.notDeepEqual(all, sorted);
+});

@@ -56,18 +56,17 @@ function loadLibrary() {
 function renderRail() {
   const list = $("#entry-list");
   list.textContent = "";
-  const alphabet = currentRecord() ? (currentRecord().type === "protein" ? "protein" : null) : null;
-  let entries = state.registry.find({ category: state.filterCategory, text: state.filterText });
-  // Show motifs that fit the loaded sequence's alphabet first: a protein motif
-  // is not wrong to look at while a plasmid is loaded, just not applicable.
-  if (alphabet === "protein") {
-    entries.sort((a, b) => (a.alphabet === "protein" ? 0 : 1) - (b.alphabet === "protein" ? 0 : 1));
-  } else if (currentRecord()) {
-    entries.sort((a, b) => (a.alphabet !== "protein" ? 0 : 1) - (b.alphabet !== "protein" ? 0 : 1));
-  }
+  // Name order, throughout. Floating the motifs that suit the loaded sequence
+  // to the top made the list quicker to skim but impossible to look something
+  // up in, since where a name sat depended on what was loaded at the time.
+  const entries = state.registry.find({ category: state.filterCategory, text: state.filterText });
   $("#rail-count").textContent = `${entries.length} of ${state.registry.size}`;
   const frag = document.createDocumentFragment();
-  for (const e of entries.slice(0, 400)) {
+  /* Every match is listed. A cap made sense while the order was arbitrary, but
+     against a sorted list it silently removes the tail of the alphabet -- the
+     TATA box among it -- from a list whose whole point is that you can find a
+     name in it. 523 buttons cost about a millisecond to build. */
+  for (const e of entries) {
     const b = el("button", "entry");
     b.type = "button";
     if (state.selectedEntry === e.name) b.setAttribute("aria-current", "true");
@@ -81,7 +80,6 @@ function renderRail() {
     frag.appendChild(b);
   }
   if (!entries.length) frag.appendChild(el("div", "empty", "No motif matches that search."));
-  else if (entries.length > 400) frag.appendChild(el("div", "empty", `${entries.length - 400} more — narrow the search.`));
   list.appendChild(frag);
 }
 
