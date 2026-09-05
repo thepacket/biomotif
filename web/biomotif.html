@@ -248,6 +248,16 @@ textarea.field { resize: vertical; font-family: var(--mono); font-size: 12.5px; 
   font-family: var(--serif); font-size: 12px; color: var(--muted);
   margin-top: 3px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
+/* Not applicable to what is loaded, but still worth reading, so it is faded
+   rather than removed or moved. Hover and keyboard focus bring it back to full
+   strength, since a faded row is still a row you can open. */
+.entry.off { opacity: .55; }
+.entry.off:hover, .entry.off:focus-visible { opacity: 1; }
+.tag-off {
+  font-size: 9.5px; padding: 0 5px; border-radius: 3px;
+  background: var(--surface-2); border: 1px solid var(--line-strong); color: var(--warn);
+  text-transform: uppercase; letter-spacing: .05em; white-space: nowrap;
+}
 .tag-template {
   font-size: 9.5px; padding: 0 5px; border-radius: 3px;
   background: var(--surface-2); border: 1px solid var(--line); color: var(--muted);
@@ -2755,7 +2765,11 @@ function renderRail() {
   // Name order, throughout. Floating the motifs that suit the loaded sequence
   // to the top made the list quicker to skim but impossible to look something
   // up in, since where a name sat depended on what was loaded at the time.
+  // What that ordering knew is said in place instead, by marking the entries
+  // the loaded sequence cannot be matched against. They stay where they are,
+  // and stay clickable: reading one is not the same as running it.
   const entries = state.registry.find({ category: state.filterCategory, text: state.filterText });
+  const wants = currentRecord() ? (currentRecord().type === "protein" ? "protein" : "nucleotide") : null;
   $("#rail-count").textContent = `${entries.length} of ${state.registry.size}`;
   const frag = document.createDocumentFragment();
   /* Every match is listed. A cap made sense while the order was arbitrary, but
@@ -2769,6 +2783,18 @@ function renderRail() {
     b.appendChild(el("div", "entry-name", e.name));
     const meta = el("div", "entry-meta");
     meta.appendChild(el("span", "entry-cat", `${e.category} · ${e.alphabet}`));
+    // An RNA motif is applicable to DNA: the engine reads U and T as the same
+    // base. Only the protein/nucleotide divide is a real one.
+    const needs = wants && (e.alphabet === "protein") !== (wants === "protein")
+      ? (e.alphabet === "protein" ? "needs a protein" : "needs DNA or RNA")
+      : null;
+    if (needs) {
+      b.classList.add("off");
+      // Said in words as well as in colour, and on hover for the whole row.
+      meta.appendChild(el("span", "tag-off", needs));
+      b.title = `${e.name} is written for ${e.alphabet === "protein" ? "proteins" : "nucleotide sequences"}, ` +
+                `so it cannot match the ${currentRecord().type === "protein" ? "protein" : "DNA or RNA"} loaded now.`;
+    }
     if (!e.scan) meta.appendChild(el("span", "tag-template", "template"));
     b.appendChild(meta);
     if (e.doc) b.appendChild(el("div", "entry-doc", e.doc));

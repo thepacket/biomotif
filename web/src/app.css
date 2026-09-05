@@ -244,6 +244,16 @@ textarea.field { resize: vertical; font-family: var(--mono); font-size: 12.5px; 
   font-family: var(--serif); font-size: 12px; color: var(--muted);
   margin-top: 3px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
+/* Not applicable to what is loaded, but still worth reading, so it is faded
+   rather than removed or moved. Hover and keyboard focus bring it back to full
+   strength, since a faded row is still a row you can open. */
+.entry.off { opacity: .55; }
+.entry.off:hover, .entry.off:focus-visible { opacity: 1; }
+.tag-off {
+  font-size: 9.5px; padding: 0 5px; border-radius: 3px;
+  background: var(--surface-2); border: 1px solid var(--line-strong); color: var(--warn);
+  text-transform: uppercase; letter-spacing: .05em; white-space: nowrap;
+}
 .tag-template {
   font-size: 9.5px; padding: 0 5px; border-radius: 3px;
   background: var(--surface-2); border: 1px solid var(--line); color: var(--muted);
