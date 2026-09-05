@@ -12,7 +12,7 @@ import { Record, parseFasta, search } from "../src/engine.js";
 import { Registry, buildMotif, loadLibrarySource } from "../src/library.js";
 import { parse } from "../src/engine.js";
 import { LIB_FILES } from "../../tools/build.mjs";
-import { describeState, expectedByChance, rnaMotifs } from "../src/describe.js";
+import { describeState, expectedByChance, generator, rnaMotifs } from "../src/describe.js";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const registry = new Registry();
@@ -151,4 +151,26 @@ test("with nothing loaded it says so rather than failing", () => {
   const sections = describeState({ record: null, hits: [] });
   assert.equal(sections.length, 1);
   assert.match(sections[0].body, /Fetch a sequence|pick an example/);
+});
+
+test("the shuffle's generator does not collapse, which is what it did before", () => {
+  const rand = generator();
+  const draws = [];
+  for (let i = 0; i < 20_000; i++) draws.push(rand());
+
+  // The bug: seed * 1103515245 overflows 2^53, so the low bits were rounded
+  // away and 20,000 draws visited only 12,889 distinct states.
+  assert.equal(new Set(draws).size, draws.length, "every draw should be distinct");
+  assert.ok(draws.every((d) => d >= 0 && d < 1), "draws are in [0, 1)");
+
+  // Roughly uniform: each tenth should hold a tenth, give or take.
+  const buckets = new Array(10).fill(0);
+  for (const d of draws) buckets[Math.floor(d * 10)]++;
+  for (const [i, n] of buckets.entries()) {
+    assert.ok(n > 1700 && n < 2300, `bucket ${i} held ${n}, which is not close to 2000`);
+  }
+
+  // Seeded, so the same sequence is always explained the same way.
+  assert.equal(generator()(), draws[0], "the default seed always starts the same stream");
+  assert.notEqual(generator(99)(), draws[0], "a different seed gives a different stream");
 });

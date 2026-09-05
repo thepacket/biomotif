@@ -30,10 +30,29 @@ function shuffled(seq, rand) {
   return a.join("");
 }
 
+/* xorshift32. The LCG this replaced multiplied a 31-bit seed by 1103515245,
+   which overflows the 2^53 a JavaScript number holds exactly, so the low bits
+   were lost to rounding and 20,000 draws visited only 12,889 distinct states.
+   Every "expected by chance" figure in the app rests on this shuffle, so it
+   has to be a real one.
+
+   The seed is fixed rather than drawn from the clock: the same sequence gets
+   the same answer every time, because an explanation that changed between two
+   looks at unchanged data would not be worth reading.
+
+   Exported so a test can hold it to what it claims: a generator that quietly
+   collapses is exactly the failure that got past review last time. */
+export function generator(seed = 2463534242) {
+  let x = seed >>> 0 || 2463534242;
+  return () => {
+    x ^= x << 13; x >>>= 0; x ^= x >>> 17; x ^= x << 5; x >>>= 0;
+    return x / 4294967296;
+  };
+}
+
 export function expectedByChance(matcher, record, { trials = SHUFFLE_TRIALS } = {}) {
   if (record.seq.length > SHUFFLE_LIMIT) return null;
-  let s = 1234567;
-  const rand = () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; };
+  const rand = generator();
   let total = 0;
   for (let t = 0; t < trials; t++) {
     const decoy = new Record("shuffled", shuffled(record.seq, rand), record.type);
