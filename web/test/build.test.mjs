@@ -110,6 +110,23 @@ test("the rail splitter is reachable without a mouse", () => {
   assert.match(css, /\.splitter \{ display: none; \}/, "stacked on a narrow screen there is nothing to divide");
 });
 
+test("a track label is never cut down to the width of its match", () => {
+  /* The regression: lanes reserved only the match span, and the name was then
+     sliced to fit it, so the 8-character "minus-35" over a 6-base site came out
+     as "minus-". A lane must claim whichever is wider. */
+  const app = readFileSync(join(ROOT, "web", "src", "app.js"), "utf8");
+  const packing = app.match(/const claimed = [^;]+;/)[0];
+  assert.match(packing, /Math\.max\(b,/, "the lane must reserve the label, not just the match");
+  assert.match(packing, /label\.length/);
+  assert.ok(!/h\.motif\.slice\(0, Math\.max\(0, b - a\)\)/.test(app),
+    "the label must not be sliced to the match width");
+
+  // A hand-typed motif is named after its own expression, which runs far past
+  // the line; only library names, up to 31 characters, are short enough to use.
+  assert.match(app, /function trackName/);
+  assert.match(app, /your pattern/);
+});
+
 test("bundling twice gives the same bytes", () => {
   assert.equal(bundleModules(), bundleModules());
 });

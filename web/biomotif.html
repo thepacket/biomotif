@@ -3006,6 +3006,16 @@ function renderResults(hits, error = null, note = null) {
 }
 
 const BASE_CLASS = { A: "A", C: "C", G: "G", T: "T", U: "T" };
+/* Enough rows to read a promoter's parts at once, few enough that a
+   whole-library scan does not bury the sequence. */
+const MAX_LANES = 5;
+
+/** A match is named after its motif, but a hand-typed motif has no name — its
+    "name" is the expression itself, which for anything real runs longer than
+    the line. Library names reach 31 characters and fit. */
+function trackName(motif) {
+  return /^[("]/.test(motif) ? "your pattern" : motif;
+}
 
 function buildTrack(rec, hits) {
   const wrap = el("div", "panel");
@@ -3053,23 +3063,33 @@ function buildTrack(rec, hits) {
     if (open) row += "</mark>";
     lines.push(`<div>${row}</div>`);
 
-    // A label lane under the block, one row per non-overlapping set of hits.
+    /* A label lane under the block, one row per non-overlapping set of hits.
+       A lane reserves whichever is wider, the match or its name, so a short
+       site with a long name is not truncated to the width of the site — which
+       is how "minus-35" used to come out as "minus-". */
     const here = hits.filter((h) => h.start < end && h.end > start);
     const lanes = [];
     for (const h of here.sort((a, b) => a.start - b.start)) {
       const a = Math.max(h.start - start, 0), b = Math.min(h.end - start, width);
-      const lane = lanes.find((L) => L.every(([la, lb]) => b <= la || lb <= a));
-      if (lane) lane.push([a, b, h]); else lanes.push([[a, b, h]]);
+      const label = (h.strand === "-" ? "<" : ">") + trackName(h.motif);
+      const claimed = Math.max(b, a + label.length + 1);   // +1 keeps names apart
+      const lane = lanes.find((L) => L.every(([la, , , lc]) => claimed <= la || lc <= a));
+      if (lane) lane.push([a, b, h, claimed, label]);
+      else lanes.push([[a, b, h, claimed, label]]);
     }
-    for (const lane of lanes.slice(0, 3)) {
+    for (const lane of lanes.slice(0, MAX_LANES)) {
       const buf = Array(width).fill(" ");
-      for (const [a, b, h] of lane) {
+      for (const [a, b, h, , label] of lane) {
         const mark = h.strand === "-" ? "<" : ">";
         for (let k = a; k < b; k++) buf[k] = mark;
-        const label = h.motif.slice(0, Math.max(0, b - a));
-        for (let k = 0; k < label.length; k++) buf[a + k] = label[k];
+        // The name runs to the block edge if it needs to; the lane reserved it.
+        for (let k = 0; k < label.length && a + k < width; k++) buf[a + k] = label[k];
       }
       lines.push(`<div class="lane">         ${escapeHtml(buf.join("").replace(/\s+$/, ""))}</div>`);
+    }
+    if (lanes.length > MAX_LANES) {
+      lines.push(`<div class="lane skip">         … ${lanes.length - MAX_LANES} more ` +
+                 `${lanes.length - MAX_LANES === 1 ? "row" : "rows"} of matches here, listed in the table below</div>`);
     }
   }
   if (skipped) lines.push(`<div class="skip">      ⋯ ${skipped * width} bases with no match ⋯</div>`);
