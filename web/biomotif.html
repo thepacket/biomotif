@@ -328,6 +328,24 @@ textarea.field { resize: vertical; font-family: var(--mono); font-size: 12.5px; 
 .doc-card p { margin: 0 0 6px; font-family: var(--serif); font-size: 13px; color: var(--ink-soft); max-width: 68ch; }
 .doc-card .ref { font-size: 11.5px; color: var(--muted); }
 
+/* --------------------------------------------------------------- explain */
+
+.explain { display: flex; flex-direction: column; gap: 12px; }
+.explain section { max-width: 74ch; }
+.explain h3 {
+  margin: 0 0 3px; font-size: 10px; font-weight: 600;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+}
+.explain p { margin: 0; font-family: var(--serif); font-size: 13.5px; line-height: 1.55; color: var(--ink-soft); }
+.explain strong { color: var(--ink); font-weight: 600; }
+.explain code { font-family: var(--mono); font-size: 12px; }
+.explain section.muted p { font-family: var(--sans); font-size: 12px; color: var(--muted); }
+/* The verdict is the part people misread, so it carries the weight. */
+.explain section.strong { border-left: 3px solid var(--good); padding-left: 11px; }
+.explain section.some { border-left: 3px solid var(--warn); padding-left: 11px; }
+.explain section.noise { border-left: 3px solid var(--line-strong); padding-left: 11px; }
+.explain section.none { border-left: 3px solid var(--line); padding-left: 11px; }
+
 /* ---------------------------------------------------------------- results */
 
 .summary { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
@@ -564,6 +582,16 @@ details.help > div { padding-top: 8px; }
             </dl>
           </div>
         </details>
+      </div>
+    </section>
+
+    <section class="panel">
+      <header>
+        <h2>What this means</h2>
+        <span class="hint spacer">written for someone who does not already know the biology</span>
+      </header>
+      <div class="panel-body">
+        <div class="explain" id="explain"></div>
       </div>
     </section>
 
@@ -2285,6 +2313,207 @@ const PROMPT_GROUPS = [
 const PROMPT_COUNT = PROMPT_GROUPS.reduce((n, g) => n + g.prompts.length, 0);
 
 
+/* ==== describe.js ==== */
+/* A plain-language account of what is on screen.
+
+   Written for someone who does not already know the biology: what the loaded
+   sequence is, what the motif looks for, what was found, and — the part people
+   get wrong — whether finding that much means anything.
+
+   All of it is computed, none of it is asked of a model, so it works with no
+   key and appears instantly. */
+
+
+const n = (x) => x.toLocaleString();
+const plural = (count, one, many) => `${n(count)} ${count === 1 ? one : many}`;
+
+/* ------------------------------------------------------- chance correction */
+
+/** Shuffling keeps the base composition and destroys the arrangement, so the
+    hits that survive are the ones composition alone explains. It works for any
+    motif, however complex, which a closed-form probability would not. */
+const SHUFFLE_TRIALS = 20;
+const SHUFFLE_LIMIT = 200_000;   // beyond this the wait stops being worth it
+
+function shuffled(seq, rand) {
+  const a = [...seq];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a.join("");
+}
+
+function expectedByChance(matcher, record, { trials = SHUFFLE_TRIALS } = {}) {
+  if (record.seq.length > SHUFFLE_LIMIT) return null;
+  let s = 1234567;
+  const rand = () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; };
+  let total = 0;
+  for (let t = 0; t < trials; t++) {
+    const decoy = new Record("shuffled", shuffled(record.seq, rand), record.type);
+    try { total += search(matcher, decoy).length; } catch { return null; }
+  }
+  return total / trials;
+}
+
+/** What the comparison means, in a sentence someone can act on. */
+function verdict(observed, expected) {
+  if (expected === null) return null;
+  if (observed === 0) {
+    return expected < 0.5
+      ? { tone: "none", text: "Nothing found — and a sequence like this would not usually contain one by accident either, so its absence is meaningful." }
+      : { tone: "none", text: `Nothing found, though chance alone would put about ${expected.toFixed(1)} here. Its absence is not surprising.` };
+  }
+  if (expected < 0.05) {
+    return { tone: "strong", text: "Scrambling this sequence never produces this pattern, so finding it here is very unlikely to be an accident. Treat it as real." };
+  }
+  const ratio = observed / expected;
+  if (ratio >= 5) return { tone: "strong", text: `That is about ${ratio.toFixed(0)} times more than chance would give (${expected.toFixed(1)}). Strongly over-represented, so worth taking seriously.` };
+  if (ratio >= 2) return { tone: "some", text: `Chance alone would give about ${expected.toFixed(1)}, so there are more here than expected. Suggestive, but not proof on its own.` };
+  if (ratio >= 0.7) return { tone: "noise", text: `Chance alone would give about ${expected.toFixed(1)} — near enough the same. A sequence of this composition contains this pattern anyway, so these matches probably mean nothing on their own.` };
+  return { tone: "noise", text: `Chance alone would give about ${expected.toFixed(1)}, more than were actually found. These are not evidence of anything.` };
+}
+
+/* ------------------------------------------------------------- the pieces */
+
+function describeSequence(record, origin) {
+  const unit = record.type === "protein" ? "amino acids long" : "bases long";
+  const kind = { dna: "a DNA sequence", rna: "an RNA sequence", protein: "a protein" }[record.type];
+  const bits = [`**${record.name}** is ${kind}, ${n(record.length)} ${unit}.`];
+  if (record.type !== "protein") {
+    const gc = gcContent(record.seq);
+    const lean = gc > 0.6 ? " That is GC-rich, which is common in bacterial genomes with high GC and in promoter regions."
+      : gc < 0.4 ? " That is AT-rich, which is common in regulatory regions and in some genomes overall."
+      : "";
+    bits.push(`Its bases are ${(gc * 100).toFixed(0)}% G or C.${lean}`);
+    bits.push("DNA has two strands that read in opposite directions, so a pattern is looked for on both unless you say otherwise.");
+  } else {
+    bits.push("Proteins have a single direction, so there is only one way to read them.");
+  }
+  if (origin) bits.push(origin);
+  return bits.join(" ");
+}
+
+function describeMotif(entry, matcher, source, kind) {
+  const bits = [];
+  if (entry) {
+    // The docstring is quoted from the library as written, for people who know
+    // the field. Everything after it here is written for people who do not.
+    bits.push(`**${entry.name}** — ${entry.doc}`);
+  } else {
+    bits.push("**Your own pattern.** It is not one of the library's, so there is no published description of it.");
+  }
+  const [lo, hi] = matcher.span();
+  const unit = kind === "protein" ? "amino acids" : "bases";
+  if (hi === Infinity) bits.push(`A match runs ${lo} ${unit} or more.`);
+  else if (lo === hi) bits.push(`A match is always ${lo} ${unit} long.`);
+  else bits.push(`A match can be anywhere from ${lo} to ${hi} ${unit} long, because parts of it are allowed to vary in length.`);
+  if (/fuzzy/.test(source)) bits.push("It allows a few letters to differ, because a real site in a real genome rarely matches the textbook version exactly.");
+  if (/hairpin/.test(source)) bits.push("It also checks that the two halves of the stem actually pair with each other, so it is looking for a shape and not only a sequence.");
+  if (/named/.test(source)) bits.push("Parts of it are labelled, so the table below reports each part separately.");
+  return bits.join(" ");
+}
+
+function describeFindings(hits, record) {
+  const anywhere = record.type === "protein"
+    ? "No matches anywhere in this protein."
+    : "No matches anywhere in this sequence, on either strand.";
+  if (!hits.length) return anywhere;
+  const fwd = hits.filter((h) => h.strand === "+").length;
+  const rev = hits.length - fwd;
+  const bits = [`Found ${plural(hits.length, "match", "matches")}`];
+  if (record.type !== "protein" && rev) {
+    bits.push(`, ${n(fwd)} reading forwards and ${n(rev)} on the opposite strand`);
+  }
+  bits.push(".");
+  if (hits.length === 1) {
+    bits.push(` It begins at position ${n(hits[0].absStart + 1)}.`);
+  } else {
+    const per = (hits.length / record.length) * 1000;
+    bits.push(` That is about ${per.toFixed(1)} per thousand ${record.type === "protein" ? "residues" : "bases"}.`);
+  }
+  return bits.join("");
+}
+
+/* ------------------------------------------------------------------ front */
+
+/** Build the description for the current state. `mode` distinguishes a single
+    motif from the whole-library scan and the other buttons, which need
+    different things said about them. */
+function describeState({ record, entry, matcher, source, hits, mode = "motif", origin = null }) {
+  if (!record) return [{ heading: "Nothing loaded", body: "Fetch a sequence or pick an example above to begin." }];
+
+  const sections = [{ heading: "The sequence", body: describeSequence(record, origin) }];
+
+  if (mode === "scan") {
+    const names = [...new Set(hits.map((h) => h.motif))];
+    sections.push({
+      heading: "What was done",
+      body: "Every applicable pattern in the library was run against this sequence at once. " +
+        "Patterns too short or too loose to mean anything were left out, as were restriction enzyme sites, " +
+        "which have their own button.",
+    });
+    sections.push({
+      heading: "What was found",
+      body: hits.length
+        ? `${plural(hits.length, "match", "matches")} from ${plural(names.length, "different pattern", "different patterns")}. ` +
+          "Treat this as a list of things to look at rather than a list of findings: short patterns turn up by accident, " +
+          "so run one on its own to see whether it appears more often than chance would explain."
+        : "Nothing matched, which for a short sequence is entirely normal.",
+    });
+    return sections;
+  }
+
+  if (mode === "orfs") {
+    sections.push({
+      heading: "What was done",
+      body: "The sequence was read in all six possible ways — three starting points on each strand — looking for stretches " +
+        "that could encode a protein: a start signal, then whole three-letter codes, then a stop signal, with no stop in between. " +
+        "Stretches shorter than 50 codes were ignored as too short to be a real gene.",
+    });
+    sections.push({
+      heading: "What was found",
+      body: hits.length
+        ? `${plural(hits.length, "reading frame", "reading frames")}. Long ones are more likely to be genuine genes; a short one ` +
+          "can easily occur by accident. The bacterial genetic code was used, which treats GTG and TTG as start signals as well as ATG."
+        : "None long enough to report. That does not mean the sequence has no genes — only none of at least 50 codes with a clean start and stop.",
+    });
+    return sections;
+  }
+
+  if (mode === "digest") {
+    sections.push({
+      heading: "What was done",
+      body: "Restriction enzymes are proteins that cut DNA wherever a specific short sequence appears. " +
+        "Cutting with two of them turns a sequence into pieces of predictable size, which is how people check in the lab " +
+        "that a piece of DNA is what they think it is.",
+    });
+    sections.push({
+      heading: "What was found",
+      body: "The cut positions and the resulting piece sizes are below. Pieces of similar size look the same on a gel, " +
+        "so a useful pair of enzymes gives pieces that differ clearly in length.",
+    });
+    return sections;
+  }
+
+  if (matcher) {
+    sections.push({ heading: "What is being looked for", body: describeMotif(entry, matcher, source, record.type) });
+    const findings = { heading: "What was found", body: describeFindings(hits, record) };
+    const expected = expectedByChance(matcher, record);
+    const call = verdict(hits.length, expected);
+    if (call) {
+      findings.body += ` ${call.text}`;
+      findings.tone = call.tone;
+    } else if (record.seq.length > SHUFFLE_LIMIT) {
+      findings.body += " This sequence is too long to check how many of these would turn up by chance.";
+    }
+    sections.push(findings);
+    if (entry?.ref) sections.push({ heading: "Where this comes from", body: entry.ref, muted: true });
+  }
+  return sections;
+}
+
+
 /* ==== app.js ==== */
 /* Biomotif workbench: library browser, motif editor, assistant, results. */
 
@@ -2311,6 +2540,8 @@ const state = {
   asking: null,       // AbortController for the request in flight
   fetching: null,     // AbortController for the request in flight
   railObserver: null, // watches the rail so the splitter's bounds stay true
+  mode: "motif",      // which button produced what is on screen
+  origin: null,       // a sentence about where the sequence came from
 };
 
 /* ------------------------------------------------------------------ library */
@@ -2474,6 +2705,8 @@ function validate() {
 
 const currentRecord = () => state.records[state.active] || null;
 
+const n2 = (x) => x.toLocaleString();
+
 function loadSequences(text, type = null) {
   const records = E.parseFasta(text, type);
   if (!records.length) return false;
@@ -2545,6 +2778,9 @@ async function doFetch(query, { source, upstream, species, title } = {}) {
     const { records, info, source: used } = await fetchSequence(q, { source: chosen, upstream: up, species: sp, signal });
     state.records = records;
     state.active = 0;
+    state.origin = `It was fetched from ${SOURCES[used].label}${up > 0 && used === "ensembl"
+      ? `, with the first ${n2(up)} bases being the region upstream of the gene, so position ${n2(up + 1)} is where the gene itself starts`
+      : ""}.`;
     renderRecords();
     renderRail();
     const bases = records.reduce((n, r) => n + r.seq.length, 0);
@@ -2622,6 +2858,7 @@ function run() {
     return;
   }
   state.hits = hits;
+  state.mode = "motif";
   renderResults(hits);
 }
 
@@ -2638,6 +2875,7 @@ function scanAll() {
   }
   state.hits = E.collapse(out);
   state.lastRunLabel = "";
+  state.mode = "scan";
   renderResults(state.hits, null, `Scanned ${rec.name} with every applicable library motif. Templates and restriction sites are excluded; use the library list for those.`);
 }
 
@@ -2665,6 +2903,7 @@ function runDigest() {
   }
   state.hits = hits;
   state.lastRunLabel = "";
+  state.mode = "digest";
   const sizes = d.fragments.map((f) => f[2]).sort((a, b) => b - a);
   renderResults(hits, null,
     `${chosen.map((e) => e.name).join(" + ")} on ${circular ? "circular" : "linear"} ${rec.name}: ` +
@@ -2680,7 +2919,46 @@ function runOrfs() {
     rec.seq.slice(o.start, o.end), {}, rec, null,
     { frame: o.frame, residues: o.protein.length, protein: o.protein.slice(0, 30) + (o.protein.length > 30 ? "…" : "") }));
   state.lastRunLabel = "";
+  state.mode = "orfs";
   renderResults(state.hits, null, `Open reading frames of at least 50 codons, bacterial code (table 11), both strands.`);
+}
+
+/* ---------------------------------------------------------------- explain */
+
+/** A very small subset of Markdown: **bold** only, escaped first. */
+function prose(text) {
+  const escaped = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return escaped.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+}
+
+function renderExplain() {
+  const box = $("#explain");
+  box.textContent = "";
+  let sections;
+  try {
+    sections = describeState({
+      record: currentRecord(),
+      entry: state.selectedEntry ? state.registry.get(state.selectedEntry) : null,
+      matcher: state.matcher,
+      source: state.motifSource,
+      hits: state.hits,
+      mode: state.mode,
+      origin: state.origin,
+    });
+  } catch (err) {
+    // An explanation is a convenience; it must never take the results down.
+    box.appendChild(el("p", null, "No description available for this."));
+    console.warn("describe failed", err);
+    return;
+  }
+  for (const s of sections) {
+    const section = el("section", [s.tone, s.muted ? "muted" : ""].filter(Boolean).join(" "));
+    section.appendChild(el("h3", null, s.heading));
+    const p = el("p");
+    p.innerHTML = prose(s.body);
+    section.appendChild(p);
+    box.appendChild(section);
+  }
 }
 
 /* ---------------------------------------------------------------- results */
@@ -2696,6 +2974,7 @@ function renderResults(hits, error = null, note = null) {
 
   if (error) {
     body.appendChild(el("div", "empty", error));
+    renderExplain();
     return;
   }
   const rec = currentRecord();
@@ -2716,6 +2995,7 @@ function renderResults(hits, error = null, note = null) {
     summary.appendChild(s);
   }
 
+  renderExplain();
   if (!hits.length) {
     body.appendChild(el("div", "empty",
       "Nothing found. Try a looser motif: wrap it in (fuzzy 1 …), widen a gap, or pick a shorter consensus."));
@@ -3121,6 +3401,7 @@ function wire() {
   $("#seq-load").addEventListener("click", () => {
     const text = $("#seq-input").value.trim();
     if (!text) return;
+    state.origin = null;
     if (loadSequences(text)) { $("#seq-input").value = ""; run(); }
   });
   $("#seq-file").addEventListener("change", async (e) => {
@@ -3147,6 +3428,11 @@ function wire() {
     btn.addEventListener("click", () => {
       const key = btn.dataset.demo;
       state.fetching?.abort();
+      // proteins.fa holds real sequences; the rest are generated. Saying
+      // "synthetic" of all of them would be teaching something false.
+      state.origin = key === "proteins"
+        ? "It is one of the built-in examples, drawn from real proteins — serum albumin, a kinase, a zinc finger protein, a Ras GTPase — plus one construct assembled from common laboratory tags."
+        : "It is one of the built-in examples: a synthetic sequence with known features planted in it, so you can see what the tool does before using your own.";
       loadSequences(window.BIOMOTIF_DATA[key], key === "proteins" ? "protein" : null);
       fetchStatus("");
       run();

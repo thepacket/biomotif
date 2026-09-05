@@ -10,6 +10,7 @@ import {
   setApiKey, setModel,
 } from "./assistant.js";
 import { PROMPT_COUNT, PROMPT_GROUPS } from "./prompts.js";
+import { describeState } from "./describe.js";
 
 const $ = (sel) => document.querySelector(sel);
 const el = (tag, cls, text) => {
@@ -34,6 +35,8 @@ const state = {
   asking: null,       // AbortController for the request in flight
   fetching: null,     // AbortController for the request in flight
   railObserver: null, // watches the rail so the splitter's bounds stay true
+  mode: "motif",      // which button produced what is on screen
+  origin: null,       // a sentence about where the sequence came from
 };
 
 /* ------------------------------------------------------------------ library */
@@ -197,6 +200,8 @@ function validate() {
 
 const currentRecord = () => state.records[state.active] || null;
 
+const n2 = (x) => x.toLocaleString();
+
 function loadSequences(text, type = null) {
   const records = E.parseFasta(text, type);
   if (!records.length) return false;
@@ -268,6 +273,9 @@ async function doFetch(query, { source, upstream, species, title } = {}) {
     const { records, info, source: used } = await fetchSequence(q, { source: chosen, upstream: up, species: sp, signal });
     state.records = records;
     state.active = 0;
+    state.origin = `It was fetched from ${SOURCES[used].label}${up > 0 && used === "ensembl"
+      ? `, with the first ${n2(up)} bases being the region upstream of the gene, so position ${n2(up + 1)} is where the gene itself starts`
+      : ""}.`;
     renderRecords();
     renderRail();
     const bases = records.reduce((n, r) => n + r.seq.length, 0);
@@ -345,6 +353,7 @@ function run() {
     return;
   }
   state.hits = hits;
+  state.mode = "motif";
   renderResults(hits);
 }
 
@@ -361,6 +370,7 @@ function scanAll() {
   }
   state.hits = E.collapse(out);
   state.lastRunLabel = "";
+  state.mode = "scan";
   renderResults(state.hits, null, `Scanned ${rec.name} with every applicable library motif. Templates and restriction sites are excluded; use the library list for those.`);
 }
 
@@ -388,6 +398,7 @@ function runDigest() {
   }
   state.hits = hits;
   state.lastRunLabel = "";
+  state.mode = "digest";
   const sizes = d.fragments.map((f) => f[2]).sort((a, b) => b - a);
   renderResults(hits, null,
     `${chosen.map((e) => e.name).join(" + ")} on ${circular ? "circular" : "linear"} ${rec.name}: ` +
@@ -403,7 +414,46 @@ function runOrfs() {
     rec.seq.slice(o.start, o.end), {}, rec, null,
     { frame: o.frame, residues: o.protein.length, protein: o.protein.slice(0, 30) + (o.protein.length > 30 ? "…" : "") }));
   state.lastRunLabel = "";
+  state.mode = "orfs";
   renderResults(state.hits, null, `Open reading frames of at least 50 codons, bacterial code (table 11), both strands.`);
+}
+
+/* ---------------------------------------------------------------- explain */
+
+/** A very small subset of Markdown: **bold** only, escaped first. */
+function prose(text) {
+  const escaped = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return escaped.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+}
+
+function renderExplain() {
+  const box = $("#explain");
+  box.textContent = "";
+  let sections;
+  try {
+    sections = describeState({
+      record: currentRecord(),
+      entry: state.selectedEntry ? state.registry.get(state.selectedEntry) : null,
+      matcher: state.matcher,
+      source: state.motifSource,
+      hits: state.hits,
+      mode: state.mode,
+      origin: state.origin,
+    });
+  } catch (err) {
+    // An explanation is a convenience; it must never take the results down.
+    box.appendChild(el("p", null, "No description available for this."));
+    console.warn("describe failed", err);
+    return;
+  }
+  for (const s of sections) {
+    const section = el("section", [s.tone, s.muted ? "muted" : ""].filter(Boolean).join(" "));
+    section.appendChild(el("h3", null, s.heading));
+    const p = el("p");
+    p.innerHTML = prose(s.body);
+    section.appendChild(p);
+    box.appendChild(section);
+  }
 }
 
 /* ---------------------------------------------------------------- results */
@@ -419,6 +469,7 @@ function renderResults(hits, error = null, note = null) {
 
   if (error) {
     body.appendChild(el("div", "empty", error));
+    renderExplain();
     return;
   }
   const rec = currentRecord();
@@ -439,6 +490,7 @@ function renderResults(hits, error = null, note = null) {
     summary.appendChild(s);
   }
 
+  renderExplain();
   if (!hits.length) {
     body.appendChild(el("div", "empty",
       "Nothing found. Try a looser motif: wrap it in (fuzzy 1 …), widen a gap, or pick a shorter consensus."));
@@ -844,6 +896,7 @@ function wire() {
   $("#seq-load").addEventListener("click", () => {
     const text = $("#seq-input").value.trim();
     if (!text) return;
+    state.origin = null;
     if (loadSequences(text)) { $("#seq-input").value = ""; run(); }
   });
   $("#seq-file").addEventListener("change", async (e) => {
@@ -870,6 +923,11 @@ function wire() {
     btn.addEventListener("click", () => {
       const key = btn.dataset.demo;
       state.fetching?.abort();
+      // proteins.fa holds real sequences; the rest are generated. Saying
+      // "synthetic" of all of them would be teaching something false.
+      state.origin = key === "proteins"
+        ? "It is one of the built-in examples, drawn from real proteins — serum albumin, a kinase, a zinc finger protein, a Ras GTPase — plus one construct assembled from common laboratory tags."
+        : "It is one of the built-in examples: a synthetic sequence with known features planted in it, so you can see what the tool does before using your own.";
       loadSequences(window.BIOMOTIF_DATA[key], key === "proteins" ? "protein" : null);
       fetchStatus("");
       run();
