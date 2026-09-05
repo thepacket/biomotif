@@ -16,6 +16,7 @@
     "test": "node --test web/test/*.test.mjs",
     "data": "node tools/make-data.mjs",
     "index": "node tools/make-index.mjs",
-    "serve": "node tools/serve.mjs"
+    "serve": "node tools/serve.mjs",
+    "jaspar": "node tools/fetch-jaspar.mjs"
   }
 }

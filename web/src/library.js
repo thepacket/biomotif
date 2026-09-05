@@ -5,7 +5,7 @@
 import {
   Alt, AnyChar, AnyOf, AtEnd, AtStart, BiomotifError, CharRun, Edit, Fuzzy, Hairpin,
   Iupac, Literal, Matcher, Named, NoneOf, Pwm, Regex, Repeat, Seq, Sym, Tagged,
-  expandIupac, parseAll, prosite, revcomp, search,
+  expandIupac, parse, parseAll, prosite, revcomp, search,
 } from "./engine.js";
 
 /* --------------------------------------------------- motif from s-expression */
@@ -227,6 +227,16 @@ function defaultAlphabet(category) {
   return "dna";
 }
 
+/** Whether a matcher's description can be read back as the same matcher. Most
+    can; a weight matrix cannot, because its description is a summary. */
+function roundTrips(matcher, registry) {
+  try {
+    return buildMotif(parse(matcher.describe()), registry).describe() === matcher.describe();
+  } catch {
+    return false;
+  }
+}
+
 /** Read one .mtf source file into the registry. */
 export function loadLibrarySource(source, text, registry) {
   const errors = [];
@@ -252,6 +262,10 @@ export function loadLibrarySource(source, text, registry) {
           example: kw.example || null,
           scan: kw.scan !== false,
           pattern: matcher.describe(),
+          // What to put in the editor when this entry is picked. A matrix
+          // describes itself as a summary, not as source — its real form is
+          // four rows of numbers — so it is referred to by name instead.
+          editorSource: roundTrips(matcher, registry) ? matcher.describe() : name,
           meta: null,
         });
       } else if (kindOfForm === "defenzyme") {
@@ -263,7 +277,7 @@ export function loadLibrarySource(source, text, registry) {
           doc: `Recognition site ${form[2]}, ${overhang(info)}.`,
           ref: "", category: "restriction", alphabet: "dna",
           example: concreteSite(info.site),
-          scan: true, pattern: matcher.describe(), meta: info,
+          scan: true, pattern: matcher.describe(), editorSource: matcher.describe(), meta: info,
         });
       }
     } catch (e) {

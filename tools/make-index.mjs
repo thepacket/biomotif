@@ -19,6 +19,7 @@ const TITLES = {
   "protein.mtf": "Protein motifs",
   "tags.mtf": "Tags, vectors and laboratory sequences",
   "restriction.mtf": "Restriction enzymes",
+  "jaspar.mtf": "Measured weight matrices",
 };
 const ORDER = LIB_FILES.map((n) => `${n}.mtf`);
 
@@ -33,6 +34,11 @@ for (const e of registry.all()) {
   bySource.get(e.source).push(e);
 }
 
+const titleOf = (src) => {
+  const t = TITLES[src];
+  if (!t) throw new Error(`tools/make-index.mjs: no heading for ${src}; add one to TITLES`);
+  return t;
+};
 const anchor = (title) => title.toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/ /g, "-");
 const byName = (a, b) => (a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1);
 
@@ -56,14 +62,14 @@ out.push("A motif marked *template* matches almost anywhere and is skipped by `s
   "unless you pass `:all #t`. Search for it by name instead.\n");
 out.push("## Contents\n");
 for (const src of ORDER) {
-  out.push(`- [${TITLES[src]}](#${anchor(TITLES[src])}) &mdash; ${(bySource.get(src) ?? []).length} motifs`);
+  out.push(`- [${titleOf(src)}](#${anchor(titleOf(src))}) &mdash; ${(bySource.get(src) ?? []).length} motifs`);
 }
 out.push("");
 
 for (const src of ORDER) {
   const group = bySource.get(src) ?? [];
   if (!group.length) continue;
-  out.push(`## ${TITLES[src]}\n`);
+  out.push(`## ${titleOf(src)}\n`);
   out.push(`Defined in \`library/${src}\`.\n`);
 
   if (src === "restriction.mtf") {

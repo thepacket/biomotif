@@ -38,7 +38,7 @@ test("every library file parses with no errors", () => {
 });
 
 test("the library is the size it claims to be", () => {
-  assert.equal(registry.size, 487);
+  assert.equal(registry.size, 523);
   assert.equal(registry.categories().length, 57);
 });
 
@@ -240,12 +240,38 @@ test("every library motif reports a sane span", () => {
   }
 });
 
-test("a library pattern round-trips unchanged, so the editor never echoes itself", () => {
-  /* The status line only shows the canonical form when it differs from what was
-     typed. Clicking a library entry puts its canonical pattern in the editor,
-     so if these ever stopped round-tripping the line would echo the source. */
+test("whatever an entry puts in the editor can be read back", () => {
+  /* Clicking an entry fills the editor from editorSource, so every one of them
+     has to parse. Most entries use their own pattern; a weight matrix cannot,
+     because it describes itself as a summary rather than as four rows of
+     numbers, so it is referred to by name. */
+  const broken = [];
+  for (const e of registry.all()) {
+    const src = e.editorSource ?? e.pattern;
+    try {
+      const rebuilt = buildMotif(parse(src), registry);
+      if (rebuilt.describe() !== e.matcher.describe()) broken.push(`${e.name}: rebuilt differently`);
+    } catch (err) {
+      broken.push(`${e.name}: ${err.message}`);
+    }
+  }
+  assert.deepEqual(broken, []);
+});
+
+test("a matrix is referred to by name, everything else by its pattern", () => {
+  const matrices = registry.all().filter((e) => /^\(pwm/.test(e.pattern));
+  assert.ok(matrices.length >= 30, "the matrices should be there");
+  for (const e of matrices) assert.equal(e.editorSource, e.name, e.name);
+  const iupac = registry.get("tata-box");
+  assert.equal(iupac.editorSource, iupac.pattern);
+});
+
+test("the status line still never echoes what was typed", () => {
+  /* Only entries whose editorSource is their own pattern can echo, and those
+     must round-trip to the identical description. */
   const tidy = (t) => t.replace(/\s+/g, " ").trim();
   const drift = registry.all()
+    .filter((e) => (e.editorSource ?? e.pattern) === e.pattern)
     .filter((e) => tidy(buildMotif(parse(e.pattern), registry).describe()) !== tidy(e.pattern))
     .map((e) => e.name);
   assert.deepEqual(drift, []);

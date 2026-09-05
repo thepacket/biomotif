@@ -69,7 +69,7 @@ you.
 
 ## The library
 
-487 motifs in seven files, each with a docstring, a category and, where one
+523 motifs in eight files, each with a docstring, a category and, where one
 exists, a literature reference. The full catalogue is in
 [docs/LIBRARY.md](docs/LIBRARY.md).
 
@@ -82,6 +82,29 @@ exists, a literature reference. The full catalogue is in
 | `protein.mtf` | modification sites, targeting signals, structural and catalytic motifs, protease cleavage sites |
 | `tags.mtf` | affinity tags, linkers, phage promoters, recombinase sites, CRISPR components, cloning standards, sequencing adapters |
 | `restriction.mtf` | 162 restriction enzymes with cut positions and overhangs |
+| `jaspar.mtf` | 36 measured weight matrices from JASPAR, generated — see below |
+
+### Consensus and measurement
+
+The library describes a binding site twice over, and the difference is the
+point. `tata-box` is the consensus — `TATAWAWR`, one spelling with ambiguity
+codes, the way a textbook writes it. `tbp-matrix` is the same site as JASPAR
+measured it, a weight matrix in which every position carries its own score.
+Run both on a promoter and the consensus reports several candidates while the
+matrix picks one and says how well it scored.
+
+There are 36 such matrices, one for each factor the library already named as a
+consensus, plus a few from groups it barely reached — yeast, flies, worms,
+plants. Each carries its JASPAR id and the paper behind it.
+
+Their thresholds are calibrated rather than guessed. A blanket relative score is
+meaningless across matrices of different widths: 0.85 makes a seven-position
+matrix fire every few hundred bases and a thirty-three-position one almost
+never. `tools/fetch-jaspar.mjs` samples random DNA for each matrix and sets the
+threshold where chance would give about one match per 10,000 bases — then writes
+into the docstring the rate it *actually* achieved, because a short matrix
+cannot be that specific. Six positions distinguish at best one sequence in
+4,096, and saying so is more useful than pretending otherwise.
 
 Scanning skips 166 entries flagged `:scan #f`. Those are templates and
 scaffolds — `pam-spcas9`, `umi-8` — that match almost anywhere and are meant to
@@ -308,6 +331,7 @@ terms, which this licence does not override: restriction sites derive from
 [REBASE](http://rebase.neb.com), Copyright (c) Dr. Richard J. Roberts, free for
 academic use; many protein patterns are written in, and several taken from,
 [PROSITE](https://prosite.expasy.org); plant elements draw on PLACE and
-PlantCARE. Sequences fetched at runtime come from NCBI, Ensembl, ENA and
+PlantCARE; the weight matrices come from [JASPAR](https://jaspar.elixir.no)
+under CC BY 4.0. Sequences fetched at runtime come from NCBI, Ensembl, ENA and
 UniProt under those services' terms. See
 [CONTRIBUTING.md](CONTRIBUTING.md#attribution-of-bundled-data) for the detail.

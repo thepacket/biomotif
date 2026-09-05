@@ -108,7 +108,7 @@ function renderCategories() {
 
 function useEntry(entry) {
   state.selectedEntry = entry.name;
-  setMotifSource(entry.pattern, entry.name);
+  setMotifSource(entry.editorSource ?? entry.pattern, entry.name);
   showDoc(entry);
   renderRail();
   run();
@@ -1070,7 +1070,7 @@ function boot() {
   loadSequences(window.BIOMOTIF_DATA.operon);
   const entry = state.registry.get("sigma70-promoter");
   state.selectedEntry = entry.name;
-  setMotifSource(entry.pattern, entry.name);
+  setMotifSource(entry.editorSource ?? entry.pattern, entry.name);
   showDoc(entry);
   renderRail();
   run();
