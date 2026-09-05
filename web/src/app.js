@@ -13,6 +13,7 @@ import { PROMPT_COUNT, PROMPT_GROUPS } from "./prompts.js";
 import { describeState, rnaMotifs } from "./describe.js";
 import { decodeState, encodeState, shareUrl } from "./share.js";
 import { gelSvg } from "./gel.js";
+import { annotate } from "./glossary.js";
 
 const $ = (sel) => document.querySelector(sel);
 const el = (tag, cls, text) => {
@@ -522,7 +523,9 @@ function renderExplain() {
     const section = el("section", [s.tone, s.muted ? "muted" : ""].filter(Boolean).join(" "));
     section.appendChild(el("h3", null, s.heading));
     const p = el("p");
-    p.innerHTML = prose(s.body);
+    // The words the pane cannot avoid — strand, consensus — get a definition
+    // on hover or focus, at their first appearance in each passage.
+    p.innerHTML = annotate(prose(s.body));
     section.appendChild(p);
     box.appendChild(section);
   }

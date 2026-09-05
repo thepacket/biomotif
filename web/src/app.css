@@ -393,6 +393,21 @@ textarea.field { resize: vertical; font-family: var(--mono); font-size: 12.5px; 
 .explain section.noise { border-left: 3px solid var(--line-strong); padding-left: 11px; }
 .explain section.none { border-left: 3px solid var(--line); padding-left: 11px; }
 
+/* A defined term: dotted underline, definition on hover or keyboard focus.
+   The card is positioned within the paragraph, so a term near the right
+   edge is clamped by max-width rather than running off the pane. */
+.term { border-bottom: 1px dotted var(--muted); cursor: help; position: relative; border-radius: 0; }
+.term:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.term-def {
+  display: none; position: absolute; left: 0; top: 1.5em; z-index: 15;
+  width: max-content; max-width: min(34ch, 80vw);
+  padding: 7px 10px;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong);
+  border-radius: 5px; box-shadow: var(--shadow);
+  font-family: var(--sans); font-size: 12px; line-height: 1.45; font-weight: 400;
+}
+.term:hover .term-def, .term:focus .term-def, .term:focus-within .term-def { display: block; }
+
 /* ---------------------------------------------------------------- results */
 
 .summary { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
