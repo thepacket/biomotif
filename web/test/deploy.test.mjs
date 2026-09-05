@@ -25,6 +25,22 @@ test("nginx serves the page, the health check and gzip", () => {
   assert.match(conf, /location = \/index\.html/);
   assert.ok(conf.includes('add_header Cache-Control "no-cache"'),
     "index.html must not be cached, or a deploy never reaches a warm browser");
+  // The worker is fetched by a fixed name, so it must not be pinned like the
+  // fingerprinted assets. An exact-match location outranks the regex one.
+  const sw = conf.indexOf("location = /sw.js");
+  assert.ok(sw > -1, "the worker has its own location");
+  assert.match(conf.slice(sw, sw + 400), /no-cache/);
+});
+
+test("the policy lets the page run its own worker, and the worker gets a policy of its own", () => {
+  assert.ok(csp().includes("worker-src 'self'"));
+  const conf = read("deploy", "nginx.conf");
+  const block = conf.match(/location = \/sw\.js \{([^}]*)\}/)[1];
+  const policy = block.match(/Content-Security-Policy "([^"]+)"/)[1];
+  assert.equal(policy, "default-src 'none'; connect-src 'self'");
+  assert.ok(!block.includes("security-headers.conf"), "the page's policy would stop the worker filling its cache");
+  // The local server reads that same policy, so what is tested here is what runs.
+  assert.match(read("tools", "serve.mjs"), /WORKER_CSP/);
 });
 
 test("the policy allows no inline script and no eval", () => {

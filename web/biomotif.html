@@ -4708,6 +4708,16 @@ function boot() {
   window.addEventListener("hashchange", () => applyLink(decodeState(location.hash)));
   initAssistant();
   settleSplitter();
+  registerOffline();
+}
+
+/** The served build keeps itself for use without a connection. The single
+    file has no worker to register, and a viewer that embeds the page has no
+    scope for one; both are told apart by there being no bundle to point at. */
+function registerOffline() {
+  const bundled = document.querySelector('script[src*="/biomotif."]');
+  if (!bundled || !("serviceWorker" in navigator) || !/^https?:$/.test(location.protocol)) return;
+  navigator.serviceWorker.register("/sw.js").catch(() => { /* not offered here; nothing is lost */ });
 }
 
 boot();

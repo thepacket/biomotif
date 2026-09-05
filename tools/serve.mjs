@@ -13,12 +13,16 @@ const PORT = Number(process.env.PORT) || 8080;
 
 const CSP = readFileSync(join(ROOT, "deploy", "security-headers.conf"), "utf8")
   .match(/Content-Security-Policy "([^"]+)"/)[1];
+// The worker's own policy, as nginx.conf gives it: it may reach 'self' and nothing else.
+const WORKER_CSP = readFileSync(join(ROOT, "deploy", "nginx.conf"), "utf8")
+  .match(/location = \/sw\.js \{[^}]*Content-Security-Policy "([^"]+)"/)[1];
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8",
                 ".css": "text/css; charset=utf-8", ".json": "application/json" };
 
 createServer((req, res) => {
   const send = (code, body, type = "text/plain; charset=utf-8", extra = {}) => {
-    res.writeHead(code, { "Content-Type": type, "Content-Security-Policy": CSP,
+    const policy = req.url.split("?")[0] === "/sw.js" ? WORKER_CSP : CSP;
+    res.writeHead(code, { "Content-Type": type, "Content-Security-Policy": policy,
                           "X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY", ...extra });
     res.end(body);
   };
@@ -34,7 +38,7 @@ createServer((req, res) => {
     return send(200, readFileSync(join(DIST, "index.html")), TYPES[".html"]);
   }
   const ext = extname(path);
-  const cache = ext === ".html" ? "no-cache" : "public, max-age=31536000, immutable";
+  const cache = ext === ".html" || name === "sw.js" ? "no-cache" : "public, max-age=31536000, immutable";
   send(200, readFileSync(path), TYPES[ext] ?? "application/octet-stream", { "Cache-Control": cache });
 }).listen(PORT, "127.0.0.1", () => {
   console.log(`http://127.0.0.1:${PORT}  serving web/dist with the deployed CSP`);

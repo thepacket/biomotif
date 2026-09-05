@@ -17,13 +17,30 @@ build({ dist: out });
 const files = readdirSync(out);
 const read = (name) => readFileSync(join(out, name), "utf8");
 const index = read("index.html");
-const jsName = files.find((f) => f.endsWith(".js"));
+const jsName = files.find((f) => f.endsWith(".js") && f !== "sw.js");
 const cssName = files.find((f) => f.endsWith(".css"));
 const js = read(jsName);
 
-test("the dist build is an index and two fingerprinted assets", () => {
-  assert.equal(files.length, 3);
-  assert.ok(jsName && cssName && files.includes("index.html"));
+test("the dist build is an index, two fingerprinted assets and a service worker", () => {
+  assert.equal(files.length, 4);
+  assert.ok(jsName && cssName && files.includes("index.html") && files.includes("sw.js"));
+});
+
+test("the service worker keeps the page's own files and nothing else", () => {
+  const sw = read("sw.js");
+  assert.doesNotThrow(() => new Function(sw));
+  for (const f of ["/index.html", `/${cssName}`, `/${jsName}`]) assert.ok(sw.includes(`"${f}"`), f);
+  assert.ok(!sw.includes("/sw.js"), "the worker must not cache itself, or it could never update");
+  assert.match(sw, /url\.origin !== self\.location\.origin[^\n]*return/, "cross-origin requests pass straight through");
+  assert.match(sw, /caches\.delete/, "old caches are dropped");
+  // A different build is a different cache, so the old page is not served forever.
+  assert.match(sw, /const CACHE = "biomotif-[0-9a-f]{8}"/);
+});
+
+test("the page registers the worker only when served, never as a single file", () => {
+  assert.match(js, /serviceWorker\.register\("\/sw\.js"\)/);
+  assert.match(js, /script\[src\*="\/biomotif\."\]/);
+  assert.ok(!read("index.html").includes("sw.js"), "registration is in the bundle, not inline");
 });
 
 test("asset names are their own content hash", () => {
