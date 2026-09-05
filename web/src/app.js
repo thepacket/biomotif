@@ -665,6 +665,8 @@ function buildTrack(rec, hits) {
 
   const bodyBox = el("div", "panel-body");
   const pre = el("div", "track scroller");
+  pre.setAttribute("role", "figure");
+  pre.setAttribute("aria-label", `${rec.name}, ${hits.length === 1 ? "one match" : `${hits.length} matches`} highlighted; each is listed in the table below`);
   const width = TRACK_WIDTH;
   const covered = new Uint8Array(rec.length);
   for (const h of hits) for (let i = h.start; i < h.end && i < rec.length; i++) covered[i] = 1;
@@ -844,6 +846,8 @@ function buildTable(hits) {
     tr.appendChild(el("td", "num", String(h.length)));
     const st = el("td");
     const badge = el("span", `strand ${h.strand === "+" ? "fwd" : "rev"}`, h.strand);
+    badge.setAttribute("aria-label", h.strand === "+" ? "forward strand" : "reverse strand");
+    badge.title = h.strand === "+" ? "reads left to right" : "on the opposite strand, reading right to left";
     st.appendChild(badge);
     tr.appendChild(st);
     tr.appendChild(el("td", "mono", h.seq.length > 60 ? h.seq.slice(0, 28) + "…" + h.seq.slice(-28) : h.seq));
