@@ -413,7 +413,10 @@ table.hits th {
   border-bottom: 1px solid var(--line-strong); white-space: nowrap;
 }
 table.hits td { padding: 5px 9px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.hits tbody tr { cursor: pointer; }
 table.hits tr:hover td { background: var(--surface-2); }
+table.hits tbody tr:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+table.hits tr.picked td { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
 table.hits .num { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 table.hits .mono { font-family: var(--mono); word-break: break-all; }
 table.hits .name { font-family: var(--mono); font-size: 12px; white-space: nowrap; }
@@ -430,7 +433,14 @@ table.hits .name { font-family: var(--mono); font-size: 12px; white-space: nowra
 .track mark {
   background: var(--accent-soft); color: inherit;
   border-bottom: 2px solid var(--accent); border-radius: 2px 2px 0 0;
+  cursor: pointer;
+  transition: background .25s, color .25s;
 }
+.track mark:hover { background: var(--accent); color: var(--accent-ink); }
+.track mark:hover span { color: inherit; }
+/* Picked out from the table: solid, so it reads at a glance among the rest. */
+.track mark.flash { background: var(--accent); color: var(--accent-ink); outline: 2px solid var(--accent); outline-offset: 1px; }
+.track mark.flash span { color: inherit; }
 .track .lane { color: var(--accent); }
 .track .skip { color: var(--muted); font-style: italic; }
 

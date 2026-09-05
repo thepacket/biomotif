@@ -639,7 +639,7 @@ function buildTrack(rec, hits) {
 
   const bodyBox = el("div", "panel-body");
   const pre = el("div", "track scroller");
-  const width = 60;
+  const width = TRACK_WIDTH;
   const covered = new Uint8Array(rec.length);
   for (const h of hits) for (let i = h.start; i < h.end && i < rec.length; i++) covered[i] = 1;
 
@@ -666,13 +666,15 @@ function buildTrack(rec, hits) {
     let open = false;
     for (let i = start; i < end; i++) {
       const c = rec.seq[i].toUpperCase();
-      if (covered[i] && !open) { row += "<mark>"; open = true; }
+      // Each highlighted run knows where it sits, so a click on it can find
+      // the matches it belongs to, and a click in the table can find it.
+      if (covered[i] && !open) { row += `<mark data-at="${i}" title="Click to pick out these matches in the table">`; open = true; }
       if (!covered[i] && open) { row += "</mark>"; open = false; }
       const cls = BASE_CLASS[c];
       row += cls ? `<span class="${cls}">${c}</span>` : c;
     }
     if (open) row += "</mark>";
-    lines.push(`<div>${row}</div>`);
+    lines.push(`<div class="bases" data-from="${start}">${row}</div>`);
 
     /* One row per site, not per match. Several patterns routinely describe the
        same feature — tata-box, tata-box-strict and tata-inr-promoter all land
@@ -728,6 +730,64 @@ function buildTrack(rec, hits) {
   return wrap;
 }
 
+/* The picture and the table describe the same matches; each can point at the
+   other. A row picks out its match in the sequence — a beginner's difficulty is
+   reading a position number and finding it by eye — and a highlighted run
+   picks out its matches in the table. */
+
+const TRACK_WIDTH = 60;
+
+function showHitInTrack(index) {
+  const h = state.hits[index];
+  const body = $("#results-body");
+  if (!h || !body) return;
+  const line = body.querySelector(`.bases[data-from="${Math.floor(h.start / TRACK_WIDTH) * TRACK_WIDTH}"]`);
+  if (!line) return;
+  line.scrollIntoView({ block: "center", behavior: "smooth" });
+  for (const m of body.querySelectorAll(".track mark.flash")) m.classList.remove("flash");
+  for (const m of body.querySelectorAll(".track mark")) {
+    const at = Number(m.dataset.at);
+    const len = m.textContent.length;
+    if (at < h.end && at + len > h.start) m.classList.add("flash");
+  }
+  for (const r of body.querySelectorAll("table.hits tr.picked")) r.classList.remove("picked");
+  body.querySelector(`table.hits tr[data-hit="${index}"]`)?.classList.add("picked");
+}
+
+function showRunInTable(mark) {
+  const at = Number(mark.dataset.at);
+  const len = mark.textContent.length;
+  const body = $("#results-body");
+  const rows = body.querySelectorAll("table.hits tr[data-hit]");
+  let first = null;
+  for (const r of rows) {
+    const h = state.hits[Number(r.dataset.hit)];
+    const on = h && h.start < at + len && h.end > at;
+    r.classList.toggle("picked", on);
+    if (on && !first) first = r;
+  }
+  for (const m of body.querySelectorAll(".track mark.flash")) m.classList.remove("flash");
+  mark.classList.add("flash");
+  if (first) first.scrollIntoView({ block: "center", behavior: "smooth" });
+}
+
+function wireResultsLinks() {
+  const body = $("#results-body");
+  body.addEventListener("click", (e) => {
+    const mark = e.target.closest(".track mark");
+    if (mark) { showRunInTable(mark); return; }
+    const row = e.target.closest("table.hits tr[data-hit]");
+    if (row) showHitInTrack(Number(row.dataset.hit));
+  });
+  body.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const row = e.target.closest?.("table.hits tr[data-hit]");
+    if (!row) return;
+    e.preventDefault();
+    showHitInTrack(Number(row.dataset.hit));
+  });
+}
+
 function escapeHtml(s) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
@@ -745,8 +805,13 @@ function buildTable(hits) {
   thead.appendChild(hr);
   t.appendChild(thead);
   const tb = el("tbody");
-  for (const h of hits.slice(0, 500)) {
+  hits.slice(0, 500).forEach((h, i) => {
     const tr = el("tr");
+    // A row is the way to the sequence: click it, or reach it with Tab and
+    // press Enter, and the picture above scrolls to the match and flashes it.
+    tr.tabIndex = 0;
+    tr.dataset.hit = String(i);
+    tr.title = "Show this match in the sequence above";
     tr.appendChild(el("td", "name", h.motif));
     tr.appendChild(el("td", "num", String(h.absStart + 1)));
     tr.appendChild(el("td", "num", String(h.absEnd)));
@@ -768,7 +833,7 @@ function buildTable(hits) {
     });
     tr.appendChild(detail);
     tb.appendChild(tr);
-  }
+  });
   t.appendChild(tb);
   scroll.appendChild(t);
   wrap.appendChild(scroll);
@@ -1028,6 +1093,7 @@ function settleSplitter() {
 
 function wire() {
   wireSplitter();
+  wireResultsLinks();
   $("#library-search").addEventListener("input", (e) => {
     state.filterText = e.target.value.trim();
     renderRail();
