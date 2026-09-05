@@ -60,6 +60,23 @@ function verdict(observed, expected) {
   return { tone: "noise", text: `Chance alone would give about ${expected.toFixed(1)}, more than were actually found. These are not evidence of anything.` };
 }
 
+/** How many distinct places in the sequence the matches sit at, as opposed to
+    how many matches there are. Overlapping matches on a strand are one place. */
+function countSites(hits) {
+  const sorted = [...hits].sort((a, b) => a.absStart - b.absStart);
+  let sites = 0;
+  const endBy = { "+": -1, "-": -1 };
+  for (const h of sorted) {
+    if (h.absStart >= endBy[h.strand]) { sites++; endBy[h.strand] = h.absEnd; }
+    else endBy[h.strand] = Math.max(endBy[h.strand], h.absEnd);
+  }
+  return sites;
+}
+
+/** Motif names whose element acts on RNA. Set by the app once the library is
+    loaded, so this module needs no registry of its own. */
+export const rnaMotifs = new Set();
+
 /* ------------------------------------------------------------- the pieces */
 
 function describeSequence(record, origin) {
@@ -133,20 +150,38 @@ export function describeState({ record, entry, matcher, source, hits, mode = "mo
 
   if (mode === "scan") {
     const names = [...new Set(hits.map((h) => h.motif))];
+    const sites = countSites(hits);
+    const rna = hits.filter((h) => rnaMotifs.has(h.motif));
     sections.push({
       heading: "What was done",
       body: "Every applicable pattern in the library was run against this sequence at once. " +
         "Patterns too short or too loose to mean anything were left out, as were restriction enzyme sites, " +
         "which have their own button.",
     });
-    sections.push({
-      heading: "What was found",
-      body: hits.length
-        ? `${plural(hits.length, "match", "matches")} from ${plural(names.length, "different pattern", "different patterns")}. ` +
-          "Treat this as a list of things to look at rather than a list of findings: short patterns turn up by accident, " +
-          "so run one on its own to see whether it appears more often than chance would explain."
-        : "Nothing matched, which for a short sequence is entirely normal.",
-    });
+    const findings = [];
+    if (hits.length) {
+      findings.push(`${plural(hits.length, "match", "matches")} from ${plural(names.length, "different pattern", "different patterns")}.`);
+      if (sites < hits.length) {
+        findings.push(`Several patterns often describe the same thing — a TATA box is found by the loose version, the strict version and ` +
+          `the larger promoter that contains it — so those ${n(hits.length)} matches sit at about ${plural(sites, "place", "places")} in the sequence. ` +
+          "The picture above draws each place once and counts the rest.");
+      }
+      findings.push("Treat this as a list of things to look at rather than a list of findings: short patterns turn up by accident, " +
+        "so run one on its own to see whether it appears more often than chance would explain.");
+    } else {
+      findings.push("Nothing matched, which for a short sequence is entirely normal.");
+    }
+    sections.push({ heading: "What was found", body: findings.join(" ") });
+    if (rna.length && record.type !== "rna") {
+      sections.push({
+        heading: "One thing to be careful of",
+        body: `${plural(rna.length, "match is", "matches are")} for an element that acts on RNA rather than on DNA. ` +
+          "DNA is copied into RNA before it does anything, so such a hit is a statement about the RNA this stretch would become — " +
+          "and only if this stretch is copied at all, and only from the strand that is actually copied. " +
+          "Nothing here knows which strand that is, so treat one found on the opposite strand with particular suspicion.",
+        tone: "some",
+      });
+    }
     return sections;
   }
 

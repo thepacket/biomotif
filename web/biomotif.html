@@ -2374,6 +2374,23 @@ function verdict(observed, expected) {
   return { tone: "noise", text: `Chance alone would give about ${expected.toFixed(1)}, more than were actually found. These are not evidence of anything.` };
 }
 
+/** How many distinct places in the sequence the matches sit at, as opposed to
+    how many matches there are. Overlapping matches on a strand are one place. */
+function countSites(hits) {
+  const sorted = [...hits].sort((a, b) => a.absStart - b.absStart);
+  let sites = 0;
+  const endBy = { "+": -1, "-": -1 };
+  for (const h of sorted) {
+    if (h.absStart >= endBy[h.strand]) { sites++; endBy[h.strand] = h.absEnd; }
+    else endBy[h.strand] = Math.max(endBy[h.strand], h.absEnd);
+  }
+  return sites;
+}
+
+/** Motif names whose element acts on RNA. Set by the app once the library is
+    loaded, so this module needs no registry of its own. */
+const rnaMotifs = new Set();
+
 /* ------------------------------------------------------------- the pieces */
 
 function describeSequence(record, origin) {
@@ -2447,20 +2464,38 @@ function describeState({ record, entry, matcher, source, hits, mode = "motif", o
 
   if (mode === "scan") {
     const names = [...new Set(hits.map((h) => h.motif))];
+    const sites = countSites(hits);
+    const rna = hits.filter((h) => rnaMotifs.has(h.motif));
     sections.push({
       heading: "What was done",
       body: "Every applicable pattern in the library was run against this sequence at once. " +
         "Patterns too short or too loose to mean anything were left out, as were restriction enzyme sites, " +
         "which have their own button.",
     });
-    sections.push({
-      heading: "What was found",
-      body: hits.length
-        ? `${plural(hits.length, "match", "matches")} from ${plural(names.length, "different pattern", "different patterns")}. ` +
-          "Treat this as a list of things to look at rather than a list of findings: short patterns turn up by accident, " +
-          "so run one on its own to see whether it appears more often than chance would explain."
-        : "Nothing matched, which for a short sequence is entirely normal.",
-    });
+    const findings = [];
+    if (hits.length) {
+      findings.push(`${plural(hits.length, "match", "matches")} from ${plural(names.length, "different pattern", "different patterns")}.`);
+      if (sites < hits.length) {
+        findings.push(`Several patterns often describe the same thing — a TATA box is found by the loose version, the strict version and ` +
+          `the larger promoter that contains it — so those ${n(hits.length)} matches sit at about ${plural(sites, "place", "places")} in the sequence. ` +
+          "The picture above draws each place once and counts the rest.");
+      }
+      findings.push("Treat this as a list of things to look at rather than a list of findings: short patterns turn up by accident, " +
+        "so run one on its own to see whether it appears more often than chance would explain.");
+    } else {
+      findings.push("Nothing matched, which for a short sequence is entirely normal.");
+    }
+    sections.push({ heading: "What was found", body: findings.join(" ") });
+    if (rna.length && record.type !== "rna") {
+      sections.push({
+        heading: "One thing to be careful of",
+        body: `${plural(rna.length, "match is", "matches are")} for an element that acts on RNA rather than on DNA. ` +
+          "DNA is copied into RNA before it does anything, so such a hit is a statement about the RNA this stretch would become — " +
+          "and only if this stretch is copied at all, and only from the strand that is actually copied. " +
+          "Nothing here knows which strand that is, so treat one found on the opposite strand with particular suspicion.",
+        tone: "some",
+      });
+    }
     return sections;
   }
 
@@ -2552,6 +2587,9 @@ function loadLibrary() {
     problems.push(...loadLibrarySource(name, text, state.registry));
   }
   if (problems.length) console.warn("library problems:", problems);
+  // The explanation pane needs to know which elements act on RNA, so it can say
+  // what finding one in DNA does and does not mean.
+  for (const e of state.registry.all()) if (e.alphabet === "rna") rnaMotifs.add(e.name);
 }
 
 function renderRail() {
@@ -3021,7 +3059,9 @@ function buildTrack(rec, hits) {
   const wrap = el("div", "panel");
   const head = el("header");
   head.appendChild(el("h2", null, "Sequence"));
-  const legend = el("span", "hint", "matched bases highlighted · A C G T coloured");
+  const legend = el("span", "hint",
+    "matched bases highlighted · rows are only room for names, and carry no meaning · " +
+    "> reads left to right, < is the other strand");
   legend.classList.add("spacer");
   head.appendChild(legend);
   wrap.appendChild(head);
@@ -3063,24 +3103,42 @@ function buildTrack(rec, hits) {
     if (open) row += "</mark>";
     lines.push(`<div>${row}</div>`);
 
-    /* A label lane under the block, one row per non-overlapping set of hits.
-       A lane reserves whichever is wider, the match or its name, so a short
-       site with a long name is not truncated to the width of the site — which
-       is how "minus-35" used to come out as "minus-". */
+    /* One row per site, not per match. Several patterns routinely describe the
+       same feature — tata-box, tata-box-strict and tata-inr-promoter all land
+       on one TATA box — and listing each as its own row reads as three
+       findings. Overlapping matches on the same strand are drawn once, named
+       after the widest of them, with a count of the rest. */
     const here = hits.filter((h) => h.start < end && h.end > start);
+    const clusters = [];
+    for (const h of [...here].sort((a, b) => a.start - b.start || b.end - a.end)) {
+      const open = clusters.find((c) => c.strand === h.strand && h.start < c.end && h.end > c.start);
+      if (open) {
+        open.start = Math.min(open.start, h.start);
+        open.end = Math.max(open.end, h.end);
+        open.members.push(h);
+        if (h.end - h.start > open.widest.end - open.widest.start) open.widest = h;
+      } else {
+        clusters.push({ start: h.start, end: h.end, strand: h.strand, widest: h, members: [h] });
+      }
+    }
+
+    /* A lane reserves whichever is wider, the site or its name, so a short site
+       with a long name is not truncated to the width of the site — which is how
+       "minus-35" used to come out as "minus-". */
     const lanes = [];
-    for (const h of here.sort((a, b) => a.start - b.start)) {
-      const a = Math.max(h.start - start, 0), b = Math.min(h.end - start, width);
-      const label = (h.strand === "-" ? "<" : ">") + trackName(h.motif);
+    for (const c of clusters) {
+      const a = Math.max(c.start - start, 0), b = Math.min(c.end - start, width);
+      const extra = c.members.length > 1 ? ` +${c.members.length - 1}` : "";
+      const label = (c.strand === "-" ? "<" : ">") + trackName(c.widest.motif) + extra;
       const claimed = Math.max(b, a + label.length + 1);   // +1 keeps names apart
       const lane = lanes.find((L) => L.every(([la, , , lc]) => claimed <= la || lc <= a));
-      if (lane) lane.push([a, b, h, claimed, label]);
-      else lanes.push([[a, b, h, claimed, label]]);
+      if (lane) lane.push([a, b, c, claimed, label]);
+      else lanes.push([[a, b, c, claimed, label]]);
     }
     for (const lane of lanes.slice(0, MAX_LANES)) {
       const buf = Array(width).fill(" ");
-      for (const [a, b, h, , label] of lane) {
-        const mark = h.strand === "-" ? "<" : ">";
+      for (const [a, b, c, , label] of lane) {
+        const mark = c.strand === "-" ? "<" : ">";
         for (let k = a; k < b; k++) buf[k] = mark;
         // The name runs to the block edge if it needs to; the lane reserved it.
         for (let k = 0; k < label.length && a + k < width; k++) buf[a + k] = label[k];

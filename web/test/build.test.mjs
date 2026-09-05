@@ -127,6 +127,15 @@ test("a track label is never cut down to the width of its match", () => {
   assert.match(app, /your pattern/);
 });
 
+test("the track draws one row per site, not one per match", () => {
+  const app = readFileSync(join(ROOT, "web", "src", "app.js"), "utf8");
+  assert.match(app, /const clusters = \[\]/, "overlapping matches must be grouped");
+  assert.match(app, /c\.strand === h\.strand/, "a group must not span both strands");
+  assert.match(app, /\+\$\{c\.members\.length - 1\}/, "the rest of a group must be counted");
+  assert.match(app, /rows are only room for names, and carry no meaning/,
+    "the rows look meaningful and are not, so the legend has to say so");
+});
+
 test("bundling twice gives the same bytes", () => {
   assert.equal(bundleModules(), bundleModules());
 });

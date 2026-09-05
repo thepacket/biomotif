@@ -12,7 +12,7 @@ import { Record, parseFasta, search } from "../src/engine.js";
 import { Registry, buildMotif, loadLibrarySource } from "../src/library.js";
 import { parse } from "../src/engine.js";
 import { LIB_FILES } from "../../tools/build.mjs";
-import { describeState, expectedByChance } from "../src/describe.js";
+import { describeState, expectedByChance, rnaMotifs } from "../src/describe.js";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const registry = new Registry();
@@ -81,6 +81,38 @@ test("nothing found is explained two different ways", () => {
     const loose = describeState({ record: plasmid, entry: null, matcher: common, source: "", hits: [] });
     assert.match(found(loose).body, /not surprising/);
   }
+});
+
+test("a scan says how many places the matches sit at, not just how many there are", () => {
+  /* Several patterns describe the same feature — the loose TATA box, the strict
+     one, and the promoter containing both — so a raw match count reads as more
+     findings than there are. */
+  const overlapping = [
+    { motif: "tata-box", absStart: 100, absEnd: 108, strand: "+" },
+    { motif: "tata-box-strict", absStart: 100, absEnd: 106, strand: "+" },
+    { motif: "tata-inr-promoter", absStart: 98, absEnd: 140, strand: "+" },
+    { motif: "e-box", absStart: 500, absEnd: 506, strand: "+" },
+  ];
+  const sections = describeState({ record: plasmid, hits: overlapping, mode: "scan" });
+  const body = sections.find((s) => s.heading === "What was found").body;
+  assert.match(body, /4 matches/);
+  assert.match(body, /2 places/, "three overlapping matches are one place, plus the lone one");
+  assert.match(body, /draws each place once/);
+});
+
+test("an RNA element found in DNA carries a warning, and in RNA does not", () => {
+  rnaMotifs.add("au-rich-element");
+  const hit = [{ motif: "au-rich-element", absStart: 10, absEnd: 15, strand: "-" }];
+  const onDna = describeState({ record: plasmid, hits: hit, mode: "scan" });
+  const caution = onDna.find((s) => s.heading === "One thing to be careful of");
+  assert.ok(caution, "an RNA element in DNA needs saying");
+  assert.match(caution.body, /copied into RNA/);
+  assert.match(caution.body, /opposite strand/);
+
+  const rnaRecord = new Record("r", plasmid.seq, "rna");
+  const onRna = describeState({ record: rnaRecord, hits: hit, mode: "scan" });
+  assert.ok(!onRna.some((s) => s.heading === "One thing to be careful of"),
+    "in RNA there is nothing to warn about");
 });
 
 test("the other buttons each explain what they did", () => {

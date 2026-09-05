@@ -120,6 +120,12 @@ Seventeen E-box matches look like seventeen findings. They are not one. A
 beginner has no way to know that, so the pane says it, and the verdict carries a
 coloured rule so it reads at a glance. It costs about 7 ms for one pattern.
 
+A scan gets its own version of this. It reports how many *places* the matches
+sit at rather than how many matches there are — several patterns routinely
+describe one feature, so 53 matches can be 41 places — and it warns when a
+pattern that acts on RNA has been found in DNA, which only means anything if
+that stretch is transcribed, and only from the strand that is.
+
 Nothing in the pane comes from a model — it is all computed, so it needs no key
 and appears instantly. Library descriptions are quoted as their authors wrote
 them, for readers who know the field; everything the pane composes around them

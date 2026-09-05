@@ -10,7 +10,7 @@ import {
   setApiKey, setModel,
 } from "./assistant.js";
 import { PROMPT_COUNT, PROMPT_GROUPS } from "./prompts.js";
-import { describeState } from "./describe.js";
+import { describeState, rnaMotifs } from "./describe.js";
 
 const $ = (sel) => document.querySelector(sel);
 const el = (tag, cls, text) => {
@@ -47,6 +47,9 @@ function loadLibrary() {
     problems.push(...loadLibrarySource(name, text, state.registry));
   }
   if (problems.length) console.warn("library problems:", problems);
+  // The explanation pane needs to know which elements act on RNA, so it can say
+  // what finding one in DNA does and does not mean.
+  for (const e of state.registry.all()) if (e.alphabet === "rna") rnaMotifs.add(e.name);
 }
 
 function renderRail() {
@@ -516,7 +519,9 @@ function buildTrack(rec, hits) {
   const wrap = el("div", "panel");
   const head = el("header");
   head.appendChild(el("h2", null, "Sequence"));
-  const legend = el("span", "hint", "matched bases highlighted · A C G T coloured");
+  const legend = el("span", "hint",
+    "matched bases highlighted · rows are only room for names, and carry no meaning · " +
+    "> reads left to right, < is the other strand");
   legend.classList.add("spacer");
   head.appendChild(legend);
   wrap.appendChild(head);
@@ -558,24 +563,42 @@ function buildTrack(rec, hits) {
     if (open) row += "</mark>";
     lines.push(`<div>${row}</div>`);
 
-    /* A label lane under the block, one row per non-overlapping set of hits.
-       A lane reserves whichever is wider, the match or its name, so a short
-       site with a long name is not truncated to the width of the site — which
-       is how "minus-35" used to come out as "minus-". */
+    /* One row per site, not per match. Several patterns routinely describe the
+       same feature — tata-box, tata-box-strict and tata-inr-promoter all land
+       on one TATA box — and listing each as its own row reads as three
+       findings. Overlapping matches on the same strand are drawn once, named
+       after the widest of them, with a count of the rest. */
     const here = hits.filter((h) => h.start < end && h.end > start);
+    const clusters = [];
+    for (const h of [...here].sort((a, b) => a.start - b.start || b.end - a.end)) {
+      const open = clusters.find((c) => c.strand === h.strand && h.start < c.end && h.end > c.start);
+      if (open) {
+        open.start = Math.min(open.start, h.start);
+        open.end = Math.max(open.end, h.end);
+        open.members.push(h);
+        if (h.end - h.start > open.widest.end - open.widest.start) open.widest = h;
+      } else {
+        clusters.push({ start: h.start, end: h.end, strand: h.strand, widest: h, members: [h] });
+      }
+    }
+
+    /* A lane reserves whichever is wider, the site or its name, so a short site
+       with a long name is not truncated to the width of the site — which is how
+       "minus-35" used to come out as "minus-". */
     const lanes = [];
-    for (const h of here.sort((a, b) => a.start - b.start)) {
-      const a = Math.max(h.start - start, 0), b = Math.min(h.end - start, width);
-      const label = (h.strand === "-" ? "<" : ">") + trackName(h.motif);
+    for (const c of clusters) {
+      const a = Math.max(c.start - start, 0), b = Math.min(c.end - start, width);
+      const extra = c.members.length > 1 ? ` +${c.members.length - 1}` : "";
+      const label = (c.strand === "-" ? "<" : ">") + trackName(c.widest.motif) + extra;
       const claimed = Math.max(b, a + label.length + 1);   // +1 keeps names apart
       const lane = lanes.find((L) => L.every(([la, , , lc]) => claimed <= la || lc <= a));
-      if (lane) lane.push([a, b, h, claimed, label]);
-      else lanes.push([[a, b, h, claimed, label]]);
+      if (lane) lane.push([a, b, c, claimed, label]);
+      else lanes.push([[a, b, c, claimed, label]]);
     }
     for (const lane of lanes.slice(0, MAX_LANES)) {
       const buf = Array(width).fill(" ");
-      for (const [a, b, h, , label] of lane) {
-        const mark = h.strand === "-" ? "<" : ">";
+      for (const [a, b, c, , label] of lane) {
+        const mark = c.strand === "-" ? "<" : ">";
         for (let k = a; k < b; k++) buf[k] = mark;
         // The name runs to the block edge if it needs to; the lane reserved it.
         for (let k = 0; k < label.length && a + k < width; k++) buf[a + k] = label[k];
