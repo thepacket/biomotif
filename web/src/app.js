@@ -11,6 +11,7 @@ import {
 } from "./assistant.js";
 import { PROMPT_COUNT, PROMPT_GROUPS } from "./prompts.js";
 import { describeState, rnaMotifs } from "./describe.js";
+import { decodeState, encodeState, shareUrl } from "./share.js";
 
 const $ = (sel) => document.querySelector(sel);
 const el = (tag, cls, text) => {
@@ -38,6 +39,7 @@ const state = {
   mode: "motif",      // which button produced what is on screen
   origin: null,       // a sentence about where the sequence came from
   search: null,       // the last search, so more of it can be asked for
+  came: null,         // how the sequence was obtained, when that can go in a link
 };
 
 /* ------------------------------------------------------------------ library */
@@ -293,6 +295,7 @@ async function doFetch(query, { source, upstream, species, title } = {}) {
     const { records, info, source: used, assembly } = await fetchSequence(q, { source: chosen, upstream: up, species: sp, signal });
     state.records = records;
     state.active = 0;
+    state.came = { fetch: q, source: chosen, species: sp, upstream: up };
     state.origin = `It was fetched from ${SOURCES[used].label}${up > 0 && used === "ensembl"
       ? `, with the first ${n2(up)} bases being the region upstream of the gene, so position ${n2(up + 1)} is where the gene itself starts`
       : ""}.`;
@@ -517,6 +520,55 @@ function renderExplain() {
   }
 }
 
+/* ------------------------------------------------------------------ links */
+
+/** What a link to the current screen would say. */
+function linkState() {
+  // A library motif goes by name, which is shorter and reads as what it is.
+  return { motif: state.selectedEntry || state.motifSource, ...(state.came ?? {}),
+           circular: $("#circular").checked, lesson: state.lesson || "" };
+}
+
+/** Keep the address bar describing what is on screen, so the link is always
+    there to copy. replaceState, not the hash: the page must not scroll, and
+    every edit must not become a history entry. */
+function syncLink() {
+  try {
+    const frag = encodeState(linkState());
+    const want = frag ? `#${frag}` : "";
+    if ((location.hash || "") === want) return;
+    history.replaceState(null, "", `${location.pathname}${location.search}${want}`);
+  } catch { /* an embedded viewer with no address to write to */ }
+}
+
+/** Open the page as a link describes it. Returns false when the link said
+    nothing, so the caller can open the page its usual way instead. */
+function applyLink(link) {
+  if (!link) return false;
+  if (link.motif) {
+    const entry = state.registry.get(link.motif);
+    state.selectedEntry = entry ? entry.name : null;
+    setMotifSource(entry ? (entry.editorSource ?? entry.pattern) : link.motif, entry ? entry.name : "");
+    showDoc(entry ?? null);
+  }
+  $("#circular").checked = !!link.circular;
+  if (link.demo && window.BIOMOTIF_DATA[link.demo]) {
+    document.querySelector(`[data-demo="${link.demo}"]`)?.click();
+  } else if (link.fetch) {
+    $("#fetch-query").value = link.fetch;
+    if (link.source) $("#fetch-source").value = link.source;
+    $("#fetch-species").value = link.species || "homo_sapiens";
+    $("#fetch-upstream").value = String(link.upstream || 0);
+    doFetch(link.fetch, { source: link.source || "auto", species: link.species, upstream: link.upstream || 0 });
+  } else if (!currentRecord()) {
+    return false;
+  }
+  if (link.lesson) openLesson(link.lesson);
+  return true;
+}
+
+function openLesson() { /* the walkthrough, when there is one */ }
+
 /* ---------------------------------------------------------------- results */
 
 function renderResults(hits, error = null, note = null) {
@@ -552,6 +604,7 @@ function renderResults(hits, error = null, note = null) {
   }
 
   renderExplain();
+  syncLink();
   if (!hits.length) {
     body.appendChild(el("div", "empty",
       "Nothing found. Try a looser motif: wrap it in (fuzzy 1 …), widen a gap, or pick a shorter consensus."));
@@ -998,11 +1051,14 @@ function wire() {
     const text = $("#seq-input").value.trim();
     if (!text) return;
     state.origin = null;
+    state.came = null;   // pasted: stays out of any link
     if (loadSequences(text)) { $("#seq-input").value = ""; run(); }
   });
   $("#seq-file").addEventListener("change", async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    state.origin = null;
+    state.came = null;   // a file: likewise
     if (loadSequences(await file.text())) run();
     e.target.value = "";
   });
@@ -1047,10 +1103,23 @@ function wire() {
         ? "It is one of the built-in examples, drawn from real proteins — serum albumin, a kinase, a zinc finger protein, a Ras GTPase — plus one construct assembled from common laboratory tags."
         : "It is one of the built-in examples: a synthetic sequence with known features planted in it, so you can see what the tool does before using your own.";
       loadSequences(window.BIOMOTIF_DATA[key], key === "proteins" ? "protein" : null);
+      state.came = { demo: key };
       fetchStatus("");
       run();
     });
   }
+  $("#link-btn").addEventListener("click", async () => {
+    const btn = $("#link-btn");
+    const url = shareUrl(linkState());
+    try {
+      await navigator.clipboard.writeText(url);
+      btn.textContent = state.came ? "Link copied" : "Link copied (motif only)";
+    } catch {
+      // No clipboard, as in some embedded viewers: the address bar has it.
+      btn.textContent = "See the address bar";
+    }
+    setTimeout(() => { btn.textContent = "Copy link"; }, 2200);
+  });
   $("#export-btn").addEventListener("click", async () => {
     const downloads = await window.claude?.use?.("downloads");
     const name = `biomotif-${(currentRecord()?.name || "hits").replace(/\W+/g, "-")}.tsv`;
@@ -1141,14 +1210,23 @@ function boot() {
   renderCategories();
   renderExamples();
   wire();
-  // Open in a working state: a plasmid loaded and a real promoter already found.
-  loadSequences(window.BIOMOTIF_DATA.operon);
-  const entry = state.registry.get("sigma70-promoter");
-  state.selectedEntry = entry.name;
-  setMotifSource(entry.editorSource ?? entry.pattern, entry.name);
-  showDoc(entry);
+  // A link says what to open. Otherwise open in a working state: a plasmid
+  // loaded and a real promoter already found.
+  const link = decodeState(location.hash);
+  if (!link?.demo && !link?.fetch) {
+    loadSequences(window.BIOMOTIF_DATA.operon);
+    state.came = { demo: "operon" };
+  }
+  if (!link?.motif) {
+    const entry = state.registry.get("sigma70-promoter");
+    state.selectedEntry = entry.name;
+    setMotifSource(entry.editorSource ?? entry.pattern, entry.name);
+    showDoc(entry);
+  }
+  applyLink(link);
   renderRail();
   run();
+  window.addEventListener("hashchange", () => applyLink(decodeState(location.hash)));
   initAssistant();
   settleSplitter();
 }

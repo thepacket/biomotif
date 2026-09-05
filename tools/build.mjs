@@ -19,7 +19,8 @@ const SRC = join(ROOT, "web", "src");
 const SINGLE = join(ROOT, "web", "biomotif.html");
 
 export const LIB_FILES = ["prokaryote", "eukaryote", "plant", "rna", "protein", "tags", "restriction", "jaspar"];
-export const MODULES = ["engine.js", "library.js", "databases.js", "assistant.js", "prompts.js", "describe.js", "app.js"];
+export const MODULES = ["engine.js", "library.js", "databases.js", "assistant.js", "prompts.js", "describe.js",
+                        "share.js", "app.js"];
 const DEMOS = { operon: "operon.fa", plasmid: "plasmid.fa", gene: "gene.fa",
                 utr3: "utr3.fa", proteins: "proteins.fa" };
 
