@@ -18,8 +18,15 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - name: Test
         run: npm test
+      - name: Audit scientific metadata
+        run: npm run audit
       - name: Build
         run: npm run dist
+      - name: Real-browser smoke test
+        if: matrix.node-version == '24'
+        env:
+          REQUIRE_BROWSER: "1"
+        run: npm run test:browser
       - name: The committed page is current
         run: git diff --exit-code -- web/biomotif.html
       - name: The example data is reproducible

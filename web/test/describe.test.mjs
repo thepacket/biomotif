@@ -37,11 +37,12 @@ test("every section has a heading and prose", () => {
   }
 });
 
-test("a real site is called real, and a chance one is not", () => {
+test("an enriched site is distinguished without calling it biologically proven", () => {
   /* This is the whole point of the pane. loxP is 34 fixed bases and never
      appears in a shuffled sequence; CANNTG is six bases with two free and
      turns up as often by accident as it does for real. */
   assert.equal(found(run("loxp")).tone, "strong");
+  assert.match(found(run("loxp")).body, /does not establish|not proof/i);
 
   const eBox = buildMotif(parse('(iupac "CANNTG")'), registry);
   const hits = search(eBox, plasmid);
@@ -49,7 +50,7 @@ test("a real site is called real, and a chance one is not", () => {
   const sections = describeState({ record: plasmid, entry: null, matcher: eBox,
                                    source: '(iupac "CANNTG")', hits });
   assert.equal(found(sections).tone, "noise");
-  assert.match(found(sections).body, /chance/i);
+  assert.match(found(sections).body, /background/i);
 });
 
 test("the chance estimate is stable and non-negative", () => {
@@ -73,7 +74,7 @@ test("nothing found is explained two different ways", () => {
      and a beginner cannot tell them apart without being told. */
   const absent = buildMotif(parse('(iupac "GGGCCCGGGCCCGGGCCC")'), registry);
   const rare = describeState({ record: plasmid, entry: null, matcher: absent, source: "", hits: [] });
-  assert.match(found(rare).body, /absence is meaningful/);
+  assert.match(found(rare).body, /absence informative/);
 
   const common = buildMotif(parse('(iupac "ATGCATG")'), registry);
   const expected = expectedByChance(common, plasmid);

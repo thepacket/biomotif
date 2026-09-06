@@ -9,7 +9,7 @@ import {
   Alt, AnyChar, AnyOf, AtEnd, AtStart, BiomotifError, CharRun, Edit, Fuzzy, Hairpin,
   Iupac, Literal, Named, NoneOf, Pwm, Record, Repeat, Seq,
   balanced, collapse, complement, expandIupac, formatFasta, guessType, matchesFull,
-  parse, parseAll, parseFasta, revcomp, search, toIupac, transcribe,
+  parse, parseAll, parseFasta, parseSequenceText, revcomp, search, toIupac, transcribe,
 } from "../src/engine.js";
 
 const spans = (hits) => hits.map((h) => [h.start, h.end, h.strand]);
@@ -307,6 +307,15 @@ test("FASTA skips comment lines and accepts a bare sequence", () => {
   const bare = parseFasta("ACGTACGT\nACGT");
   assert.equal(bare.length, 1);
   assert.equal(bare[0].seq, "ACGTACGTACGT");
+});
+
+test("GenBank keeps the locus and definition while reading ORIGIN", () => {
+  const records = parseSequenceText(`LOCUS       TEST0001       12 bp    DNA\nDEFINITION  A small annotated sequence.\nORIGIN\n        1 acgt acgtac gt\n//\n`);
+  assert.equal(records.length, 1);
+  assert.equal(records[0].name, "TEST0001");
+  assert.equal(records[0].description, "A small annotated sequence");
+  assert.equal(records[0].seq.toUpperCase(), "ACGTACGTACGT");
+  assert.equal(records[0].type, "dna");
 });
 
 test("protein records are searched on one strand only", () => {

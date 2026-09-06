@@ -80,8 +80,97 @@ test("a viewer who declines Claude still gets OpenRouter", async () => {
 test("the reply schema is strict, so the answer parses", () => {
   const s = A.REPLY_SCHEMA;
   assert.equal(s.additionalProperties, false);
-  assert.deepEqual(s.required.sort(), ["caveats", "explanation", "library", "motif", "name"]);
-  for (const key of s.required) assert.equal(s.properties[key].type, "string", key);
+  assert.deepEqual(s.required.sort(), ["assumptions", "explanation", "library", "motif", "name", "negative_examples", "positive_examples"]);
+  for (const key of ["motif", "name", "explanation", "library"]) assert.equal(s.properties[key].type, "string", key);
+  for (const key of ["assumptions", "positive_examples", "negative_examples"]) {
+    assert.equal(s.properties[key].type, "array", key);
+    assert.equal(s.properties[key].items.type, "string", key);
+  }
+});
+
+test("example regeneration has a minimal schema and prompt", () => {
+  const s = A.EXAMPLES_SCHEMA;
+  assert.deepEqual(s.required.sort(), ["negative_examples", "positive_examples"]);
+  assert.equal(Object.keys(s.properties).length, 2);
+  const prompt = A.examplePrompt('(seq "TGTGA" (gap 60 100) "TTGACA")', "dna");
+  assert.match(prompt, /both strands/);
+  assert.ok(!/library|assumption|explanation|THE LANGUAGE/i.test(prompt));
+});
+
+test("OpenRouter replies have bounded output and reasoning disabled", async () => {
+  stubBrowser();
+  A.setApiKey("test-key");
+  const originalFetch = globalThis.fetch;
+  const bodies = [];
+  globalThis.fetch = async (_url, options) => {
+    bodies.push(JSON.parse(options.body));
+    return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content:
+      '{"positive_examples":["TATA","ATATA"],"negative_examples":["CCCC","GGGG"]}' } }], usage: {} }) };
+  };
+  try {
+    const provider = await A.resolveProvider();
+    await provider.ask("small request", { schema: A.EXAMPLES_SCHEMA, schemaName: "motif_examples", maxCompletionTokens: 400 });
+    await provider.ask("normal request");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+  assert.equal(bodies[0].max_completion_tokens, 400);
+  assert.equal(bodies[1].max_completion_tokens, 1200);
+  assert.deepEqual(bodies[0].reasoning, { effort: "none", exclude: true });
+  assert.equal(bodies[0].response_format.json_schema.name, "motif_examples");
+  assert.deepEqual(bodies[0].response_format.json_schema.schema, A.EXAMPLES_SCHEMA);
+});
+
+test("assistant replies are normalized before the interface trusts them", () => {
+  assert.deepEqual(A.normalizeReply({ motif: "  (iupac \"TATA\") ", assumptions: [" choice ", 4],
+    positive_examples: ["TATA"], negative_examples: null }), {
+    motif: '(iupac "TATA")', name: "", explanation: "", assumptions: ["choice"],
+    positive_examples: ["TATA"], negative_examples: [], library: "",
+  });
+});
+
+test("a compiling draft remains usable when the model writes a bad example", async () => {
+  const { Registry } = await import("../src/library.js");
+  const good = A.normalizeReply({ motif: '(iupac "TATA")', name: "tata", explanation: "test",
+    assumptions: [], positive_examples: ["TATA", "CCTATAGG"],
+    negative_examples: ["TACA", "CCCC"], library: "" });
+  const review = A.verifyDraft(good, new Registry(), "dna");
+  assert.equal(review.usable, true);
+  assert.equal(review.examplesConsistent, true);
+
+  const inconsistent = { ...good, negative_examples: ["TATA", "CCCC"] };
+  const warned = A.verifyDraft(inconsistent, new Registry(), "dna");
+  assert.equal(warned.usable, true, "an AI-authored example must not veto a valid expression");
+  assert.equal(warned.examplesConsistent, false);
+  assert.ok(warned.checks.some((c) => c.severity === "warning" && /Unexpectedly contains/.test(c.text)));
+
+  const incomplete = A.verifyDraft({ ...good, positive_examples: ["TATA"] }, new Registry(), "dna");
+  assert.equal(incomplete.usable, true, "a missing AI-authored example is also only a warning");
+  assert.ok(incomplete.checks.some((c) => c.severity === "warning" && /enough examples/.test(c.text)));
+});
+
+test("only an expression that cannot compile or execute is blocked", async () => {
+  const { Registry } = await import("../src/library.js");
+  const base = A.normalizeReply({ name: "draft", explanation: "test", assumptions: [],
+    positive_examples: ["TATA", "CCTATAGG"], negative_examples: ["TACA", "CCCC"], library: "" });
+  const syntax = A.verifyDraft({ ...base, motif: '(iupac "TATA"' }, new Registry(), "dna");
+  assert.equal(syntax.usable, false);
+  assert.ok(syntax.checks.some((c) => c.blocking && c.severity === "error"));
+
+  const runtime = A.verifyDraft({ ...base, motif: '(fuzzy 1 (gap 2 4))' }, new Registry(), "dna");
+  assert.equal(runtime.usable, false);
+  assert.ok(runtime.checks.some((c) => c.blocking && /executed/.test(c.text)));
+});
+
+test("a nucleotide negative is checked for contained matches on both strands", async () => {
+  const { Registry } = await import("../src/library.js");
+  const draft = A.normalizeReply({ motif: '"AGTC"', name: "strand-check", explanation: "test",
+    assumptions: [], positive_examples: ["AGTC", "TTAGTCAA"],
+    negative_examples: ["GACT", "CCCC"], library: "" });
+  const review = A.verifyDraft(draft, new Registry(), "dna");
+  assert.equal(review.usable, true);
+  assert.equal(review.examplesConsistent, false);
+  assert.ok(review.checks.some((c) => /either strand/.test(c.text) && c.severity === "warning"));
 });
 
 test("every OpenRouter failure is explained in the reader's terms", () => {
@@ -115,6 +204,18 @@ test("the assistant module reaches the bundle", async () => {
   assert.ok(MODULES.includes("assistant.js"));
   assert.ok(MODULES.indexOf("assistant.js") < MODULES.indexOf("app.js"),
     "app.js uses it, so it must be concatenated first");
+});
+
+test("generated source is reviewed before it can replace the current motif", () => {
+  const app = readFileSync(join(ROOT, "web", "src", "app.js"), "utf8");
+  assert.ok(app.includes("reviewAssistantDraft"));
+  assert.ok(app.includes("Use this motif"));
+  assert.ok(app.includes("Regenerate test examples"));
+  assert.match(app, /const context = current \? "" : assistantLibraryContext/,
+    "refining an existing expression must not resend library context");
+  assert.match(app, /use\.disabled = !review\.usable/);
+  const askBody = app.slice(app.indexOf("async function ask()"), app.indexOf("/* ----------------------------------------------------------------- export */"));
+  assert.ok(!/if \(data\.motif\)[\s\S]*setMotifSource/.test(askBody), "a reply must not apply itself");
 });
 
 /* ------------------------------------------------------------- examples */

@@ -51,6 +51,18 @@ test("every entry carries a docstring, a category and a known alphabet", () => {
   }
 });
 
+test("every entry exposes structured, conservative provenance", () => {
+  for (const e of registry.all()) {
+    assert.ok(e.provenance, e.name);
+    assert.ok(["measured", "catalogue", "literature-backed", "uncited"].includes(e.provenance.evidence),
+      `${e.name}: ${e.provenance.evidence}`);
+    if (e.provenance.evidence === "uncited") assert.equal(e.provenance.citation, "", e.name);
+  }
+  assert.equal(entry("EcoRI").provenance.evidence, "catalogue");
+  assert.equal(entry("ctcf-matrix").provenance.evidence, "measured");
+  assert.equal(entry("sigma70-promoter").provenance.evidence, "literature-backed");
+});
+
 test("every documented example is matched by its own motif", () => {
   const bad = [];
   for (const e of registry.all()) {

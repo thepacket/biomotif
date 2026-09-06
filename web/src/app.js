@@ -6,8 +6,8 @@ import {
 } from "./library.js";
 import { SOURCES, detectSource, ensemblSpecies, fetchSequence, searchDatabase } from "./databases.js";
 import {
-  DEFAULT_MODEL, SUGGESTED_MODELS, fetchModels, getApiKey, getModel, resolveProvider,
-  setApiKey, setModel,
+  DEFAULT_MODEL, EXAMPLES_SCHEMA, SUGGESTED_MODELS, examplePrompt, fetchModels, getApiKey, getModel, resolveProvider,
+  setApiKey, setModel, verifyDraft,
 } from "./assistant.js";
 import { PROMPT_COUNT, PROMPT_GROUPS } from "./prompts.js";
 import { describeState, rnaMotifs } from "./describe.js";
@@ -15,6 +15,7 @@ import { decodeState, encodeState, shareUrl } from "./share.js";
 import { gelSvg } from "./gel.js";
 import { annotate } from "./glossary.js";
 import { LESSONS, lessonById } from "./lessons.js";
+import { formatResults } from "./formats.js";
 
 const $ = (sel) => document.querySelector(sel);
 const el = (tag, cls, text) => {
@@ -34,9 +35,12 @@ const state = {
   selectedEntry: null,
   filterCategory: null,
   filterText: "",
+  filterEvidence: "",
+  compatibleOnly: false,
   lastRunLabel: "",
   provider: null,     // the assistant, once one is available
   asking: null,       // AbortController for the request in flight
+  assistantDraft: null, // generated source waiting for explicit review and use
   fetching: null,     // AbortController for the request in flight
   railObserver: null, // watches the rail so the splitter's bounds stay true
   mode: "motif",      // which button produced what is on screen
@@ -45,6 +49,7 @@ const state = {
   came: null,         // how the sequence was obtained, when that can go in a link
   gel: null,          // the lanes of the last digest, for the drawn gel
   lesson: "",         // "id/step" while a walkthrough is open, for the link
+  analysisVersion: 0, // changing this cancels a cooperative long library scan
 };
 
 /* ------------------------------------------------------------------ library */
@@ -69,8 +74,12 @@ function renderRail() {
   // What that ordering knew is said in place instead, by marking the entries
   // the loaded sequence cannot be matched against. They stay where they are,
   // and stay clickable: reading one is not the same as running it.
-  const entries = state.registry.find({ category: state.filterCategory, text: state.filterText });
+  let entries = state.registry.find({ category: state.filterCategory, text: state.filterText });
   const wants = currentRecord() ? (currentRecord().type === "protein" ? "protein" : "nucleotide") : null;
+  if (state.filterEvidence) entries = entries.filter((e) => e.provenance?.evidence === state.filterEvidence);
+  if (state.compatibleOnly && wants) {
+    entries = entries.filter((e) => (e.alphabet === "protein") === (wants === "protein"));
+  }
   $("#rail-count").textContent = `${entries.length} of ${state.registry.size}`;
   const frag = document.createDocumentFragment();
   /* Every match is listed. A cap made sense while the order was arbitrary, but
@@ -97,6 +106,7 @@ function renderRail() {
                 `so it cannot match the ${currentRecord().type === "protein" ? "protein" : "DNA or RNA"} loaded now.`;
     }
     if (!e.scan) meta.appendChild(el("span", "tag-template", "template"));
+    if (e.provenance?.evidence === "uncited") meta.appendChild(el("span", "tag-evidence", "uncited"));
     b.appendChild(meta);
     if (e.doc) b.appendChild(el("div", "entry-doc", e.doc));
     b.addEventListener("click", () => useEntry(e));
@@ -147,6 +157,11 @@ function showDoc(entry) {
   if (entry.example) bits.push(`example ${entry.example}`);
   if (entry.meta) bits.push(`cut ${entry.meta.cutTop}/${entry.meta.cutBottom}`);
   if (!entry.scan) bits.push("template: matches almost anywhere, so Scan skips it");
+  if (entry.provenance) {
+    bits.push(`evidence: ${entry.provenance.evidence}`);
+    if (entry.provenance.sourceId) bits.push(`source id ${entry.provenance.sourceId}`);
+    if (entry.provenance.reviewed) bits.push(`reviewed ${entry.provenance.reviewed}`);
+  }
   bits.push(`defined in ${entry.source}`);
   if (entry.ref) bits.push(entry.ref);
   card.appendChild(el("div", "ref", bits.join(" — ")));
@@ -174,9 +189,9 @@ function summarise(matcher, source, kind) {
 
   const [lo, hi] = matcher.span();
   const unit = kind === "protein" ? "residues" : "bases";
-  if (hi === Infinity) bits.push(`matches ${lo} ${unit} or more`);
-  else if (lo === hi) bits.push(`matches ${lo} ${unit}`);
-  else bits.push(`matches ${lo} to ${hi} ${unit}`);
+  if (hi === Infinity) bits.push(`spans ${lo} ${unit} or more`);
+  else if (lo === hi) bits.push(`spans ${lo} ${unit}`);
+  else bits.push(`spans ${lo} to ${hi} ${unit}`);
 
   bits.push(kind === "protein" ? "one strand" : "both strands");
   return bits.join("  ·  ");
@@ -228,8 +243,13 @@ const currentRecord = () => state.records[state.active] || null;
 const n2 = (x) => x.toLocaleString();
 
 function loadSequences(text, type = null) {
-  const records = E.parseFasta(text, type);
+  const records = E.parseSequenceText(text, type);
   if (!records.length) return false;
+  if (state.assistantDraft) {
+    state.assistantDraft = null;
+    $("#assistant-out").hidden = true;
+    $("#assistant-out").textContent = "";
+  }
   state.records = records;
   state.active = 0;
   renderRecords();
@@ -412,6 +432,8 @@ function renderSearchResults(results, more = false) {
 /* ------------------------------------------------------------------- runs */
 
 function run() {
+  state.analysisVersion++;
+  $("#scan-btn").disabled = false;
   const rec = currentRecord();
   if (!rec || !state.matcher) return;
   let hits;
@@ -426,24 +448,42 @@ function run() {
   renderResults(hits);
 }
 
-function scanAll() {
+async function scanAll() {
   const rec = currentRecord();
   if (!rec) return;
+  const version = ++state.analysisVersion;
   const wantProtein = rec.type === "protein";
   const out = [];
-  for (const e of state.registry.all()) {
+  const entries = state.registry.all();
+  let done = 0;
+  const button = $("#scan-btn");
+  button.disabled = true;
+  for (const e of entries) {
+    if (version !== state.analysisVersion) { button.disabled = false; return; }
+    done++;
     if (!e.scan) continue;
     if ((e.alphabet === "protein") !== wantProtein) continue;
     if (e.category === "restriction") continue;
     try { out.push(...E.search(e.matcher, rec)); } catch { /* a motif that cannot run here */ }
+    // Short examples finish synchronously. Large records yield between batches
+    // so controls, scrolling and cancellation remain responsive.
+    if (rec.length > 20_000 && done % 8 === 0) {
+      $("#results-note").hidden = false;
+      $("#results-note").textContent = `Scanning library… ${done} of ${entries.length}. Choose another analysis to cancel.`;
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
   }
+  if (version !== state.analysisVersion) { button.disabled = false; return; }
   state.hits = E.collapse(out);
   state.lastRunLabel = "";
   state.mode = "scan";
   renderResults(state.hits, null, `Scanned ${rec.name} with every applicable library motif. Templates and restriction sites are excluded; use the library list for those.`);
+  button.disabled = false;
 }
 
 function runDigest() {
+  state.analysisVersion++;
+  $("#scan-btn").disabled = false;
   const rec = currentRecord();
   if (!rec || rec.type === "protein") return;
   const enzymes = state.registry.all().filter((e) => e.meta);
@@ -482,6 +522,8 @@ function runDigest() {
 }
 
 function runOrfs() {
+  state.analysisVersion++;
+  $("#scan-btn").disabled = false;
   const rec = currentRecord();
   if (!rec || rec.type === "protein") return;
   const found = orfs(rec.seq, { minLength: 150, table: 11 });
@@ -732,7 +774,7 @@ function renderResults(hits, error = null, note = null) {
   syncLink();
   if (!hits.length) {
     body.appendChild(el("div", "empty",
-      "Nothing found. Try a looser motif: wrap it in (fuzzy 1 …), widen a gap, or pick a shorter consensus."));
+      "Nothing found. First check the sequence, alphabet, strand and biological context. If the question genuinely allows variation, loosen one constraint deliberately and compare both analyses."));
     return;
   }
   if (state.mode === "digest" && state.gel) body.appendChild(buildGel(state.gel));
@@ -1025,9 +1067,28 @@ const GRAMMAR = `
 at-start  at-end             sequence boundaries
 `.trim();
 
+function assistantLibraryContext(request, kind) {
+  const stop = new Set(["the", "and", "with", "that", "this", "from", "into", "within", "then", "than",
+    "motif", "pattern", "sequence", "bases", "base", "residues", "protein", "dna", "rna"]);
+  const words = new Set((request.toLowerCase().match(/[a-z0-9]{3,}/g) || []).filter((w) => !stop.has(w)));
+  const protein = kind === "protein";
+  return state.registry.all().map((entry) => {
+    const hay = new Set(`${entry.name} ${entry.category} ${entry.doc}`.toLowerCase().match(/[a-z0-9]{3,}/g) || []);
+    let score = 0;
+    for (const word of words) if (hay.has(word)) score++;
+    if ((entry.alphabet === "protein") === protein) score += 0.25;
+    return { entry, score };
+  }).filter((x) => x.score >= 1).sort((a, b) => b.score - a.score || a.entry.name.localeCompare(b.entry.name))
+    .slice(0, 12).map(({ entry }) =>
+      `${entry.name} [${entry.alphabet}; ${entry.category}; ${entry.scan ? "scannable" : "template"}]\n` +
+      `  ${entry.pattern}\n  ${entry.doc}${entry.ref ? `\n  Source: ${entry.ref}` : ""}`)
+    .join("\n");
+}
+
 function assistantPrompt(request, rec) {
   const kind = rec ? rec.type : "dna";
-  const names = state.registry.all().map((e) => e.name);
+  const current = $("#assistant-use-current").checked ? (state.assistantDraft?.data.motif || state.motifSource) : "";
+  const context = current ? "" : assistantLibraryContext(request, kind);
   return `You write motifs in the Biomotif pattern language. Answer only with JSON.
 
 THE LANGUAGE
@@ -1040,14 +1101,21 @@ RULES
 - Prefer (iupac ...) over a bare literal whenever the site is degenerate.
 - For protein patterns always use (prosite "..."), never iupac.
 - The sequence loaded now is ${kind}. Write a motif for that alphabet.
+- State every interpretation you had to choose in "assumptions". Do not hide ambiguity.
+- Give two short positive examples and two close negative examples. Each positive sequence must
+  contain the motif somewhere. Each negative sequence must contain no match anywhere. Nucleotide
+  examples are scanned on both strands, so a negative must contain neither a forward match nor a
+  reverse-complement match. Flanking sequence is allowed. They will be run locally.
 - "library" is for the case where ONE existing motif answers the whole request on its
   own. If the request adds anything that motif does not have — a second element, a
   distance, a bound, a mismatch budget, a narrowed alternative — leave "library" empty
   and write the composition. Most requests are compositions; naming a near relative
   there is wrong and unhelpful.
 
-LIBRARY NAMES YOU MAY REFER TO
-${names.join(" ")}
+${current ? "" : `RELEVANT LIBRARY ENTRIES
+${context || "No close entry was found. Write the pattern entirely from the request."}`}
+
+${current ? `CURRENT MOTIF TO REVISE\n${current}\nPreserve everything the request does not explicitly change.` : ""}
 
 REQUEST
 ${request}
@@ -1056,8 +1124,130 @@ Reply with JSON only, no prose around it:
 {"motif": "<the s-expression>",
  "name": "<a short kebab-case name>",
  "explanation": "<two sentences: what it matches and why it is written that way>",
- "caveats": "<one sentence on how often this would match by chance, or empty>",
+ "assumptions": ["<each ambiguous choice, or an empty array>"],
+ "positive_examples": ["<first sequence containing a match>", "<second sequence containing a match>"],
+ "negative_examples": ["<first sequence containing no match>", "<second sequence containing no match>"],
  "library": "<a library motif that alone answers the whole request, otherwise empty>"}`;
+}
+
+function reviewAssistantDraft(data, meta) {
+  const out = $("#assistant-out");
+  out.textContent = "";
+  out.appendChild(el("h3", null, data.name || "Generated motif draft"));
+  if (data.explanation) out.appendChild(el("p", null, data.explanation));
+  const source = el("pre", "draft-source");
+  source.appendChild(el("code", null, data.motif || "No expression returned"));
+  out.appendChild(source);
+
+  const kind = currentRecord()?.type || "dna";
+  const review = verifyDraft(data, state.registry, kind);
+  const matcher = review.matcher;
+  const checks = review.checks;
+  if (matcher) checks[0].text = `Compiles locally; ${summarise(matcher, data.motif, kind)}.`;
+
+  if (data.assumptions.length) {
+    const h = el("h4", null, "Assumptions to review");
+    out.appendChild(h);
+    const ul = el("ul", "draft-list");
+    for (const assumption of data.assumptions) ul.appendChild(el("li", null, assumption));
+    out.appendChild(ul);
+  }
+  const h = el("h4", null, "Local checks");
+  out.appendChild(h);
+  const ul = el("ul", "draft-list");
+  for (const check of checks) {
+    const cls = check.severity === "error" ? "check-bad" : check.severity === "warning" ? "check-warning" : "check-ok";
+    ul.appendChild(el("li", cls, check.text));
+  }
+  out.appendChild(ul);
+  if (!review.examplesConsistent && review.usable) {
+    out.appendChild(el("p", "draft-warning",
+      "The expression is valid. Example disagreements are warnings about the AI's explanation, not grounds for rejecting the motif."));
+  }
+
+  if (data.library && state.registry.get(data.library)) {
+    const line = el("div", "hint");
+    line.appendChild(document.createTextNode("The library already has this: "));
+    const link = el("button", "btn btn-sm", data.library);
+    link.type = "button";
+    link.addEventListener("click", () => useEntry(state.registry.get(data.library)));
+    line.appendChild(link);
+    out.appendChild(line);
+  }
+  if (meta.promptTokens || meta.completionTokens) {
+    const cost = meta.cost != null ? `  ·  $${meta.cost.toFixed(4)}` : "";
+    out.appendChild(el("div", "cost", `${meta.model}  ·  ${meta.promptTokens.toLocaleString()} in  ·  ` +
+      `${meta.completionTokens.toLocaleString()} out${cost}`));
+  }
+
+  const actions = el("div", "motif-row draft-actions");
+  const use = el("button", "btn btn-primary", "Use this motif");
+  use.type = "button";
+  use.disabled = !review.usable;
+  use.addEventListener("click", () => {
+    setMotifSource(data.motif, data.name || "assistant");
+    state.selectedEntry = null;
+    state.assistantDraft = null;
+    showDoc(null);
+    renderRail();
+    if (state.matcher) run();
+  });
+  const revise = el("button", "btn", "Revise request");
+  revise.type = "button";
+  revise.addEventListener("click", () => {
+    $("#assistant-use-current").checked = true;
+    $("#ask-input").focus();
+  });
+  actions.appendChild(use);
+  if (!review.examplesConsistent && review.usable) {
+    const regenerate = el("button", "btn", "Regenerate test examples");
+    regenerate.type = "button";
+    regenerate.addEventListener("click", () => regenerateExamples(regenerate));
+    actions.appendChild(regenerate);
+  }
+  actions.appendChild(revise);
+  out.appendChild(actions);
+  state.assistantDraft = { data, checks };
+}
+
+async function regenerateExamples(button) {
+  const draft = state.assistantDraft?.data;
+  if (!draft || !state.provider) return;
+  if (state.provider.needsKey && !getApiKey()) {
+    $("#assistant-settings").open = true;
+    $("#or-key").focus();
+    return;
+  }
+  state.asking?.abort();
+  state.asking = new AbortController();
+  const controller = state.asking;
+  let timedOut = false;
+  const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, 20000);
+  button.disabled = true;
+  button.textContent = "Regenerating…";
+  try {
+    const kind = currentRecord()?.type || "dna";
+    const { data, meta } = await state.provider.ask(examplePrompt(draft.motif, kind), {
+      signal: controller.signal,
+      schema: EXAMPLES_SCHEMA,
+      schemaName: "motif_examples",
+      maxCompletionTokens: 400,
+    });
+    reviewAssistantDraft({ ...draft,
+      positive_examples: data.positive_examples,
+      negative_examples: data.negative_examples,
+    }, meta);
+  } catch (err) {
+    if (button.isConnected) {
+      button.disabled = false;
+      button.textContent = "Regenerate test examples";
+      const message = timedOut ? "Example regeneration stopped after 20 seconds." :
+        err.name === "AbortError" ? "Example regeneration was cancelled." : `Could not regenerate examples: ${err.message}`;
+      button.parentElement?.before(el("p", "draft-warning", message));
+    }
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function ask() {
@@ -1072,67 +1262,31 @@ async function ask() {
   const btn = $("#ask-btn");
   state.asking?.abort();
   state.asking = new AbortController();
+  const controller = state.asking;
+  let timedOut = false;
+  const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, 45000);
   btn.disabled = true;
   out.hidden = false;
   out.textContent = "";
   out.appendChild(el("h3", null, "Thinking…"));
   try {
     const { data, meta } = await state.provider.ask(assistantPrompt(request, currentRecord()),
-      { signal: state.asking.signal });
-    out.textContent = "";
-    out.appendChild(el("h3", null, data.name || "Motif"));
-    if (data.explanation) out.appendChild(el("p", null, data.explanation));
-    if (data.caveats) out.appendChild(el("div", "warn-line", data.caveats));
-    if (data.library && state.registry.get(data.library)) {
-      const line = el("div", "hint");
-      line.appendChild(document.createTextNode("The library already has this: "));
-      const link = el("button", "btn btn-sm", data.library);
-      link.type = "button";
-      link.addEventListener("click", () => useEntry(state.registry.get(data.library)));
-      line.appendChild(link);
-      out.appendChild(line);
-    }
-    if (meta.promptTokens || meta.completionTokens) {
-      const cost = meta.cost != null ? `  ·  $${meta.cost.toFixed(4)}` : "";
-      out.appendChild(el("div", "cost",
-        `${meta.model}  ·  ${meta.promptTokens.toLocaleString()} in  ·  ` +
-        `${meta.completionTokens.toLocaleString()} out${cost}`));
-    }
-    if (data.motif) {
-      setMotifSource(data.motif, data.name || "assistant");
-      state.selectedEntry = null;
-      showDoc(null);
-      renderRail();
-      if (state.matcher) run();
-    }
+      { signal: controller.signal, maxCompletionTokens: 1200 });
+    reviewAssistantDraft(data, meta);
   } catch (err) {
-    if (err.name === "AbortError") { out.hidden = true; return; }
+    if (err.name === "AbortError" && !timedOut) { out.hidden = true; return; }
     out.textContent = "";
     out.appendChild(el("h3", null, "Could not write that motif"));
     const codes = {
       not_granted: "You declined to let this page use Claude. Reload to be asked again, or write the motif yourself.",
       rate_limited: "Too many requests just now. Wait a moment and try again.",
     };
-    out.appendChild(el("p", null, codes[err.code] || err.message ||
+    out.appendChild(el("p", null, timedOut ? "The assistant stopped after 45 seconds. Try again or choose a faster model." : codes[err.code] || err.message ||
       "Something went wrong. Try rephrasing the request."));
   } finally {
+    clearTimeout(timeout);
     btn.disabled = false;
   }
-}
-
-/* ----------------------------------------------------------------- export */
-
-function hitsToTsv() {
-  const rows = [["sequence", "motif", "start", "end", "length", "strand", "match", "detail"].join("\t")];
-  for (const h of state.hits) {
-    const detail = [
-      ...(h.score != null ? [`score=${h.score}`] : []),
-      ...Object.entries(h.extra).map(([k, v]) => `${k}=${v}`),
-      ...Object.entries(h.bindings).map(([k, v]) => `${k}=${v[2]}`),
-    ].join(";");
-    rows.push([h.record ? h.record.name : "", h.motif, h.absStart + 1, h.absEnd, h.length, h.strand, h.seq, detail].join("\t"));
-  }
-  return rows.join("\n") + "\n";
 }
 
 /* ------------------------------------------------------------------- boot */
@@ -1256,6 +1410,21 @@ function wire() {
     state.filterText = e.target.value.trim();
     renderRail();
   });
+  $("#compatible-only").addEventListener("change", (e) => {
+    state.compatibleOnly = e.target.checked;
+    renderRail();
+  });
+  $("#evidence-filter").addEventListener("change", (e) => {
+    state.filterEvidence = e.target.value;
+    renderRail();
+  });
+  for (const button of document.querySelectorAll("[data-workflow-target]")) {
+    button.addEventListener("click", () => {
+      const target = document.getElementById(button.dataset.workflowTarget);
+      target?.scrollIntoView({ block: "start", behavior: "smooth" });
+      if (target?.focus) target.focus();
+    });
+  }
   $("#motif-source").addEventListener("input", () => {
     // An edited motif is no longer the library entry it started from, so it
     // must not keep that entry's name on the results.
@@ -1345,14 +1514,19 @@ function wire() {
     setTimeout(() => { btn.textContent = "Copy link"; }, 2200);
   });
   $("#export-btn").addEventListener("click", async () => {
+    const entry = state.selectedEntry ? state.registry.get(state.selectedEntry) : null;
+    const payload = formatResults($("#export-format").value, state.hits, {
+      record: currentRecord(), origin: state.came, mode: state.mode, motif: state.motifSource,
+      libraryEntry: entry?.name || null, provenance: entry?.provenance || null,
+    });
     const downloads = await window.claude?.use?.("downloads");
-    const name = `biomotif-${(currentRecord()?.name || "hits").replace(/\W+/g, "-")}.tsv`;
+    const name = `biomotif-${(currentRecord()?.name || "hits").replace(/\W+/g, "-")}.${payload.ext}`;
     if (downloads) {
-      try { await downloads.save({ filename: name, data: hitsToTsv() }); return; } catch { /* fall through */ }
+      try { await downloads.save({ filename: name, data: payload.data }); return; } catch { /* fall through */ }
     }
-    await navigator.clipboard?.writeText(hitsToTsv());
+    await navigator.clipboard?.writeText(payload.data);
     $("#results-note").hidden = false;
-    $("#results-note").textContent = "Results copied to the clipboard as tab-separated text.";
+    $("#results-note").textContent = `${payload.label} results copied to the clipboard.`;
   });
 }
 
@@ -1462,7 +1636,8 @@ function boot() {
 function registerOffline() {
   const bundled = document.querySelector('script[src*="/biomotif."]');
   if (!bundled || !("serviceWorker" in navigator) || !/^https?:$/.test(location.protocol)) return;
-  navigator.serviceWorker.register("/sw.js").catch(() => { /* not offered here; nothing is lost */ });
+  navigator.serviceWorker.register("/sw.js").then((registration) => registration.update())
+    .catch(() => { /* not offered here; nothing is lost */ });
 }
 
 boot();

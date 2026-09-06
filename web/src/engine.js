@@ -677,6 +677,25 @@ export function parseFasta(text, type = null) {
   return records;
 }
 
+/** Read either FASTA/bare sequence or the sequence-bearing part of a GenBank
+    flat file. Features remain in the original file; the record name and
+    definition are retained so exported hits can be joined back to it. */
+export function parseSequenceText(text, type = null) {
+  if (!/^\s*LOCUS\s+/m.test(text) || !/^ORIGIN\s*$/m.test(text)) return parseFasta(text, type);
+  const records = [];
+  for (const block of text.split(/^\/\/\s*$/m)) {
+    const locus = /^LOCUS\s+(\S+)(.*)$/m.exec(block);
+    const origin = /^ORIGIN\s*$([\s\S]*)/m.exec(block);
+    if (!locus || !origin) continue;
+    const definition = /^DEFINITION\s+(.+(?:\n\s{12}.+)*)/m.exec(block)?.[1]
+      ?.replace(/\n\s+/g, " ").trim().replace(/\.$/, "") || "";
+    const seq = origin[1].replace(/[^A-Za-z*\-]/g, "");
+    const inferred = /\baa\b|PROTEIN/i.test(locus[2]) ? "protein" : null;
+    if (seq) records.push(new Record(locus[1], seq, type || inferred, { description: definition }));
+  }
+  return records;
+}
+
 export function formatFasta(records, width = 70) {
   return records.map((r) => {
     const lines = [`>${r.name}${r.description ? " " + r.description : ""}`];

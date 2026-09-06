@@ -17,6 +17,14 @@
   </div>
 </header>
 
+<nav class="workflow-nav" aria-label="Choose a workflow">
+  <span>Start with</span>
+  <button type="button" data-workflow-target="sequence-panel"><b>Explore a sequence</b><small>fetch, paste or open</small></button>
+  <button type="button" data-workflow-target="library-search"><b>Find a known motif</b><small>search the curated library</small></button>
+  <button type="button" data-workflow-target="assistant-panel"><b>Design a pattern</b><small>English draft or expression</small></button>
+  <button type="button" data-workflow-target="analysis-actions"><b>Analyze</b><small>scan, ORFs or digest</small></button>
+</nav>
+
 <div class="workbench">
   <aside class="rail panel">
     <header>
@@ -26,6 +34,18 @@
     <div class="panel-body">
       <input id="library-search" class="field" type="search" placeholder="Search name, description or reference"
              aria-label="Search the motif library" autocomplete="off">
+      <div class="library-filters" aria-label="Library filters">
+        <label><input id="compatible-only" type="checkbox"> compatible with loaded sequence</label>
+        <label>Evidence
+          <select id="evidence-filter" class="field">
+            <option value="">all levels</option>
+            <option value="measured">measured</option>
+            <option value="literature-backed">literature-backed</option>
+            <option value="catalogue">catalogue</option>
+            <option value="uncited">uncited</option>
+          </select>
+        </label>
+      </div>
     </div>
     <div class="chips" id="category-chips"></div>
     <div class="splitter" id="rail-splitter" role="separator" aria-orientation="horizontal"
@@ -59,7 +79,7 @@
       </div>
     </details>
 
-    <section class="panel">
+    <section class="panel" id="sequence-panel">
       <header>
         <h2>Sequence</h2>
         <span class="hint spacer">fetch from a database, paste FASTA, or open a file</span>
@@ -116,7 +136,7 @@
           <button class="btn btn-sm" type="button" data-demo="gene">Spliced gene</button>
           <button class="btn btn-sm" type="button" data-demo="utr3">3' UTRs</button>
           <button class="btn btn-sm" type="button" data-demo="proteins">Proteins</button>
-          <label class="btn btn-sm" for="seq-file">Open file…<input id="seq-file" type="file" accept=".fa,.fasta,.fna,.faa,.txt,.seq" hidden></label>
+          <label class="btn btn-sm" for="seq-file">Open file…<input id="seq-file" type="file" accept=".fa,.fasta,.fna,.faa,.gb,.gbk,.genbank,.txt,.seq" hidden></label>
         </div>
         <div class="record-list" id="record-list"></div>
         <details class="help">
@@ -129,7 +149,7 @@
       </div>
     </section>
 
-    <section class="panel">
+    <section class="panel" id="assistant-panel">
       <header>
         <h2>Motif</h2>
         <span class="hint spacer">a pattern is an expression, so it can be read, edited and checked</span>
@@ -152,11 +172,15 @@
               nowhere but <code>openrouter.ai</code>. Closing the tab forgets it. There is no
               server here to send it to, and it is never written into a link.
             </p>
+            <p class="hint">A request sends its text, the loaded sequence's alphabet, a small set of relevant
+              library definitions, and—only when “refine current motif” is checked—the current expression.
+              The loaded sequence itself is never sent.</p>
           </div>
         </details>
 
         <details class="help" id="prompt-examples">
           <summary><span id="prompt-count">Example requests</span></summary>
+          <p class="hint">Pattern-writing examples, grouped by compatible alphabet—not promises of a match in the loaded sequence.</p>
           <div class="examples" id="examples"></div>
         </details>
 
@@ -164,6 +188,7 @@
           <input id="ask-input" class="field" type="text" aria-label="Describe a motif in plain English"
                  placeholder="Describe a motif in plain English — a CCAAT box 40 to 90 bases upstream of a TATA box">
           <button class="btn btn-primary" id="ask-btn" type="button">Write it</button>
+          <label class="hint refine-current"><input type="checkbox" id="assistant-use-current"> refine current motif</label>
         </div>
 
         <p class="hint" id="assistant-note" hidden>
@@ -176,7 +201,7 @@
 
         <textarea id="motif-source" class="field" rows="3" spellcheck="false" autocomplete="off"
                   aria-label="The motif, as an expression"></textarea>
-        <div class="motif-row">
+        <div class="motif-row" id="analysis-actions">
           <button class="btn btn-primary" id="run-btn" type="button">Find matches</button>
           <button class="btn" id="scan-btn" type="button">Scan whole library</button>
           <button class="btn" id="orf-btn" type="button">Find ORFs</button>
@@ -222,7 +247,13 @@
     <section class="panel" id="results-panel" tabindex="-1">
       <header>
         <h2>Results</h2>
-        <button class="btn btn-sm spacer" id="export-btn" type="button" disabled>Export TSV</button>
+          <label class="export-pick spacer">Export
+            <select id="export-format" class="field" aria-label="Export format">
+              <option value="tsv">TSV</option><option value="bed">BED</option>
+              <option value="gff3">GFF3</option><option value="json">JSON report</option>
+            </select>
+          </label>
+          <button class="btn btn-sm" id="export-btn" type="button" disabled>Export</button>
       </header>
       <div class="panel-body">
         <div class="summary" id="summary" role="status" aria-live="polite"></div>

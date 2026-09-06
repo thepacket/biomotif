@@ -15,19 +15,25 @@ const plural = (count, one, many) => `${n(count)} ${count === 1 ? one : many}`;
 
 /* ------------------------------------------------------- chance correction */
 
-/** Shuffling keeps the base composition and destroys the arrangement, so the
-    hits that survive are the ones composition alone explains. It works for any
-    motif, however complex, which a closed-form probability would not. */
-const SHUFFLE_TRIALS = 20;
+/** A first-order surrogate keeps the observed tendency of each letter to
+    follow another. This is more honest for low-complexity sequence than base
+    counts alone. It remains a model rather than a biological control. */
+const SHUFFLE_TRIALS = 40;
 const SHUFFLE_LIMIT = 200_000;   // beyond this the wait stops being worth it
 
-function shuffled(seq, rand) {
-  const a = [...seq];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rand() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
+function surrogate(seq, rand) {
+  if (seq.length < 2) return seq;
+  const next = new Map();
+  for (let i = 0; i + 1 < seq.length; i++) {
+    if (!next.has(seq[i])) next.set(seq[i], []);
+    next.get(seq[i]).push(seq[i + 1]);
   }
-  return a.join("");
+  let out = seq[Math.floor(rand() * seq.length)];
+  while (out.length < seq.length) {
+    const choices = next.get(out[out.length - 1]);
+    out += choices?.length ? choices[Math.floor(rand() * choices.length)] : seq[Math.floor(rand() * seq.length)];
+  }
+  return out;
 }
 
 /* xorshift32. The LCG this replaced multiplied a 31-bit seed by 1103515245,
@@ -50,33 +56,48 @@ export function generator(seed = 2463534242) {
   };
 }
 
-export function expectedByChance(matcher, record, { trials = SHUFFLE_TRIALS } = {}) {
+export function chanceAgainstBackground(matcher, record, { trials = SHUFFLE_TRIALS, observed = 0 } = {}) {
   if (record.seq.length > SHUFFLE_LIMIT) return null;
+  if (record.seq.length > 20_000 && /\(hairpin\b/.test(matcher.describe())) return null;
   const rand = generator();
-  let total = 0;
+  const counts = [];
   for (let t = 0; t < trials; t++) {
-    const decoy = new Record("shuffled", shuffled(record.seq, rand), record.type);
-    try { total += search(matcher, decoy).length; } catch { return null; }
+    const decoy = new Record("background", surrogate(record.seq, rand), record.type);
+    try { counts.push(search(matcher, decoy).length); } catch { return null; }
   }
-  return total / trials;
+  counts.sort((a, b) => a - b);
+  const expected = counts.reduce((a, b) => a + b, 0) / trials;
+  return {
+    expected, trials,
+    low: counts[Math.floor((trials - 1) * 0.05)],
+    high: counts[Math.ceil((trials - 1) * 0.95)],
+    empiricalP: (counts.filter((x) => x >= observed).length + 1) / (trials + 1),
+  };
+}
+
+export function expectedByChance(matcher, record, options = {}) {
+  return chanceAgainstBackground(matcher, record, options)?.expected ?? null;
 }
 
 /** What the comparison means, in a sentence someone can act on. */
-function verdict(observed, expected) {
-  if (expected === null) return null;
+function verdict(observed, background) {
+  if (background === null) return null;
+  const { expected, trials, low, high, empiricalP } = background;
+  const basis = `${trials} simulated backgrounds preserving neighbouring-letter tendencies`;
   if (observed === 0) {
     return expected < 0.5
-      ? { tone: "none", text: "Nothing found — and a sequence like this would not usually contain one by accident either, so its absence is meaningful." }
-      : { tone: "none", text: `Nothing found, though chance alone would put about ${expected.toFixed(1)} here. Its absence is not surprising.` };
+      ? { tone: "none", text: `Nothing found. The ${basis} also rarely contained one, so this background model makes the absence informative, but not conclusive.` }
+      : { tone: "none", text: `Nothing found, while the ${basis} averaged ${expected.toFixed(1)}. Its absence is not surprising under this model.` };
   }
-  if (expected < 0.05) {
-    return { tone: "strong", text: "Scrambling this sequence never produces this pattern, so finding it here is very unlikely to be an accident. Treat it as real." };
+  if (empiricalP <= 1 / (trials + 1)) {
+    return { tone: "strong", text: `None of the ${basis} produced this many matches (exploratory empirical p ≤ ${empiricalP.toFixed(3)}). This supports follow-up; enrichment alone does not establish biological function.` };
   }
   const ratio = observed / expected;
-  if (ratio >= 5) return { tone: "strong", text: `That is about ${ratio.toFixed(0)} times more than chance would give (${expected.toFixed(1)}). Strongly over-represented, so worth taking seriously.` };
-  if (ratio >= 2) return { tone: "some", text: `Chance alone would give about ${expected.toFixed(1)}, so there are more here than expected. Suggestive, but not proof on its own.` };
-  if (ratio >= 0.7) return { tone: "noise", text: `Chance alone would give about ${expected.toFixed(1)} — near enough the same. A sequence of this composition contains this pattern anyway, so these matches probably mean nothing on their own.` };
-  return { tone: "noise", text: `Chance alone would give about ${expected.toFixed(1)}, more than were actually found. These are not evidence of anything.` };
+  const range = `${low}–${high}`;
+  if (ratio >= 5) return { tone: "strong", text: `That is about ${ratio.toFixed(0)} times the background average of ${expected.toFixed(1)} (90% simulated range ${range}; empirical p ${empiricalP.toFixed(3)}). It is enriched under this model and worth follow-up, not proof of function.` };
+  if (ratio >= 2) return { tone: "some", text: `The background average was ${expected.toFixed(1)} (90% simulated range ${range}), so there are more here than expected. This is exploratory evidence, not proof on its own.` };
+  if (ratio >= 0.7) return { tone: "noise", text: `The background average was ${expected.toFixed(1)} (90% simulated range ${range}) — close to the observed count. This pattern is not enriched under this model.` };
+  return { tone: "noise", text: `The background average was ${expected.toFixed(1)} (90% simulated range ${range}), more than were observed. These matches are not enriched under this model.` };
 }
 
 /** How many distinct places in the sequence the matches sit at, as opposed to
@@ -196,6 +217,11 @@ export function describeState({ record, entry, matcher, source, hits, mode = "mo
       findings.push("Nothing matched, which for a short sequence is entirely normal.");
     }
     sections.push({ heading: "What was found", body: findings.join(" ") });
+    sections.push({
+      heading: "How to use this scan",
+      body: "This is an exploratory screen across many patterns. Testing many patterns increases the chance of an accidental hit, and overlapping descriptions can point to the same feature. Treat candidates as hypotheses, then verify each with a focused pattern, an appropriate background and independent biological evidence.",
+      muted: true,
+    });
     if (rna.length && record.type !== "rna") {
       sections.push({
         heading: "One thing to be careful of",
@@ -245,8 +271,8 @@ export function describeState({ record, entry, matcher, source, hits, mode = "mo
   if (matcher) {
     sections.push({ heading: "What is being looked for", body: describeMotif(entry, matcher, source, record.type) });
     const findings = { heading: "What was found", body: describeFindings(hits, record) };
-    const expected = expectedByChance(matcher, record);
-    const call = verdict(hits.length, expected);
+    const background = chanceAgainstBackground(matcher, record, { observed: hits.length });
+    const call = verdict(hits.length, background);
     if (call) {
       findings.body += ` ${call.text}`;
       findings.tone = call.tone;

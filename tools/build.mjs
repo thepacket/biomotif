@@ -20,7 +20,7 @@ const SINGLE = join(ROOT, "web", "biomotif.html");
 
 export const LIB_FILES = ["prokaryote", "eukaryote", "plant", "rna", "protein", "tags", "restriction", "jaspar"];
 export const MODULES = ["engine.js", "library.js", "databases.js", "assistant.js", "prompts.js", "describe.js",
-                        "share.js", "gel.js", "glossary.js", "lessons.js", "app.js"];
+                        "share.js", "gel.js", "glossary.js", "lessons.js", "formats.js", "app.js"];
 const DEMOS = { operon: "operon.fa", plasmid: "plasmid.fa", gene: "gene.fa",
                 utr3: "utr3.fa", proteins: "proteins.fa" };
 
@@ -70,9 +70,10 @@ function buildSingle(css, js) {
   return SINGLE;
 }
 
-/** The service worker: the page's own files, cache-first, so a classroom
-    with no connection still has the library and the examples. Anything
-    cross-origin — the databases, the assistant, the fonts — goes straight to
+/** The service worker: hashed assets are cache-first, while navigations try
+    the network before falling back to the cached page. That keeps a classroom
+    working offline without making a newly deployed interface appear stale.
+    Anything cross-origin — the databases, the assistant, the fonts — goes straight to
     the network and is never cached, so a fetched sequence is never kept.
     The file changes whenever an asset does, which is what makes the browser
     install the new version. */
@@ -93,7 +94,16 @@ self.addEventListener("fetch", (e) => {
   // Only the page's own files. A database answer, a font, an assistant reply:
   // none of those is ours to keep, and none of them is needed offline.
   if (url.origin !== self.location.origin || e.request.method !== "GET") return;
-  const path = url.pathname === "/" || !ASSETS.includes(url.pathname) && e.request.mode === "navigate" ? "/index.html" : url.pathname;
+  if (e.request.mode === "navigate") {
+    e.respondWith(fetch("/index.html", { cache: "no-cache" }).then(async (fresh) => {
+      if (!fresh.ok) throw new Error("index unavailable");
+      const cache = await caches.open(CACHE);
+      await cache.put("/index.html", fresh.clone());
+      return fresh;
+    }).catch(() => caches.match("/index.html")));
+    return;
+  }
+  const path = url.pathname;
   if (!ASSETS.includes(path)) return;
   e.respondWith(caches.match(path).then((hit) => hit || fetch(e.request)));
 });

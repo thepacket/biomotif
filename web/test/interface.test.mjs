@@ -75,6 +75,9 @@ test("the page opens working: the operon loaded and a real promoter found", () =
   assert.equal(text("#seq-stat-label"), "synthetic_operon");
   assert.deepEqual([...$$("#summary .summary-item")].map((i) => i.textContent).slice(0, 3), ["1 match", "1 forward", "0 reverse"]);
   assert.equal($("#motif-status").className, "motif-status ok");
+  assert.match(text("#motif-status"), /spans \d+/,
+    "the motif description states its possible span rather than implying a hit");
+  assert.match(text("#prompt-examples"), /not promises of a match in the loaded sequence/);
   assert.equal(location.hash, "#motif=sigma70-promoter&demo=operon", "the address bar describes the screen");
   assert.ok($$("table.hits tr[data-hit]").length === 1);
   assert.match(text("#results-body"), /box35=TTGACA/);
@@ -94,6 +97,20 @@ test("the library filters as you type, and an entry loads by click", () => {
   assert.match(text("#doc-card"), /Bucher 1990/);
   type("#library-search", "");
   assert.equal($$("#entry-list .entry").length, 523);
+});
+
+test("the library can be narrowed by compatibility and evidence", () => {
+  $("#compatible-only").checked = true;
+  $("#compatible-only").dispatchEvent(new Event("change", { bubbles: true }));
+  assert.ok(![...$$("#entry-list .entry")].some((e) => /NEEDS A PROTEIN/.test(seen(e))),
+    "the compatibility filter removes protein-only entries from a DNA sequence");
+  $("#evidence-filter").value = "measured";
+  $("#evidence-filter").dispatchEvent(new Event("change", { bubbles: true }));
+  assert.equal($$("#entry-list .entry").length, 36);
+  $("#evidence-filter").value = "";
+  $("#evidence-filter").dispatchEvent(new Event("change", { bubbles: true }));
+  $("#compatible-only").checked = false;
+  $("#compatible-only").dispatchEvent(new Event("change", { bubbles: true }));
 });
 
 test("the explanation defines its words, and the verdict is computed", () => {
@@ -137,6 +154,18 @@ test("export puts the matches on the clipboard as TSV", async () => {
   $("#export-btn").click();
   await until(() => clipboard.text, "the clipboard");
   assert.match(clipboard.text, /^sequence\tmotif\tstart\tend\tlength\tstrand\tmatch\tdetail\n/);
+});
+
+test("exports state their coordinate convention", async () => {
+  for (const [format, start] of [["bed", /^track name=biomotif/], ["gff3", /^##gff-version 3/], ["json", /^\{/]]) {
+    clipboard.text = "";
+    $("#export-format").value = format;
+    $("#export-btn").click();
+    await until(() => clipboard.text, `${format} export`);
+    assert.match(clipboard.text, start);
+  }
+  assert.match(clipboard.text, /coordinateConvention/);
+  $("#export-format").value = "tsv";
 });
 
 test("the HBB promoter button fetches the gene with its upstream, and says which build", async () => {

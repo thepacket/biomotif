@@ -239,6 +239,20 @@ function defaultAlphabet(category) {
   return "dna";
 }
 
+/** Structured provenance derived from explicit metadata where present, with a
+    conservative classification for the existing library. No citation is
+    invented: an entry without one remains visibly unreviewed. */
+export function motifProvenance({ source, ref = "", meta = null, evidence = null,
+  taxon = "", reviewed = "", version = "" } = {}) {
+  const jaspar = /jaspar/i.test(source || "") || /JASPAR\s+(\S+)/i.test(ref);
+  const restriction = Boolean(meta) || /restriction/i.test(source || "");
+  const pubmed = /PubMed\s+(\d+)/i.exec(ref)?.[1] || "";
+  const doi = /\b(10\.\d{4,9}\/[-._;()/:A-Z0-9]+)\b/i.exec(ref)?.[1] || "";
+  const sourceId = /JASPAR\s+(\S+)/i.exec(ref)?.[1] || "";
+  const level = evidence || (jaspar ? "measured" : restriction ? "catalogue" : ref ? "literature-backed" : "uncited");
+  return { evidence: level, citation: ref, pubmed, doi, sourceId, taxon, reviewed, version };
+}
+
 /** Whether a matcher's description can be read back as the same matcher. Most
     can; a weight matrix cannot, because its description is a summary. */
 function roundTrips(matcher, registry) {
@@ -279,6 +293,8 @@ export function loadLibrarySource(source, text, registry) {
           // four rows of numbers — so it is referred to by name instead.
           editorSource: roundTrips(matcher, registry) ? matcher.describe() : name,
           meta: null,
+          provenance: motifProvenance({ source, ref: kw.ref || "", evidence: kw.evidence ? nameOf(kw.evidence) : null,
+            taxon: kw.taxon || "", reviewed: kw.reviewed || "", version: kw.version || "" }),
         });
       } else if (kindOfForm === "defenzyme") {
         const name = nameOf(form[1]);
@@ -290,6 +306,7 @@ export function loadLibrarySource(source, text, registry) {
           ref: "", category: "restriction", alphabet: "dna",
           example: concreteSite(info.site),
           scan: true, pattern: matcher.describe(), editorSource: matcher.describe(), meta: info,
+          provenance: motifProvenance({ source, meta: info, evidence: "catalogue", version: "REBASE-derived" }),
         });
       }
     } catch (e) {

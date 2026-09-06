@@ -18,7 +18,8 @@ uses and nothing more. It has no layout, so an interface test can check
 structure, text and the requests made, never appearance.
 
 ```bash
-npm test           # 190 tests
+npm test           # 204 tests
+npm run audit      # report provenance and evidence coverage
 npm run dist       # build web/dist
 npm run serve      # serve it with the deployed security policy
 ```
@@ -56,6 +57,11 @@ What each part is for:
   library looking plausible.
 - **`:ref`** is the paper. Add one if you have it; leaving it off is better than
   guessing.
+- **`:evidence`** may explicitly be `measured`, `catalogue`,
+  `literature-backed` or `uncited`; otherwise Biomotif assigns the most
+  conservative level supported by the source and reference.
+- **`:taxon`**, **`:version`** and **`:reviewed`** record biological scope,
+  source release and the ISO date on which a curator last checked the entry.
 - **`:category`** and **`:alphabet`** (`dna`, `rna` or `protein`) drive the
   library filters and decide which sequences the motif is offered for.
 - **`:scan #f`** marks a template — something like `pam-spcas9` or an N-run that

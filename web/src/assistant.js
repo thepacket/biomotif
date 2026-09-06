@@ -10,7 +10,8 @@
    The key is held in sessionStorage, so it dies with the tab, and is sent only
    to openrouter.ai. Nothing here proxies it anywhere. */
 
-import { BiomotifError } from "./engine.js";
+import { BiomotifError, Record, parse, search } from "./engine.js";
+import { buildMotif } from "./library.js";
 
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 const MODELS_URL = "https://openrouter.ai/api/v1/models";
@@ -54,12 +55,103 @@ export const REPLY_SCHEMA = {
     motif: { type: "string", description: "the motif as one s-expression" },
     name: { type: "string", description: "a short kebab-case name for it" },
     explanation: { type: "string", description: "two sentences: what it matches and why it is written that way" },
-    caveats: { type: "string", description: "one sentence on how often this would match by chance, or empty" },
+    assumptions: { type: "array", items: { type: "string" },
+      description: "explicit choices made where the request was ambiguous" },
+    positive_examples: { type: "array", minItems: 2, maxItems: 2, items: { type: "string" },
+      description: "two short sequences that should match the motif" },
+    negative_examples: { type: "array", minItems: 2, maxItems: 2, items: { type: "string" },
+      description: "two short near-misses that should not match the motif" },
     library: { type: "string", description: "an existing library motif name that already answers this, or empty" },
   },
-  required: ["motif", "name", "explanation", "caveats", "library"],
+  required: ["motif", "name", "explanation", "assumptions", "positive_examples", "negative_examples", "library"],
   additionalProperties: false,
 };
+
+/** Regenerating examples is a much smaller task than writing a motif. Keeping
+    its contract separate prevents the provider from receiving the grammar,
+    library context, explanation and assumptions all over again. */
+export const EXAMPLES_SCHEMA = {
+  type: "object",
+  properties: {
+    positive_examples: { type: "array", minItems: 2, maxItems: 2, items: { type: "string" } },
+    negative_examples: { type: "array", minItems: 2, maxItems: 2, items: { type: "string" } },
+  },
+  required: ["positive_examples", "negative_examples"],
+  additionalProperties: false,
+};
+
+export function examplePrompt(motif, kind = "dna") {
+  const nucleotide = kind === "dna" || kind === "rna";
+  return `Return only four short test sequences for this already-written Biomotif expression:
+${motif}
+
+The alphabet is ${kind}. Do not rewrite or explain the expression. Each positive sequence must
+contain a match somewhere. Each negative sequence must contain no match anywhere.${nucleotide ? ` Nucleotide
+sequences are scanned on both strands, so negatives must avoid both the expression and its
+reverse-complement matches.` : ""}
+
+Reply with JSON only:
+{"positive_examples":["<first match>","<second match>"],
+ "negative_examples":["<first non-match>","<second non-match>"]}`;
+}
+
+/** Providers occasionally return a structurally valid object with values of
+    the wrong scalar type. Normalising at the boundary keeps the review UI from
+    trusting those values, and gives older providers a graceful empty default. */
+export function normalizeReply(value) {
+  const data = value && typeof value === "object" ? value : {};
+  const strings = (xs) => Array.isArray(xs) ? xs.filter((x) => typeof x === "string").map((x) => x.trim()).filter(Boolean) : [];
+  return {
+    motif: typeof data.motif === "string" ? data.motif.trim() : "",
+    name: typeof data.name === "string" ? data.name.trim() : "",
+    explanation: typeof data.explanation === "string" ? data.explanation.trim() : "",
+    assumptions: strings(data.assumptions),
+    positive_examples: strings(data.positive_examples),
+    negative_examples: strings(data.negative_examples),
+    library: typeof data.library === "string" ? data.library.trim() : "",
+  };
+}
+
+/** Compile a generated draft and execute the examples the model claimed define
+    its boundary. These checks are deterministic and local. Construction or
+    execution errors block use; model-authored example disagreements are only
+    warnings, because they say nothing conclusive about expression validity. */
+export function verifyDraft(data, registry, kind = "dna") {
+  const checks = [];
+  let matcher = null;
+  try {
+    matcher = buildMotif(parse(data.motif), registry);
+    checks.push({ ok: true, severity: "pass", blocking: false, text: "The expression compiles locally." });
+  } catch (err) {
+    checks.push({ ok: false, severity: "error", blocking: true, text: `Does not compile: ${err.message}` });
+    return { matcher: null, checks, usable: false, examplesConsistent: false };
+  }
+
+  const nucleotide = kind === "dna" || kind === "rna";
+  const scope = nucleotide ? "on either strand" : "in the protein sequence";
+  try {
+    for (const seq of data.positive_examples) {
+      const ok = search(matcher, new Record("positive example", seq, kind)).length > 0;
+      checks.push({ ok, severity: ok ? "pass" : "warning", blocking: false,
+        text: `${ok ? "Contains a match" : "Contains no match"} ${scope}: positive example ${seq}.` });
+    }
+    for (const seq of data.negative_examples) {
+      const ok = search(matcher, new Record("negative example", seq, kind)).length === 0;
+      checks.push({ ok, severity: ok ? "pass" : "warning", blocking: false,
+        text: `${ok ? "Contains no match" : "Unexpectedly contains a match"} ${scope}: negative example ${seq}.` });
+    }
+    if (data.positive_examples.length < 2 || data.negative_examples.length < 2) {
+      checks.push({ ok: false, severity: "warning", blocking: false,
+        text: "The model did not provide enough examples to test the intended boundary." });
+    }
+  } catch (err) {
+    checks.push({ ok: false, severity: "error", blocking: true,
+      text: `The expression could not be executed locally: ${err.message}` });
+  }
+  const blocking = checks.some((check) => check.blocking);
+  const examplesConsistent = !blocking && checks.every((check) => check.ok);
+  return { matcher, checks, usable: !blocking, examplesConsistent };
+}
 
 /* ----------------------------------------------------------- OpenRouter */
 
@@ -82,14 +174,18 @@ function formatError(status, json) {
   return message ? `OpenRouter: ${message}` : `OpenRouter returned ${status}.`;
 }
 
-async function openrouterAsk(prompt, { signal } = {}) {
+async function openrouterAsk(prompt, {
+  signal, schema = REPLY_SCHEMA, schemaName = "motif_reply", maxCompletionTokens = 1200,
+} = {}) {
   const model = getModel();
   const body = {
     model,
     messages: [{ role: "user", content: prompt }],
+    max_completion_tokens: maxCompletionTokens,
+    reasoning: { effort: "none", exclude: true },
     response_format: {
       type: "json_schema",
-      json_schema: { name: "motif_reply", strict: true, schema: REPLY_SCHEMA },
+      json_schema: { name: schemaName, strict: true, schema },
     },
   };
   let response;
@@ -128,7 +224,7 @@ async function openrouterAsk(prompt, { signal } = {}) {
 
   const usage = json?.usage ?? {};
   return {
-    data,
+    data: normalizeReply(data),
     meta: {
       provider: "openrouter",
       model: json?.model ?? model,
@@ -166,9 +262,9 @@ export async function resolveProvider() {
       kind: "claude",
       label: "Claude, on your account",
       needsKey: false,
-      async ask(prompt, { signal } = {}) {
-        const data = await sample.json(prompt, { modelTier: "default", signal });
-        return { data, meta: { provider: "claude", model: "claude" } };
+      async ask(prompt, { signal, maxCompletionTokens = 1200 } = {}) {
+        const data = await sample.json(prompt, { modelTier: "default", signal, maxTokens: maxCompletionTokens });
+        return { data: normalizeReply(data), meta: { provider: "claude", model: "claude" } };
       },
     };
   }

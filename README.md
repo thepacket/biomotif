@@ -32,7 +32,10 @@ turned into every DNA motif that could encode it.
 No install and no dependencies — Node 20 or newer is used only to build.
 
 ```bash
-npm test           # 190 tests
+npm test           # 204 tests
+npm run audit      # provenance and evidence coverage
+npm run bench      # reproducible matcher benchmark
+npm run test:browser # smoke-test the built page in Chrome/Chromium when installed
 npm run dist       # build web/dist
 npm run serve      # serve it with the deployed security policy
 ```
@@ -135,10 +138,11 @@ at: what the sequence is, what the pattern looks for, what was found, and
 whether finding that much means anything.
 
 That last part is the one people get wrong, and it is computed rather than
-asserted. The sequence is shuffled twenty times — same base composition,
-scrambled order — and the pattern is run against each. If a pattern turns up as
-often in the scrambled versions as in the real one, it is telling you about the
-sequence's composition and nothing else:
+asserted. Forty simulated background sequences preserve the observed tendency
+of each letter to follow another, and the pattern is run against each. The page
+reports their average, 90% range and an exploratory empirical probability. This
+is evidence of enrichment under one background model, never proof that a site
+is functional:
 
 | Pattern | Found | Expected by chance | |
 |---|---|---|---|
@@ -152,18 +156,19 @@ beginner has no way to know that, so the pane says it, and the verdict carries a
 coloured rule so it reads at a glance. One pattern on a 2.7 kb plasmid costs
 about 10 ms.
 
-The shuffle draws from a seeded xorshift32 generator: seeded so that the same
-sequence is always explained the same way, and xorshift because the decoys have
-to be genuinely shuffled. An earlier linear congruential generator multiplied
+The simulation draws from a seeded xorshift32 generator, so the same sequence
+is always explained the same way. An earlier linear congruential generator multiplied
 its seed past the integers a JavaScript number holds exactly, losing the low
 bits — 20,000 draws visited 12,889 distinct states — which quietly weakened
 every estimate on this page.
 
-A scan gets its own version of this. It reports how many *places* the matches
+A scan gets separate exploratory guidance. It reports how many *places* the matches
 sit at rather than how many matches there are — several patterns routinely
 describe one feature, so 53 matches can be 41 places — and it warns when a
 pattern that acts on RNA has been found in DNA, which only means anything if
 that stretch is transcribed, and only from the strand that is.
+It is explicitly labelled exploratory: running hundreds of patterns increases
+the chance of an accidental hit, so each candidate must be checked separately.
 
 Nothing in the pane comes from a model — it is all computed, so it needs no key
 and appears instantly. Library descriptions are quoted as their authors wrote
@@ -174,6 +179,9 @@ is written for readers who do not.
 
 The page retrieves sequences directly from the public databases, with no server
 in between.
+
+Files may be FASTA, bare sequence or GenBank flat files. GenBank locus names and
+definitions are retained; the sequence is still processed entirely in the page.
 
 | Source | Reached by |
 |---|---|
@@ -257,7 +265,9 @@ followed by what the turn cost — `model · 1,180 in · 96 out · $0.0042`.
 
 **Example requests** sits under the ask box: 72 questions grouped by subject,
 with the groups that fit the loaded sequence first. Clicking one fills the box
-rather than sending it, so you can edit before spending a request.
+rather than sending it, so you can edit before spending a request. They are
+pattern-writing examples grouped by compatible alphabet, not promises that the
+resulting pattern occurs in the loaded sequence.
 
 They are deliberately things the library does *not* already contain. A single
 named motif needs no assistant — you click it in the list on the left. What
@@ -268,9 +278,27 @@ written out of the library's own subject matter, so the assistant's honest reply
 to nearly all of them was "you already have this".
 
 The reply is constrained to a JSON schema where the model supports it, and
-salvaged from the surrounding text where it does not. It always arrives as motif
-source you can read and edit, so a generated pattern is auditable rather than
-opaque, and it tells you when the library already has what you asked for.
+salvaged from the surrounding text where it does not. A generated pattern is a
+**draft**, never an automatic action. Before it can replace the editor, the page
+compiles it locally, checks two claimed positive examples and two close negative
+examples, and shows every assumption the model made. Only an expression that
+cannot compile or execute disables **Use this motif**. A disagreement in the
+model-authored examples is shown as a warning and can regenerate its test
+examples, but cannot veto a valid expression. Nucleotide examples use the same
+contains-match, both-strands semantics as a real scan. Statistical caveats come
+from Biomotif's local analysis, not from the model. **Revise request** can
+explicitly refine the current draft.
+
+Example regeneration is a separate, deliberately small request: it sends only
+the existing expression, alphabet and test semantics—not the language guide,
+library entries, earlier explanation or assumptions. It disables model
+reasoning, caps output at 400 tokens and stops after 20 seconds. Full motif
+creation is capped at 1,200 output tokens and 45 seconds.
+
+The full-creation prompt contains the request, the loaded sequence's alphabet
+and a small locally selected set of relevant library definitions. Refinement
+includes the current motif but drops the library context because the expression
+already supplies it. The sequence itself is never sent to the assistant.
 
 This is why the app still needs no server. A proxy holding one shared key would
 work for visitors with nothing to set up, but it would end the static deployment
@@ -287,6 +315,11 @@ URL on the clipboard, so a promoter with a pattern loaded can be handed to a
 class. A sequence you paste or open from a file is never in a link, and neither
 is the assistant key. A link is typed by anyone, so what it may say is bounded:
 unknown keys are dropped and its numbers are clamped.
+
+**Exports.** Results can be copied or downloaded as TSV, BED, GFF3 or a JSON
+analysis report. Each format states its coordinate convention; the JSON report
+also records the sequence origin, motif source, analysis mode and structured
+library provenance.
 
 **Walkthroughs.** Two lessons at the top of the page teach the tool one step at
 a time. *A bacterial gene, from promoter to terminator* uses the built-in operon
@@ -320,7 +353,9 @@ their first appearance in each passage.
 
 **Offline.** The served build keeps its own three files in a service worker,
 so a classroom without a connection still has the library, the examples and
-both offline lessons. Nothing else is cached: a fetched sequence, an assistant
+both offline lessons. Navigations check for a newly deployed page first and
+fall back to the cached copy offline, so refreshing does not silently preserve
+an obsolete interface. Nothing else is cached: a fetched sequence, an assistant
 reply and the fonts pass straight through. The worker is served under a policy
 of its own, because a worker's fetches answer to the policy its script came
 with and the page's leaves out `'self'` on purpose.
@@ -340,6 +375,11 @@ of random DNA, median of five warmed runs, Node 24 on an Apple M3:
 Fast enough for plasmids, genes, promoter sets and bacterial genomes. Not fast
 enough for a vertebrate genome, and a fetch above 12 Mb is refused rather than
 left to crawl.
+
+`npm run bench` reproduces the comparison on deterministic sequence. Library
+scans over records longer than 20 kb yield between batches, report progress and
+can be cancelled by choosing another analysis. Expensive hairpin background
+simulations are skipped on long records rather than freezing the page.
 
 ## Deploying
 
@@ -392,8 +432,8 @@ docker build -t biomotif . && docker run --rm -p 8080:80 biomotif
 
 ```
 web/src/      engine, motif builder, database clients, assistant, explanations, glossary,
-              links, gel, walkthroughs, interface
-web/test/     190 tests, run with `npm test`; dom.mjs is the small DOM the interface tests run in
+              links, export formats, gel, walkthroughs, interface
+web/test/     204 tests, run with `npm test`; dom.mjs is the small DOM the interface tests run in
 library/      the eight .mtf files — the motif library itself
 data/         example sequences, generated by tools/make-data.mjs
 tools/        build, data and index generators, and a local server
@@ -404,6 +444,11 @@ docs/         the full motif catalogue, generated
 The example sequences are synthetic and reproducible: random background at a
 chosen GC content with real consensus elements planted at known positions, so
 every demo has a known right answer. CI rebuilds them and fails if they drift.
+
+The library is also audited as a dataset. `npm run audit` reports evidence
+levels, attributable-source coverage, examples and review dates without hiding
+uncited entries. Each entry exposes conservative structured provenance:
+measured, catalogue-derived, literature-backed or uncited.
 
 ## Contributing
 

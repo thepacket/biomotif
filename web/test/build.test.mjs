@@ -33,12 +33,17 @@ test("the service worker keeps the page's own files and nothing else", () => {
   assert.ok(!sw.includes("/sw.js"), "the worker must not cache itself, or it could never update");
   assert.match(sw, /url\.origin !== self\.location\.origin[^\n]*return/, "cross-origin requests pass straight through");
   assert.match(sw, /caches\.delete/, "old caches are dropped");
+  assert.match(sw, /e\.request\.mode === "navigate"[\s\S]*fetch\("\/index\.html", \{ cache: "no-cache" \}\)/,
+    "a reload checks for a new page before falling back offline");
+  assert.match(sw, /catch\(\(\) => caches\.match\("\/index\.html"\)\)/,
+    "navigation still works from the cached page when offline");
   // A different build is a different cache, so the old page is not served forever.
   assert.match(sw, /const CACHE = "biomotif-[0-9a-f]{8}"/);
 });
 
 test("the page registers the worker only when served, never as a single file", () => {
   assert.match(js, /serviceWorker\.register\("\/sw\.js"\)/);
+  assert.match(js, /registration\.update\(\)/, "a running page asks whether a new worker is available");
   assert.match(js, /script\[src\*="\/biomotif\."\]/);
   assert.ok(!read("index.html").includes("sw.js"), "registration is in the bundle, not inline");
 });
